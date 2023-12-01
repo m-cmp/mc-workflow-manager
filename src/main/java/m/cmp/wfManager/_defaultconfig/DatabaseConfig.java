@@ -21,7 +21,7 @@ import javax.sql.DataSource;
  * mybatis-config.xml 생성 안함.
  */
 @Configuration
-@MapperScan(basePackages = "m.cmp.wfManager.repository")
+@MapperScan(basePackages = "m.cmp.wfManager.**.mapper")
 public class DatabaseConfig {
     @Bean(name = "dbDataSource")
     @ConfigurationProperties(prefix = "spring.datasource.hikari")
