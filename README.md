@@ -134,6 +134,16 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 
 ---
 
+- 컨테이너 저장소
+
+  - 임시(AWS ECR public)
+  - public.ecr.aws/m5m6d0w2/m-cmp-workflow-manager
+
+---
+
+---
+
+
 ## How to Contribute
 
 - Issues/Discussions/Ideas: Utilize issue of mc-workflow-manager
