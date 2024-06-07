@@ -143,7 +143,11 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
   ```bash
   docker pull public.ecr.aws/m5m6d0w2/m-cmp-workflow-manager:latest
   ```
-
+RUN ENV
+${DB_DRIVER} : 기본값 org.mariadb.jdbc.Driver
+${DB} : 기본값 jdbc:mariadb://xx.xx.xx.xx:3306/m-cmp?characterEncoding=UTF-8&serverTimezone=UTC&autoReconnect=true&useSSL=false
+${DB_ID}
+${DB_PW}
 
 ---
 
