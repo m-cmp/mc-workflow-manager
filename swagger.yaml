@@ -10,7 +10,6 @@ info:
     url: http://www.apache.org/licenses/LICENSE-2.0
 host: localhost:18083
 basePath: /
-
 paths:
   /:
     get:
