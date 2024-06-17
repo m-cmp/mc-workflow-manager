@@ -123,12 +123,15 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 - Jenkins 접속
   - http://Public_IP주소:9800
 
-- WorkFlow 실행
+- WorkFlow 실행 - ver 0.2.0부터 api 제공
   - Swagger를 통해 workflow pipeline을 생성 후
   - Jenkins의 새로운 Item 생성 클릭 후
   - Item 이름 작성, pipeline 선택 후 저장
   - Workflow로 만든 pipeline을 입력 후 저장
   - 지금 빌드 버튼 클릭
+
+https://github.com/m-cmp/mc-workflow-manager/blob/main/M-CMP_API_Flow_v0.2.pdf
+작업중 버전 workflow stage 및 workflow 안내
 
 ---
 
