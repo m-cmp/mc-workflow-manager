@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.co.strato.mcmp.deploy.mapper.DeployMapper">
+	<sql id="selectDeployQuery_SELECT">
+		SELECT  dep.workflow_id
+			 ,dep.workflow_name
+			 ,dep.gitlab_id
+			 ,dep.k8s_id
+			 ,dep.group_name
+			 ,dep.project_name
+			 ,dep.branch
+			 ,dep.jenkins_id
+			 ,dep.jenkins_job_name
+			 ,dep.reg_id
+			 ,dep.reg_name
+			 ,dep.reg_date
+			 ,dep.mod_id
+			 ,dep.mod_name
+			 ,dep.mod_date
+	</sql>
+
+	<sql id="selectDeployQuery_FROM">
+		FROM workflow dep
+         INNER JOIN k8s k8s
+            ON dep.k8s_id    = k8s.k8s_id
+	</sql>
+
+	<select id="selectDeployList" parameterType="Deploy" resultType="Deploy">
+		/* DeployMapper.selectDeployList */
+		<include refid="selectDeployQuery_SELECT"/>
+		/*,CONCAT(SUBSTRING_INDEX(gitlab.oss_url, '://', 1), '://', REPLACE(CONCAT(REPLACE(SUBSTRING_INDEX(gitlab.oss_url, '://', -1), '/', ''), '/', dep.gitlab_project_path), '//', '/')) AS gitlab_project_path*/
+		,gitlab.oss_url || dep.gitlab_project_path AS gitlab_project_path
+		,k8s.k8s_name
+		,k8s.provider_cd
+		<include refid="selectDeployQuery_FROM"/>
+		INNER JOIN oss gitlab
+		ON dep.gitlab_id = gitlab.oss_id
+		<where>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(projectName)">
+				AND dep.project_name = #{projectName}
+			</if>
+		</where>
+		ORDER BY dep.workflow_id DESC
+	</select>
+
+	<select id="selectDeploy" parameterType="int" resultType="Deploy">
+		/* DeployMapper.selectDeploy */
+		<include refid="selectDeployQuery_SELECT"/>
+		,dep.gitlab_project_path
+		,dep.workflow_yaml
+		,dep.pipeline_script
+		,k8s.k8s_name
+		,k8s.provider_cd
+		<include refid="selectDeployQuery_FROM"/>
+		WHERE dep.workflow_id = #{workflowId}
+	</select>
+
+	<select id="isDeployNameDuplicated" parameterType="String" resultType="boolean">
+		/* DeployMapper.isDeployNameDuplicated */
+		SELECT (CASE WHEN COUNT(*) > 0 THEN true ELSE false END) AS duplicated
+		FROM workflow
+		WHERE workflow_name = #{workflowName}
+	</select>
+
+	<insert id="insertDeploy" parameterType="Deploy" useGeneratedKeys="true" keyColumn="workflow_id" keyProperty="workflowId">
+		/* DeployMapper.insertDeploy */
+		INSERT INTO workflow (
+							  gitlab_id
+							 ,jenkins_id
+							 ,k8s_id
+							 ,workflow_name
+							 ,gitlab_project_path
+							 ,group_name
+							 ,project_name
+							 ,branch
+							 ,workflow_yaml
+							 ,jenkins_job_name
+							 ,pipeline_script
+							 ,reg_id
+							 ,reg_name
+							 ,reg_date
+		) VALUES (
+					 #{gitlabId}
+				 ,#{jenkinsId}
+				 ,#{k8sId}
+				 ,#{workflowName}
+				 ,#{gitlabProjectPath}
+				 ,#{groupName}
+				 ,#{projectName}
+				 ,#{branch}
+				 ,#{workflowYaml}
+				 ,#{jenkinsJobName}
+				 ,#{pipelineScript}
+				 ,#{regId}
+				 ,#{regName}
+				 ,NOW()
+				 )
+	</insert>
+
+	<update id="updateDeploy" parameterType="Deploy">
+		/* DeployMapper.updateDeploy */
+		UPDATE workflow
+		SET  workflow_yaml   	= #{workflowYaml}
+		  ,pipeline_script	= #{pipelineScript}
+		  ,mod_id			= #{modId}
+		  ,mod_name		= #{modName}
+		  ,mod_date		= NOW()
+		WHERE workflow_id		= #{workflowId}
+	</update>
+
+	<delete id="deleteDeploy" parameterType="int">
+		/* DeployMapper.deleteDeploy */
+		DELETE FROM workflow
+		WHERE workflow_id = #{workflowId}
+	</delete>
+
+	<select id="selectDeployPipelineList" parameterType="int" resultType="Pipeline">
+		/* DeployMapper.selectDeployPipelineList */
+		SELECT  pipeline_order
+			 ,pipeline_cd
+			 ,pipeline_script
+			 ,reg_id
+			 ,reg_name
+			 ,reg_date
+		FROM workflow_jenkins_pipeline_mapping
+		WHERE workflow_id = #{workflowId}
+		ORDER BY pipeline_order ASC, mapping_id ASC
+	</select>
+
+	<insert id="insertDeployPipeline" parameterType="Deploy">
+		/* DeployMapper.insertDeployPipeline */
+		INSERT INTO workflow_jenkins_pipeline_mapping (
+		workflow_id
+		,pipeline_order
+		,pipeline_cd
+		,pipeline_script
+		,reg_id
+		,reg_name
+		,reg_date
+		) VALUES
+		<foreach collection="pipelines" item="pipeline" separator="," >
+			(
+			#{workflowId}
+			,#{pipeline.pipelineOrder}
+			,#{pipeline.pipelineCd}
+			,#{pipeline.pipelineScript}
+			,#{regId}
+			,#{regName}
+			,NOW()
+			)
+		</foreach>
+	</insert>
+
+	<delete id="deleteDeployPipeline" parameterType="int">
+		/* DeployMapper.deleteDeployPipeline */
+		DELETE FROM workflow_jenkins_pipeline_mapping
+		WHERE workflow_id = #{workflowId}
+	</delete>
+
+	<sql id="selectDeployHistoryQuery">
+		SELECT  workflow_history_id
+			 ,workflow_id
+			 ,jenkins_build_id
+			 ,build_number
+			 ,run_result
+			 ,workflow_message
+			 ,workflow_user_id
+			 ,workflow_user_name
+			 ,workflow_date
+	</sql>
+
+	<select id="selectDeployHistoryList" parameterType="int" resultType="DeployHistory">
+		/* DeployMapper.selectDeployHistoryList */
+		<include refid="selectDeployHistoryQuery" />
+		FROM workflow_history
+		WHERE workflow_id = #{workflowId}
+		ORDER BY workflow_history_id DESC
+	</select>
+
+	<select id="selectDeployHistory" parameterType="int" resultType="DeployHistory">
+		/* DeployMapper.selectDeployHistory */
+		<include refid="selectDeployHistoryQuery" />
+		,workflow_yaml
+		,pipeline_script
+		FROM workflow_history
+		WHERE workflow_history_id = #{workflowHistoryId}
+	</select>
+
+	<insert id="insertDeployHistory" parameterType="DeployHistory" useGeneratedKeys="true" keyColumn="workflow_history_id" keyProperty="workflowHistoryId">
+		/* DeployMapper.insertDeployHistory */
+		INSERT INTO workflow_history (
+		workflow_id
+		,workflow_yaml
+		,pipeline_script
+		<if test="jenkinsBuildId != null">
+			,jenkins_build_id
+		</if>
+		<if test="buildNumber != null">
+			,build_number
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(runResult)">
+			,run_result
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(runMessage)">
+			,run_message
+		</if>
+		,run_user_id
+		,run_user_name
+		,run_date
+		) VALUES (
+		#{workflowId}
+		,#{workflowYaml}
+		,#{pipelineScript}
+		<if test="jenkinsBuildId != null">
+			,#{jenkinsBuildId}
+		</if>
+		<if test="buildNumber != null">
+			,#{buildNumber}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(runResult)">
+			,#{runResult}
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(runMessage)">
+			,#{runMessage}
+		</if>
+		,#{runUserId}
+		,#{runUserName}
+		,NOW()
+		)
+	</insert>
+
+	<update id="updateDeployHistory" parameterType="DeployHistory">
+		/* DeployMapper.updateDeployHistory */
+		UPDATE workflow_history
+		SET  run_result    = #{runResult}
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(runMessage)">
+			,run_message   = #{runMessage}
+		</if>
+		<if test="jenkinsBuildId != null">
+			,jenkins_build_id = #{jenkinsBuildId}
+		</if>
+		<if test="buildNumber != null">
+			,build_number         = #{buildNumber}
+		</if>
+		WHERE workflow_history_id = #{workflowHistoryId}
+	</update>
+
+	<delete id="deleteDeployHistory" parameterType="int">
+		/* DeployMapper.deleteDeployHistory */
+		DELETE FROM workflow_history
+		WHERE workflow_id = #{workflowId}
+	</delete>
+</mapper>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<appender name="consoleAppender"
+		class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>%date{ISO8601} [%thread] %-5level %logger{20} %L- %msg %n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="fileAppender"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>m-cmp-backend.log</file>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- daily rollover -->
+			<fileNamePattern>m-cmp-backend.%d{yyyy-MM-dd}.log</fileNamePattern>
+			<!-- keep 90 days -->
+			<maxHistory>90</maxHistory>
+		</rollingPolicy>
+
+		<encoder>
+			<charset>UTF-8</charset>
+			<pattern>%date{ISO8601} [%thread] %-5level %logger{20} %L- %msg %n
+			</pattern>
+		</encoder>
+	</appender>
+
+	<logger name="org.springframework" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="fileAppender" />
+	</logger>
+
+	<logger name="kr.co.strato.devops" additivity="false">
+		<level value="INFO" />
+		<appender-ref ref="fileAppender" />
+	</logger>
+
+	<root level="INFO">
+		<appender-ref ref="fileAppender" />
+	</root>
+</configuration>
