@@ -58,7 +58,7 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 - 80, 443
 - 3306 (MariaDB)
 - 9800 (Jenkins)
-- 18084 (MC_WORKFLOW)
+- 18083, 18084 (MC_WORKFLOW)
 - 1024 (MC_SPIDER)
 - 1323 (CB_TUMBLEBUG)
 
@@ -146,9 +146,9 @@ https://github.com/m-cmp/mc-workflow-manager/blob/main/M-CMP_API_Flow_v0.2.pdf
   ```bash
   docker pull public.ecr.aws/m5m6d0w2/m-cmp-workflow-manager:latest
   ```
-RUN ENV
+RUN ENV (임시 서버 연결 2024/06/30까지 가능, 이후 업데이트)
 - ${DB_DRIVER} : 기본값 org.mariadb.jdbc.Driver
-- ${DB} : 기본값 jdbc:mariadb://xx.xx.xx.xx:3306/m-cmp?characterEncoding=UTF-8&serverTimezone=UTC&autoReconnect=true&useSSL=false
+- ${DB} : 기본값 localhost:3306/m-cmp
 - ${DB_ID}
 - ${DB_PW}
 
