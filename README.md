@@ -100,6 +100,8 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 ### (4) 빌드 및 실행
 
 - Shell Script 실행
+  - source변경으로 스크립트 업데이트 필요(20240618)
+
 
   ```bash
     #Run Mariadb
@@ -118,7 +120,7 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
   ```
 
 - Swagger 접속
-  - http://Public_IP주소:18084/swagger-ui/index.html
+  - http://Public_IP주소:18083/swagger-ui/index.html
 
 - Jenkins 접속
   - http://Public_IP주소:9800
@@ -129,7 +131,7 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
   - Item 이름 작성, pipeline 선택 후 저장
   - Workflow로 만든 pipeline을 입력 후 저장
   - 지금 빌드 버튼 클릭
-
+↓↓↓↓↓↓↓
 https://github.com/m-cmp/mc-workflow-manager/blob/main/M-CMP_API_Flow_v0.2.pdf
 작업중 버전 workflow stage 및 workflow 안내
 
