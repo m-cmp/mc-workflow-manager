@@ -1,0 +1,24 @@
+    
+.app-container[data-page-id=config-connection-jenkins],
+.app-container[data-page-id=config-connection-gitlab]{
+    .connection-check-wrapper {
+		display: flex;
+        flex-direction: row;
+        align-items: flex-end;
+        >div{flex: 1;display: flex;margin-right: 10px;}
+        .el-form-item {
+            flex:1
+        }
+
+       .action-wrapper {
+            flex: 0;
+             button{width:175px !important};
+        }
+        
+        .el-form-item + .el-form-item {
+            margin-left:10px;
+        }
+
+	}
+}
+

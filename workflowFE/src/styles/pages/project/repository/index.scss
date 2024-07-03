@@ -1,0 +1,217 @@
+
+//repository file breadcrumb
+$--project-repository-file-breadcrumb-color:#20a8d8;
+$--project-repository-file-breadcrumb-hover-color:#42b2da;//#167495;
+
+///file
+.app-container[data-page-id=project-repository-file]{
+    .menu-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .directory-info {
+            display: flex;
+            align-items: center;
+            .branch-select {
+                margin-right: 6px;
+                width: 240px;
+            }
+            .directory-breadcrumb {
+                margin-left: 10px;
+            }
+        }
+        .action > button {
+            padding: 8px;
+        }
+        .el-button + .el-button {
+            margin-left: 3px;
+        }
+
+        .clone-pop-trigger{
+            padding-right: 14px;
+            .el-icon-bottom{
+                margin-left: 4px;
+            }
+        }
+    }
+
+    ///file breadcrumb
+    .repository-file-breadcrumb{
+        display: flex;
+        align-items: center;
+        .breadcrumb-item {
+            .el-breadcrumb__separator{
+                margin: 0 4px;
+            }
+
+            .el-breadcrumb__inner {
+                cursor: pointer !important;
+                color: $--project-repository-file-breadcrumb-color;
+                &:hover {
+                    color: $--project-repository-file-breadcrumb-hover-color;
+                }
+                &:last-child {
+                    color: #606266;
+                }
+            }
+        }
+    }
+
+
+    ///file list table
+    .file-list-table{
+        .group-name-label {
+            cursor: pointer;
+          }
+
+          i.table-ico.folder {
+              margin-right: 8px;
+          }
+
+          i.table-ico.folder{
+              display: inline-block;
+              width: 18px;
+              height: 18px;
+              vertical-align: middle;
+              background: url(/images/icons/disk/ico-folder.png) no-repeat 0px 0px;
+              line-height: 0;
+              font-size: 0;
+              overflow: hidden;
+          }
+    }
+
+    //file viewer
+    .file-viewer {
+        margin-top: 10px;
+		dt {
+			padding: 10px 15px;
+			background-color: #f0f8f8;
+			vertical-align: middle;
+			border-bottom: 1px #dbe0e0 solid;
+			sub {
+				margin-left: 3px;
+				bottom: inherit;
+				color: #a0a0a0;
+				font-size: 14px;
+				font-weight: normal;
+			}
+		}
+		dd {
+			margin:0;
+			textarea {
+				height:100%;
+			}
+
+		}
+	}
+
+}
+
+.repository-file-clone-popover{
+    >p{margin-bottom: 10px;}
+    .download-file{
+        width: 100%;
+        margin-top: 8px;
+    }
+
+    .url-copy-field >>> .el-input-group__append{
+        padding: 4px 10px;
+    }
+}
+
+
+//commit
+.app-container[data-page-id=project-repository-commit]{
+    .menu-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        .directory-info {
+            display: flex;
+            align-items: center;
+            .branch-select {
+                width: 270px;
+            }
+        }
+    }
+
+    dl.commit-list {
+        &:not(:first-child) {
+            margin-top: 20px;
+        }
+        dt.commit-group-header {
+            border: 1px #c8ced3 solid;
+            background-color: rgba(0, 0, 0, 0.05);
+            color: #666;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        dd.commit-contents {
+            color: #666;
+            margin-left: 0;
+            margin-right: 10px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 10px;
+            border-bottom: 1px #e4e4e4 solid;
+            &:last-child {
+                border-bottom: 0px #e4e4e4 solid;
+            }
+        }
+    }
+}
+
+
+//branch
+.app-container[data-page-id=project-repository-branch]{
+
+    .actions {
+        display:flex;
+        justify-content: flex-end;
+        .el-input {
+            margin-right:5px;
+            width:250px;
+        }
+    }
+
+    .branch-list {
+        margin-top: 16px;
+        .branch-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #666;
+            padding: 20px 0;
+            border-bottom: #e3eaf0 1px solid;
+
+            &:nth-child(1) {
+                border-top: #e3eaf0 1px solid;
+            }
+
+            .badge > * {
+                //border-radius: 0;
+                font-size: 10px;
+                font-weight: 700;
+                color: #fff;
+               // background-color: #4dbd74;
+            }
+
+            .delete-button {
+                color: rgba(113, 130, 140, 0.7);
+                font-size: 22px;
+                cursor: pointer;
+            }
+        }
+
+        padding: 0;
+    }
+}

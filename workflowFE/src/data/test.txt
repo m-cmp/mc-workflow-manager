@@ -1,0 +1,25 @@
+groups 
+    _main
+        -groups
+    
+    groups/grouphome
+        
+
+group
+    _main
+        -General
+        -Members 
+        -Build
+            - Remote hosts
+            - Docker Build Server
+    
+    group/번호/general
+    group/번호/members
+
+projects
+    _main
+        -Projects
+        -신규추가 기능
+
+project
+    -

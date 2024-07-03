@@ -1,0 +1,396 @@
+/*메뉴 접었을때, 하위메뉴 팝오버로 뜨는 메뉴*/
+.el-menu--vertical>.el-menu--popup{
+  .el-menu-item svg{margin-right: 6px;}
+}
+
+
+/*vertical menu sub pop*/
+.el-menu--vertical .el-menu--popup{
+	&,.el-menu-item{
+		color: $subMenuText !important;
+		background-color: $subMenuBg !important;
+	}
+
+	.el-menu-item{
+		&.is-active,
+		&:hover{
+			color: $subMenuActiveText !important;
+			background-color: $subMenuHover !important;
+		}
+	}
+}
+
+.el-menu--vertical .el-menu--popup,
+.sidebar-container {
+	.el-menu-item{
+		transition: color 0s !important;
+	}
+	
+	.img-ico{display:inline-block; width: 20px; height: 20px; margin-right: 8px;}
+	.img-ico{
+		background: url(/images/icons/menu/main/organization.png);
+		background-size: 40px;
+		background-position: 0;	
+	}
+
+	.el-submenu__title:hover>.img-ico,
+	.is-active>.img-ico,
+	.is-active>.el-tooltip>.img-ico,
+	.is-active>.el-submenu__title>.img-ico,
+	.el-menu-item:hover>.el-tooltip>.img-ico,
+	.el-menu-item:hover>.img-ico{background-position: -20px 0;}
+}
+
+#app {
+	
+	/*logo*/
+	.sidebarLogoFade-enter-active {
+		transition: opacity 1.5s;
+	}
+	
+	.sidebarLogoFade-enter,
+	.sidebarLogoFade-leave-to {
+		opacity: 0;
+	}
+	
+	.sidebar-logo-container {
+		position: relative;
+		width: 100%;
+		height: 50px;
+		line-height: 50px;
+		background: $logoContainderBg;
+		text-align: center;
+		overflow: hidden;
+	
+		& .sidebar-logo-link {
+			height: 100%;
+			width: 100%;
+	
+			& .sidebar-logo {
+				vertical-align: middle;
+				margin-right: 12px;
+			}
+	
+			& .sidebar-title {
+				display: inline-block;
+				margin: 0;
+				color: #fff;
+				font-weight: 600;
+				line-height: 50px;
+				font-size: 14px;
+				font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
+				vertical-align: middle;
+			}
+		}
+	
+		&.collapse {
+			.sidebar-logo {
+				margin-right: 0px;
+				width: 36px;
+				height: 36px;
+			}
+		}
+	}
+	/*//logo*/
+  .main-container {
+    min-height: 100%;
+    transition: margin-left .28s;
+    margin-left: $sideBarWidth;
+    position: relative;
+  }
+
+  .sidebar-container {
+    display:flex;
+    flex-direction: column;  
+    transition: width 0.28s;
+    width: $sideBarWidth !important;
+    background-color: $menuBg;
+    height: 100%;
+    position: fixed;
+    font-size: 0px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1001;
+    overflow: hidden;
+     
+    // reset element-ui css
+    .horizontal-collapse-transition {
+      transition: 0s width ease-in-out, 0s padding-left ease-in-out, 0s padding-right ease-in-out;
+    }
+
+    .scrollbar-wrapper {
+      overflow-x: hidden !important;
+      
+    }
+
+    .el-scrollbar__bar.is-vertical {
+      right: 0px;
+    }
+
+    .el-scrollbar {
+      //height: 100%;
+      flex:1;
+    }
+
+    &.has-logo {
+      .el-scrollbar {
+        height: calc(100% - 50px);
+      }
+    }
+
+    .is-horizontal {
+      display: none;
+    }
+
+    a {
+      display: inline-block;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .svg-icon, .nav-icon {
+      margin-right: 12px;
+      width:20px;
+      height:20px;
+    }
+    .nav-icon {
+        // display:inline-block;
+        // width: 26px;
+        // background-repeat:no-repeat;
+
+    }
+
+    .el-menu {
+      border: none;
+      height: 100%;
+      width: 100% !important;
+    }
+
+    // menu hover
+    .submenu-title-noDropdown,
+    .el-submenu__title {
+        padding-left:14px !important;
+		
+		&.is-active{
+			color: $menuActiveText !important;
+		}
+
+		  
+       &:hover {
+			color: $menuActiveText !important;
+        	background-color: $menuHover !important;
+       }
+    }
+	
+    & .el-submenu >ul .el-menu-item {
+	  color: $subMenuText !important;
+	  &:hover, &.is-active{
+		  color: $subMenuActiveText !important;
+	  }
+    }
+
+    & .nest-menu .el-submenu>.el-submenu__title,
+    & .el-submenu .el-menu-item {
+      min-width: $sideBarWidth !important;
+      background-color: $subMenuBg !important;     
+      &:hover {
+        background-color: $subMenuHover !important;
+      }
+    }
+
+    .el-menu-item {
+		padding-left:14px !important;		
+    }
+
+    .el-submenu .nest-menu .el-menu-item {
+        padding-left:30px !important;
+    }
+
+    
+  }
+
+  .hideSidebar {
+    .sidebar-container {
+      width: 54px !important;
+    }
+
+    .main-container {
+      margin-left: 54px;
+    }
+
+    .submenu-title-noDropdown {
+      //padding: 0 !important;
+      position: relative;
+
+      .el-tooltip {
+        //padding: 0 !important;
+        padding: 0px 14px !important;
+        .svg-icon, .nav-icon {
+          margin-left: 0px;
+        }
+      }
+    }
+
+    .el-submenu {
+      overflow: hidden;
+
+      &>.el-submenu__title {
+        //padding: 0 !important;
+
+        .svg-icon, .nav-icon {
+          margin-left: 0px;
+        }
+
+        .el-submenu__icon-arrow {
+          display: none;
+        }
+      }
+    }
+
+    .el-menu--collapse {
+      .el-submenu {
+        &>.el-submenu__title {
+          &>span {
+            height: 0;
+            width: 0;
+            overflow: hidden;
+            visibility: hidden;
+            display: inline-block;
+          }
+        }
+      }
+    }
+    .el-menu-item {
+        padding-left:14px !important;
+    }
+
+  }
+
+  .el-menu--collapse .el-menu .el-submenu {
+    min-width: $sideBarWidth !important;
+  }
+
+  // mobile responsive
+  .mobile {
+    .main-container {
+      margin-left: 0px;
+    }
+
+    .sidebar-container {
+      transition: transform .28s;
+      width: $sideBarWidth !important;
+    }
+
+    &.hideSidebar {
+      .sidebar-container {
+        pointer-events: none;
+        transition-duration: 0.3s;
+        transform: translate3d(-$sideBarWidth, 0, 0);
+      }
+    }
+  }
+
+  .withoutAnimation {
+
+    .main-container,
+    .sidebar-container {
+      transition: none;
+    }
+  }
+}
+
+// when menu collapsed
+.el-menu--vertical {
+  &>.el-menu {
+    .svg-icon {
+      margin-right: 12px;
+    }
+  }
+
+  .nest-menu .el-submenu>.el-submenu__title,
+  .el-menu-item {
+    &:hover {
+      // you can use $subMenuHover
+      background-color: $menuHover !important;
+    }
+  }
+
+  // the scroll bar appears when the subMenu is too long
+  >.el-menu--popup {
+    max-height: 100vh;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar-track-piece {
+      background: #d3dce6;
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #99a9bf;
+      border-radius: 20px;
+    }
+  }
+}
+
+//@mixin sidebar-style($name, $bg-color, $menu-bg-color, $menu-text-color, $active-bg-color, $actvie-text-color ){
+
+@mixin sidebar-style($name, $bg-color, $normal, $active ){
+   
+
+    #app {
+        .sidebar-container {
+            &.#{$name}{
+                background-color:#{$bg-color};
+                .menu-wrapper {
+                    .el-menu-item {
+                        //background-color:#{$menu-bg-color} !important;
+                        background-color:map-get($normal, "bg") !important;
+                        &.is-active {
+                            //background-color:#{$active-bg-color} !important;
+                            background-color:map-get($active, "bg") !important;
+                        }
+                        &:hover {
+                            background-color:map-get($normal, "hover-bg") !important;
+                        }
+                    }
+
+                    > .el-submenu {
+                        > .el-submenu__title {
+                            //background-color:#{$menu-bg-color} !important;
+                            background-color:map-get($normal, "bg") !important;
+                            &.is-active {
+                                //background-color:#{$active-bg-color} !important;
+                                background-color:map-get($active, "bg") !important;
+                            }
+                            &:hover {
+                                background-color:map-get($normal, "hover-bg") !important;
+                            }
+                        }
+                        &.is-active {
+                            > .el-submenu__title {
+                                //background-color:#{$active-bg-color} !important;
+                                background-color:map-get($active, "bg") !important;
+                            }
+                        }
+                    }
+                }
+            }
+        
+        }
+    }
+}
+/*
+@include sidebar-style("configurations", "#304156", 
+    ("bg":#304156, "text":#bfcbd9, "hover-bg":#263445),
+    ("bg":#304156, "text":#409EFF, "hover-bg":#263445)
+)
+
+@include sidebar-style("group", "#ee0000", 
+    ("bg":#ee0000, "text":#bfcbd9, "hover-bg":#263445),
+    ("bg":#ee0000, "text":#409EFF,"hover-bg":#263445)
+)
+*/

@@ -1,0 +1,52 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    devops.type: m-cmp-frontend
+  name: m-cmp-frontend-deployment
+  namespace: strato-product
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      devops.type: m-cmp-frontend
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        devops.type: m-cmp-frontend
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: devops.type
+                operator: In
+                values:
+                - m-cmp-frontend
+            topologyKey: kerbernetes.io/hostname
+      containers:
+      - image: harbor.strato-solution.co.kr/strato/m-cmp-frontend:0.0.1
+        imagePullPolicy: Always
+        name: m-cmp-frontend-pod
+        ports:
+        - containerPort: 8080
+          name: port-8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: m-cmp-frontend-svc
+  namespace: strato-product
+spec:
+  type: NodePort
+  ports:
+  - name: port-8080
+    port: 8080
+    targetPort: 80
+    nodePort: 32083
+  selector:
+    devops.type: m-cmp-frontend

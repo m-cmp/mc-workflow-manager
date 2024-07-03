@@ -1,0 +1,177 @@
+.modeler-wrap-form{
+    height:100%;
+    flex-direction: column;
+    display: flex;
+
+    > .cont-form{
+        flex:1;
+    }
+    .submit-wrapper{
+        display: flex;
+        justify-content: flex-end;
+    }
+}
+
+.modeler-page{
+    //only edit page..
+    .component-list-panel{
+        z-index:$canvas-index;
+
+        .component-list{
+            .model-item {
+            width: 200px;
+                padding: 15px 20px;
+                background: #04C8C8;
+                border: 1px solid #04C8C8;
+                cursor: pointer;
+                margin-bottom: 4px;
+                font-size: 15px;
+                border-radius: 4px;
+                color: $--modelder-wysisyg-list-color;
+
+                svg{margin-right: 2px; color:#dce4ea;}
+            }
+        }
+    }
+
+    //editor
+    .new-modeler{
+        padding: 8px 0;
+        .editor {
+            margin:0;
+            padding:0;
+            width:100%;
+            box-sizing: border-box;
+            display:flex;
+            .side-bar {
+                padding: 0 8px;
+                .component-list-panel {
+                    width:100%;
+                }
+            }
+    
+            
+    
+            .editor-document-wrapper {
+                box-shadow: 0 1px 8px 0 rgba(0, 0, 0, 0.2);
+                flex:1;
+                .editor-document{
+                    overflow: auto;
+                    box-sizing: border-box;
+                    height:100%;
+                    z-index:$canvas-index;
+                    position: relative;
+
+                    .icon-delete{
+                        z-index:5000;
+                        font-size: 15px !important;
+                        position: absolute;
+                        top: 5px;
+                        right: 8px;
+                    }
+                }
+            }
+            
+        }
+    }
+    
+    //viewer
+    .view-modeler{
+        padding:8px 0;
+    
+        .viewer-document-wrapper {
+            box-shadow: 0 1px 8px 0 rgba(0, 0, 0, 0.2);
+            display:flex; 
+            flex:1;
+            
+            .viewer-document{
+                overflow: auto;
+                box-sizing: border-box;
+                z-index:$canvas-index;
+                position: relative;;
+                width:100%;
+            }
+        }
+    }
+    
+    
+
+    
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        h2{align-items: center; display: flex; align-items: center;}
+        a{display: flex; margin-left: 6px; color: #666;}
+    }
+
+    .new-modeler, .view-modeler {
+        display: flex;
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background-color: #ffffff;
+
+        flex-direction: column;
+        .editor {
+            flex: 1;
+        }
+    }
+
+    .wrap-edit-btn {
+        display: flex;
+        align-items: center;
+        .el-button.is-plain {
+            font-size: 20px;
+            padding: 4px 8px;
+        }
+        .el-button + .el-button {
+            margin-left: 4px;
+        }
+    }
+
+    .fullscreen{
+        z-index:$fullscreen-index;
+        position:fixed !important;
+        left:0 !important;
+        top:0 !important;
+        right:0 !important;
+        bottom:0 !important;
+        width:100%;
+        height:100%;
+        overflow: auto;
+    }
+
+    &[data-fullscreen=true] {
+        .wrap-edit-btn {
+            position: fixed;
+            top: 4px;
+            right: 4px;
+            z-index: $fixed-index;
+            background: rgba(255, 255, 255, 0.4);
+            padding: 5px;
+            border: 1px solid #efefef;
+            border-radius: 2px;
+        }
+    }
+
+    .wrap-edit-btn{
+        .link-action{
+            font-size: 30px;
+            color: rgba(113, 130, 140, 0.7);
+            margin: 0 5px;
+            width:30px;
+            height:30px;
+            cursor:pointer;
+        }
+    }
+}
+
+
+//project component, project detail info panel
+.modeler-project-state{
+    &.error{color:$--modelder-state-error-color;}
+    &.normal{color:$--modelder-state-normal-color;}
+    &.not{color:$--modelder-state-not-color;}
+    &.none{color:$--modelder-state-none-color; opacity: 0.5;}
+}

@@ -1,0 +1,137 @@
+.app-container[data-page-id=notification-list],
+.app-container[data-page-id=group-notification-list],
+.app-container[data-page-id=project-notification-list]{
+    tbody .notification-name .cell {
+        display: flex !important;
+        align-items: center;
+        p {
+            margin: 0;
+        }
+    }
+
+    tbody .actions .cell {
+        .delete-button.el-button--mini {
+            padding: 5px !important;
+        }
+    }
+}
+
+//config>notification>list
+.app-container[data-page-id=notification-list]{
+    .el-select + .el-select {
+        margin-left: 10px;
+    }
+    
+    .el-select + .el-button {
+        margin-left: 10px;
+    }
+}
+
+//config>notification>edit
+.app-container[data-page-id=notification-edit]{
+    .rest-btn-wrap{
+        display:flex;
+        >.el-button{margin-right: 4px;}
+        .copy-field{width: 200px;}
+    }
+}
+
+.add-notification-dialog {
+    .mr-2 { margin-right: 5px; }
+    hr { color: #666; }
+    .el-dialog__body {padding: 20px 20px;}
+
+    .el-card__header {
+        h3 { margin:0 0 10px 0;}
+
+        .menu-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            .el-input {
+                flex:1;
+                margin-right:5px;
+            }
+            .el-button {
+                width:60px;
+            }
+        }
+    }
+
+    .footer {
+        margin: 20px 0 0 0;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+
+
+
+    .user-list-wrapper {
+        display: flex;
+
+        .new-selected-user-list-container { flex: 1; }
+
+        .not-user-list-container { flex: 1; }
+        .el-card__body{padding: 10px 20px;}
+        .user-list {
+            height: 300px;
+            overflow: auto;
+            padding: 0;
+            
+            &.selected-list{
+                .user-contents {
+                    flex:1;
+                    justify-content:space-between; 
+                } 
+            }
+
+           
+
+            .user-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: #666;
+                padding: 10px 0;
+                border-bottom: #e3eaf0 1px solid;
+
+                .add-button {
+                    padding: 5px 10px;
+                    margin-left: 10px;
+                }
+                .remove-button {
+                    margin-left: 10px;
+                    color: rgba(113, 130, 140, 0.7);
+                    font-size: 22px;
+                    cursor: pointer;
+                }
+
+                .user-contents {
+                    display: flex;
+                    align-items: center;
+                    .info{
+                        margin-right: 4px;
+                        flex:1;
+                        display: flex;
+                    }
+
+                    .select-author{
+                        width: 184px;
+                    }
+
+                    .user-icon {
+                        margin-right: 10px;
+                    }
+                    .user-info {
+                        align-items: center;
+                        p {
+                            margin: 0;
+                        }
+                    }
+                } 
+            }            
+        }
+    }
+}

@@ -1,0 +1,240 @@
+.modal-panel, .app-container{
+    //description form 250자 제한 가이드 레이아웃
+    .desc-field-form{
+        label{
+            display: flex;
+            justify-content: space-between;
+            .txt-info{
+                font-weight: normal;
+                font-size: 13px;
+                box-sizing: border-box;
+            }
+        }        
+    }
+}
+
+
+.app-container {
+    padding:30px 40px;
+    background-color:#ffffff;
+    position: relative;
+    min-height:850px;
+    display:flex;
+    flex-direction: column;
+
+    > .header,
+    .header-wrapper > .header {
+        h2 {
+            font-size:24px;
+            font-weight: 700; 
+            margin: 20px 0;
+            color: $--page-title-color;
+        }
+    }
+
+
+    /*************************************************
+     * card list(group, project)
+     *************************************************/
+    .empty-add-card {
+        height: 225px;
+        overflow: hidden;
+        display:flex;
+        align-items: center;
+        justify-content: center;
+
+        .card-body {
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+            
+            .icon {
+                color: $--text-color-primary;
+                font-size:100px;
+            }
+
+            .title{
+                color: $--text-color-primary
+            }
+        }
+    }
+
+    .empty-card {
+        height:225px;
+        overflow: hidden;
+        display:flex;
+        align-items: center;
+        justify-content: center;
+        border:3px dashed #eeeeee;
+        .card-body {
+            display:flex;
+            flex-direction: column;
+            align-items: center;
+
+            .title{
+                color: #666;   
+            }
+        }
+    }    
+
+    /*************************************************
+     * 테이블 리스트
+     *************************************************/
+    .list-table {
+        // 헤더 영역
+        .el-table__header-wrapper {
+            margin-top:10px !important;
+            .list-header{
+                color:#666 !important;
+                th {
+                    background-color:$--table-th-bg !important;
+                    border-top:$--table-th-border-top-color 1px solid !important;
+                }
+                
+            }
+        }
+
+        // 액션 버튼 스타일
+        .action-button {
+            font-size:24px;
+            cursor:pointer;
+            color: rgba(113, 130, 140, 0.7);
+        }
+
+        
+        // 클릭 시 이동이 되는 정보 
+        .link-item {
+            cursor: pointer;
+            color:$--table-link-text-color;
+        }
+        .link-item:hover {
+            color: $--table-link-text-hover-color;
+            text-decoration: underline;
+        }
+    }
+}
+
+// 클릭 시 이동이 되는 정보 
+.link-item {
+    cursor: pointer;
+    color:$--table-link-text-color;
+}
+.link-item:hover {
+    color: $--table-link-text-hover-color;
+    text-decoration: underline;
+}
+
+
+.app-container {
+    &.normal-page {
+        > .header + hr {
+            color:#c8c8c8;
+            margin:0px;
+            width:100%;
+            border:none;
+            border-bottom:1px solid #c8c8c8;
+        }
+
+        > .content-wrapper {
+            margin-top:20px;   
+            /* 컨텐츠 영역의 action 랩퍼에서 
+            타이틀은 왼쪽
+            액션그룹은 오른쪽으로 정렬 처리
+            */
+
+            .action-wrapper {
+                display:flex;
+                align-items:center;
+                justify-content: space-between;                    
+                
+                > * {
+                    display:block;	
+                }
+
+                > .actions {
+                    display:flex;   
+                    * + * {
+                        margin-left:5px;
+                    }
+                }
+            }
+
+            /*
+            action-wrapper와 content영역ㅇ ㅣ같이 존재하는 경우에만
+            margin처리
+            */
+
+            .action-wrapper + .content {
+                margin-top:10px;                
+            }
+            /*
+            수정,생성 폼의 아래 명령 버튼
+            */
+            .submit-wrapper {
+                margin-top:20px;
+                text-align:right;
+            }
+        }
+    }
+}
+
+.app-container {
+    &.detail-page {
+        >  .description-wrapper {
+            margin-bottom:10px;
+            .header-wrapper {
+                display:flex;
+                align-items:center;
+                justify-content: space-between;                
+                > * { display:block; }                
+        
+                > .actions {
+                    display:flex;   
+                    * + * {
+                        margin-left:5px;
+                    }
+
+                    .link-action {
+                        i{
+                            font-size: 30px;
+                            color: rgba(113, 130, 140, 0.7);
+                            margin: 0 5px;
+                            width:30px;
+                            height:30px;
+                            cursor:pointer;
+                        }
+                    }
+                }            
+            }
+
+
+            .description {
+                color:#aeaeae;
+                .created {
+                    color:#aeaeae;
+                }
+            }
+
+            .view-description {
+                color: #aeaeae;
+                word-break: break-all;
+                .created {
+                    margin-bottom: 30px;
+                    color:#aeaeae;
+                }
+                .info {
+                    .label{margin-bottom: 4px;display:block;font-weight: bold;}
+                    color: #666;
+                    line-height: 1.5;
+                }
+            }
+        }
+        > .content-wrapper {
+            margin-top:35px;   
+            .submit-wrapper {
+                margin-top:20px;
+                text-align:right;
+            }
+        }
+    }
+}

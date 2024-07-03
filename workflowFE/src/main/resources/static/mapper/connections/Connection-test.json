@@ -1,0 +1,1 @@
+{"connection":{"name":"connection-test","tcpIpConnection":{"type":"Async","ip":"127.0.0.1","port":8080,"connectTimeout":50,"responseTimeout":50},"protocol":"TCP/IP","update":1690864527200}}

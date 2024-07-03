@@ -1,0 +1,117 @@
+$canvas-index: 1200;
+$fullscreen-index:1300;
+$fixed-index: 1400;
+
+/**********************************************
+ * element ui theme color
+************************************************/
+$--color-primary: #306bb1;
+$--color-success: #13ce66;
+$--color-warning: #FFBA00;
+$--color-danger: #f56c6c;//#ff4949;
+$--color-info: #909399;
+/*pagination background에서 이 컬러를 참조함
+$--color-info-lighter: #f4f4f5;*/
+
+$--button-font-weight: 400;
+$--border-color-light: #dfe4ed;
+$--border-color-lighter: #e6ebf5;
+$--table-border:1px solid#dfe6ec;
+
+/* icon font path, required */
+$--font-path: '~element-ui/lib/theme-chalk/fonts';
+// @import "~element-ui/packages/theme-chalk/src/index";
+
+
+/**********************************************
+ *  sidebar
+************************************************/
+$menuText:#787878;
+$menuActiveText:#2b5fb0;
+
+$subMenuText:#f4f4f5;
+$subMenuActiveText:#334d73; // https://github.com/ElemeFE/element/issues/12951
+$menuBg:#f3f3f5;
+$menuHover:#f3f3f5;
+$subMenuBg:#5ea0d8;
+$subMenuHover: #5ea0d8;
+$sideBarWidth: 210px;
+$logoContainderBg: #293e61;
+$headerBreadcrumbColor: #eee;
+$headerBreadcrumbCurrentColor: #5aafff;
+$headerRightIconColor: #eee;
+$headerHamburgerIconColor: #eee;
+
+:export {
+  menuText: $menuText;
+  menuActiveText: $menuActiveText;
+  subMenuActiveText: $subMenuActiveText;
+  menuBg: $menuBg;
+  menuHover: $menuHover;
+  subMenuBg: $subMenuBg;
+  subMenuHover: $subMenuHover;
+  sideBarWidth: $sideBarWidth;
+}
+
+/**********************************************
+ *  global variables
+ *************************************************/
+$--text-color-primary:              $--color-primary;
+$--field-label-color:               $--text-color-primary;
+$--link-text-color:               #20a8d8;
+
+$--modal-panel-title-color:         $--text-color-primary;
+$--modal-panel-close-hover-color:   $--color-primary;
+
+
+$--table-th-bg:                   #f0f6f8;
+$--table-th-border-top-color:	#c8ced3;
+$--table-link-text-color:         #20a8d8 ;
+$--table-link-text-hover-color:   #167495;
+
+$--console-success-color:         #67c23a;
+$--console-failed-color:          #d54c53;
+$--console-building-color:        #000000;
+
+$--error404-highlight-text-color: 	#1482f0;
+
+/************************************************
+ *  page common variables
+************************************************/
+$--page-title-color: $--text-color-primary;
+
+
+/**********************************************
+ *  login variables
+************************************************/
+$--login-title-color: #fff;
+$--login-form-valid-error-color: #fff;
+$--login-footer-text-color: rgba(246, 246, 246, 0.5);
+
+
+/**************************
+ * group
+ **************************/
+//grup list
+$--group-list-title-color: $--text-color-primary;
+//modeler
+$--modelder-wysisyg-list-bg: $--color-primary;
+$--modelder-wysisyg-list-color: #f1f6f9;
+$--modelder-state-error-color:		#f53e3e;
+$--modelder-state-normal-color:		#74de3f;
+$--modelder-state-not-color:		#c5bfb4;
+$--modelder-state-none-color:		#c5bfb4;
+
+/**************************
+ * project
+ **************************/
+//proejct list
+$--project-list-title-color: $--text-color-primary;
+//new project template title
+$--project-template-title-color: $--project-list-title-color;
+//repository file breadcrumb
+$--project-repository-file-breadcrumb-color:#20a8d8;
+$--project-repository-file-breadcrumb-hover-color:#42b2da;//#167495;
+
+
+$deploy-target-stage-bg: #334d73;

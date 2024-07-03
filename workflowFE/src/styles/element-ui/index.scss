@@ -1,0 +1,28 @@
+/**********************************************
+*
+* element ui override style
+* 
+************************************************/
+.el-tabs .el-tabs__item {
+    padding: 0 40px !important;
+    border-radius: 5px 5px 0 0
+}
+
+.is-active-item {
+    background-color:$--color-primary !important;
+    color:#ffffff !important;        
+}
+
+.el-button+button.el-button{margin-left:4px;}
+
+/*
+    라벨과 input 사이트 padidng값을 제거
+*/
+.el-form--label-top .el-form-item__label {
+    padding-bottom: 0 !important;
+}
+
+.el-input.is-disabled .el-input__inner {
+    color:#606266 !important;
+}
+    
