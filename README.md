@@ -66,57 +66,50 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 
 - Git 설치
   ```bash
-  	sudo apt update
-  	sudo apt install -y git
+  sudo apt update
+  sudo apt install -y git
   ```
 - mc-workflow-manager 소스 다운로드
   ```bash
-  	export BASE_DIR=$HOME/mcmp
-  	mkdir -p $BASE_DIR/git
-  	cd $BASE_DIR/git
-  	git clone https://github.com/m-cmp/mc-workflow-manager.git
-  	export PROJECT_ROOT=$(pwd)/mc-workflow-manager
+  export BASE_DIR=$HOME/mcmp
+  mkdir -p $BASE_DIR/git
+  cd $BASE_DIR/git
+  git clone https://github.com/m-cmp/mc-workflow-manager.git
+  export PROJECT_ROOT=$(pwd)/mc-workflow-manager
   ```
 
 ### (3) 필요 패키지/도구 설치 및 환경 변수 설정
-
 - Java, Gradle, Git, Docker 설치
 
   ```bash
-  	cd $PROJECT_ROOT/scripts
-  	sudo chmod +x *.sh
-  	. $PROJECT_ROOT/scripts/init-install.sh
-  	mkdir -p $BASE_DIR/build
-
+  export PROJECT_ROOT=$HOME/mcmp/git/mc-workflow-manager
+  cd $PROJECT_ROOT/script
+  sudo chmod +x *.sh
+  . $PROJECT_ROOT/script/init-install.sh
   ```
 
 - 환경 변수 설정
   ```bash
-  	cd $PROJECT_ROOT/scripts
-  	. $PROJECT_ROOT/scripts/set-env.sh
-  	source $HOME/.bashrc
+  cd $PROJECT_ROOT/script
+  . $PROJECT_ROOT/script/set_env.sh
+  source $HOME/.bashrc
   ```
 
 ### (4) 빌드 및 실행
 
 - Shell Script 실행
-  - source변경으로 스크립트 업데이트 필요(20240618)
-
-
   ```bash
-    #Run Mariadb
-  	. $PROJECT_ROOT/scripts/run-mariadb.sh
-
-  	#Run Jenkins
-  	. $PROJECT_ROOT/scripts/run-jenkins.sh
-
-  	#Build Springboot Project
-  	. $PROJECT_ROOT/scripts/build-mc-workflow.sh
-
-  	#Run Springboot Project
-  	. $PROJECT_ROOT/scripts/run-mc-workflow.sh
-
-    
+  #Run Mariadb
+  . $PROJECT_ROOT/script/run-mariadb.sh
+  
+  #Run Jenkins
+  . $PROJECT_ROOT/script/run-jenkins.sh
+  
+  #Build Springboot Project
+  . $PROJECT_ROOT/script/build-mc-workflow.sh
+  
+  #Run Springboot Project
+  . $PROJECT_ROOT/script/run-mc-workflow.sh
   ```
 
 - Swagger 접속
@@ -125,29 +118,19 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 - Jenkins 접속
   - http://Public_IP주소:9800
 
-- WorkFlow 실행 - ver 0.2.0부터 api 제공
-  - Swagger를 통해 workflow pipeline을 생성 후
-  - Jenkins의 새로운 Item 생성 클릭 후
-  - Item 이름 작성, pipeline 선택 후 저장
-  - Workflow로 만든 pipeline을 입력 후 저장
-  - 지금 빌드 버튼 클릭
-↓↓↓↓↓↓↓
-https://github.com/m-cmp/mc-workflow-manager/blob/main/M-CMP_API_Flow_v0.2.pdf
-작업중 버전 workflow stage 및 workflow 안내
+
+- WorkFlow 기능 - v 0.2.0
+  - ToolChain 등록 (*Jenkins / *Tumblebug)
+  - Workflow Stage 등록
+  - Workflow 등록
+  - Workflow 실행
 
 ---
 
 ---
 
-- 컨테이너 저장소
 
-  - 임시(AWS ECR public) 06/07~06/30
-  - public.ecr.aws/m5m6d0w2/m-cmp-workflow-manager
 
-- pull command
-  ```bash
-  docker pull public.ecr.aws/m5m6d0w2/m-cmp-workflow-manager:latest
-  ```
 RUN ENV (임시 서버 연결 2024/06/30까지 가능, 이후 업데이트)
 - ${DB_DRIVER} : 기본값 org.mariadb.jdbc.Driver
 - ${DB} : 기본값 localhost:3306/m-cmp
@@ -160,5 +143,4 @@ RUN ENV (임시 서버 연결 2024/06/30까지 가능, 이후 업데이트)
 
 
 ## How to Contribute
-
 - Issues/Discussions/Ideas: Utilize issue of mc-workflow-manager

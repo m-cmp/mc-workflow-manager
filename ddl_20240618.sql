@@ -404,9 +404,7 @@ CREATE TABLE `workflow_param` (
   `mod_id` varchar(50) DEFAULT NULL COMMENT '수정자 아이디',
   `mod_name` varchar(100) DEFAULT NULL COMMENT '수정자 명',
   `mod_date` datetime DEFAULT NULL COMMENT '수정일시',
-  PRIMARY KEY (`param_id`),
-  KEY `fk_deploy_idx2` (`workflow_id`),
-  CONSTRAINT `fk_workflow_param_workflow` FOREIGN KEY (`workflow_id`) REFERENCES `workflow_v2` (`workflow_id`)
+  PRIMARY KEY (`param_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=70 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci COMMENT='워크플로우_파라미터_정보';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
