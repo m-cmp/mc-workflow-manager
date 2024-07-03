@@ -375,45 +375,73 @@ public class JenkinsService {
     }
 
     private void addParameter(Document document, List<Workflow.params> params) {
+
+        // properties
+//        NodeList flowDefinitionList = document.getElementsByTagName("flow-definition plugin=\"workflow-job@2.32\"");
+//        Element flowDefinition = (Element) flowDefinitionList.item(0);
+//
+//        // add properties
+//        Element addProperties = document.createElement("properties");
+//        flowDefinition.appendChild(addProperties);
+
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // parametersDefinitionProperty
         NodeList propertiesList = document.getElementsByTagName("properties");
+        Element properties = (Element) propertiesList.item(0);
 
-        if (propertiesList.getLength() > 0) {
-            Element properties = (Element) propertiesList.item(0);
+        // addParametersDefinitionProperty
+        Element addParametersDefinitionProperty = document.createElement("hudson.model.ParametersDefinitionProperty");
+        properties.appendChild(addParametersDefinitionProperty);
 
-            NodeList parametersDefinitionList = properties.getElementsByTagName("hudson.model.ParametersDefinitionProperty");
-            if (parametersDefinitionList.getLength() > 0) {
-                Element parametersDefinition = (Element) parametersDefinitionList.item(0);
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                NodeList parameterDefinitionsList = parametersDefinition.getElementsByTagName("parameterDefinitions");
-                if (parameterDefinitionsList.getLength() > 0) {
-                    params.forEach(item -> {
+        // parametersDefinitionProperty
+        propertiesList = document.getElementsByTagName("properties");
+        properties = (Element) propertiesList.item(0);
 
-                        Element parameterDefinitions = (Element) parameterDefinitionsList.item(0);
+        // parameterDefinitions
+        NodeList parametersDefinitionPropertyList = properties.getElementsByTagName("hudson.model.ParametersDefinitionProperty");
+        Element parameterDefinitionProperties = (Element) parametersDefinitionPropertyList.item(0);
 
-                        // Create new parameter node
-                        Element stringParameterDefinition = document.createElement("hudson.model.StringParameterDefinition");
+        // addParameterDefinitions
+        Element addParameterDefinitions = document.createElement("parameterDefinitions");
+        parameterDefinitionProperties.appendChild(addParameterDefinitions);
 
-                        Element name = document.createElement("name");
-                        name.appendChild(document.createTextNode(item.getParamKey()));
-                        stringParameterDefinition.appendChild(name);
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-                        Element description = document.createElement("description");
-                        description.appendChild(document.createTextNode(""));
-                        stringParameterDefinition.appendChild(description);
+        // parameterDefinitions
+        parametersDefinitionPropertyList = properties.getElementsByTagName("hudson.model.ParametersDefinitionProperty");
+        parameterDefinitionProperties = (Element) parametersDefinitionPropertyList.item(0);
+        NodeList parameterDefinitionsList = parameterDefinitionProperties.getElementsByTagName("parameterDefinitions");
 
-                        Element defaultValue = document.createElement("defaultValue");
-                        defaultValue.appendChild(document.createTextNode(item.getParamValue()));
-                        stringParameterDefinition.appendChild(defaultValue);
+        if (parameterDefinitionsList.getLength() > 0) {
+            params.forEach(item -> {
 
-                        Element trim = document.createElement("trim");
-                        trim.appendChild(document.createTextNode("true"));
-                        stringParameterDefinition.appendChild(trim);
+                Element parameterDefinitions = (Element) parameterDefinitionsList.item(0);
 
-                        // Add the new parameter to the parameter definitions
-                        parameterDefinitions.appendChild(stringParameterDefinition);
-                    });
-                }
-            }
+                // Create new parameter node
+                Element stringParameterDefinition = document.createElement("hudson.model.StringParameterDefinition");
+
+                Element name = document.createElement("name");
+                name.appendChild(document.createTextNode(item.getParamKey()));
+                stringParameterDefinition.appendChild(name);
+
+                Element description = document.createElement("description");
+                description.appendChild(document.createTextNode(item.getParamDesc()));
+                stringParameterDefinition.appendChild(description);
+
+                Element defaultValue = document.createElement("defaultValue");
+                defaultValue.appendChild(document.createTextNode(item.getParamValue()));
+                stringParameterDefinition.appendChild(defaultValue);
+
+                Element trim = document.createElement("trim");
+                trim.appendChild(document.createTextNode("true"));
+                stringParameterDefinition.appendChild(trim);
+
+                // Add the new parameter to the parameter definitions
+                parameterDefinitions.appendChild(stringParameterDefinition);
+            });
         }
     }
 }

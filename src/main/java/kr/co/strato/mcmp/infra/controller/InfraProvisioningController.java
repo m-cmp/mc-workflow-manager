@@ -20,37 +20,37 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Tag(name = "InfraProvisioning", description = "인프라 생성")
+//@Tag(name = "InfraProvisioning", description = "인프라 생성")
 @RestController
 public class InfraProvisioningController {
 
-    @Autowired
-    private InfraProvisioningService infraSvc;
-
-    @Operation(summary = "인프라 생성")
-    @PostMapping("/infra")
-    public ResponseWrapper<List<InfraCommon>> setInfra(InfraCommon infra) {
-        //infra; = new InfraCommon();
-        return new ResponseWrapper(infra);
-    }
-
-    @Operation(summary = "인프라 목록")
-    @GetMapping("/infra")
-    public ResponseWrapper<List<Mcis>> getInfra(@RequestParam String userName, @RequestParam String passWord) {
-        return new ResponseWrapper<>(infraSvc.getInfraList(userName, passWord));
-    }
-
-    @Operation(summary = "인프라 생성 및 카탈로그 배포")
-    @GetMapping("/infra/deploy")
-    public ResponseWrapper<List<InfraCommon>> setInfraDeploy(InfraCommon infra) {
-        //InfraCommon infra = new InfraCommon();
-
-        return new ResponseWrapper(infra);
-    }
-
-    @Operation(summary = "네임스페이스 목록")
-    @GetMapping("/ns")
-    public ResponseWrapper<List<InfraNameSpace>> getNamesapce(@RequestParam String userName, @RequestParam String passWord) {
-        return new ResponseWrapper<>(infraSvc.getNamespaceList(userName, passWord));
-    }
+//    @Autowired
+//    private InfraProvisioningService infraSvc;
+//
+//    @Operation(summary = "인프라 생성")
+//    @PostMapping("/infra")
+//    public ResponseWrapper<List<InfraCommon>> setInfra(InfraCommon infra) {
+//        //infra; = new InfraCommon();
+//        return new ResponseWrapper(infra);
+//    }
+//
+//    @Operation(summary = "인프라 목록")
+//    @GetMapping("/infra")
+//    public ResponseWrapper<List<Mcis>> getInfra(@RequestParam String userName, @RequestParam String passWord) {
+//        return new ResponseWrapper<>(infraSvc.getInfraList(userName, passWord));
+//    }
+//
+//    @Operation(summary = "인프라 생성 및 카탈로그 배포")
+//    @GetMapping("/infra/deploy")
+//    public ResponseWrapper<List<InfraCommon>> setInfraDeploy(InfraCommon infra) {
+//        //InfraCommon infra = new InfraCommon();
+//
+//        return new ResponseWrapper(infra);
+//    }
+//
+//    @Operation(summary = "네임스페이스 목록")
+//    @GetMapping("/ns")
+//    public ResponseWrapper<List<InfraNameSpace>> getNamesapce(@RequestParam String userName, @RequestParam String passWord) {
+//        return new ResponseWrapper<>(infraSvc.getNamespaceList(userName, passWord, null));
+//    }
 }

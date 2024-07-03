@@ -25,4 +25,6 @@ public class WorkflowHistory implements Serializable {
     private String 	runUserId;
     private String 	runUserName;
     private String 	runDate;
+
+    private String log;
 }

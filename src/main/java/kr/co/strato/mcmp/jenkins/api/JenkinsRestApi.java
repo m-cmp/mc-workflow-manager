@@ -240,7 +240,7 @@ public class JenkinsRestApi {
     /**
      * Build Console Log 조회
      */
-    public String getJenkinsBuildConsoleLog(String url, String id, String password, String jobName, int buildNumber, int queueNumber) {
+    public String getJenkinsBuildConsoleLog(String url, String id, String password, String jobName, int buildNumber) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
         JobsApi jobsApi = jenkinsClient.api().jobsApi();
         return jobsApi.progressiveText(null, jobName, buildNumber, 0).text();

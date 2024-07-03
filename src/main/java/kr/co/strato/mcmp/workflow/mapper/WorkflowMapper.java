@@ -73,7 +73,7 @@ public interface WorkflowMapper {
 
 
     // 워크플로우 배포 이력 목록 조회
-    List<WorkflowHistory> selectWorkflowHistoryList(WorkflowHistory history);
+    List<WorkflowHistory> selectWorkflowHistoryList(int workflowId);
 
     // 워크플로우 배포 이력 상세 조회
     WorkflowHistory selectWorkflowHistory(int workflowHistoryId);

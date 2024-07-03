@@ -21,58 +21,58 @@ import kr.co.strato.mcmp.common.model.CommonCode;
 import kr.co.strato.mcmp.common.service.CommonService;
 
 
-@Tag(name = "공통코드", description = "공통코드 조회")
+@Tag(name = "스테이지구분", description = "워크플로우 스테이지구분")
 @RestController
 @RequestMapping("/common")
 public class CommonController {
 	
 	@Autowired
 	private CommonService commonService;
-	
-	@Operation(summary = "공통코드 목록 조회", description = "")
+
+	@Operation(summary = "스테이지 구분 목록 조회", description = "")
 	@GetMapping("/group/{commonGroupCd}")
 	public ResponseWrapper<List<CommonCode>> getCommonCodeList(@PathVariable String commonGroupCd) {
 		List<CommonCode> data = commonService.getCommonCodeList(commonGroupCd);
 		return new ResponseWrapper<>(data);
 	}
 
-	@Operation(summary = "공통코드 추가", description = "")
+	@Operation(summary = "스테이지 구분 추가", description = "")
 	@PostMapping("/group/{commonGroupCd}/code")
 	public ResponseWrapper<String> createCommonCode(@PathVariable String commonGroupCd, @RequestBody CommonCode code) {
     	if ( StringUtils.isBlank(commonGroupCd) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonGroupCd"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonGroupCd");
     	}
-    	
+
 		if ( StringUtils.isBlank(code.getCodeName()) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "codeName"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "codeName");
 		}
 		else {
 			if ( !Pattern.matches("[a-zA-Z0-9\' \']*", code.getCodeName()) ) {
-	    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "codeName은 영문/숫자/공백만 가능합니다."); 
+	    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "codeName은 영문/숫자/공백만 가능합니다.");
 			}
 		}
-		
+
 		if ( StringUtils.isBlank(code.getCommonGroupCd()) ) {
 			code.setCommonGroupCd(commonGroupCd);
 		}
 
     	code.setRegId("admin");
     	code.setRegName("admin");
-		
+
 		return new ResponseWrapper<>(commonService.createCommonCode(code));
 	}
-	
-	@Operation(summary = "공통코드 삭제", description = "")
+
+	@Operation(summary = "스테이지 구분 삭제", description = "")
 	@DeleteMapping("/group/{commonGroupCd}/code/{commonCd}")
 	public ResponseWrapper<Integer> deleteCommonCode(@PathVariable String commonGroupCd, @PathVariable String commonCd) {
     	if ( StringUtils.isBlank(commonGroupCd) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonGroupCd"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonGroupCd");
     	}
 
     	if ( StringUtils.isBlank(commonCd) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonCd"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "commonCd");
     	}
-    	
+
 		return new ResponseWrapper<>(commonService.deleteCommonCode(commonGroupCd, commonCd));
 	}
 }

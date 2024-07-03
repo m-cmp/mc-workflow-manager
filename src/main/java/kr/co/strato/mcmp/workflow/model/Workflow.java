@@ -56,5 +56,6 @@ public class Workflow implements Serializable {
     public static class params {
         private String paramKey;
         private String paramValue;
+        private String paramDesc;
     }
 }

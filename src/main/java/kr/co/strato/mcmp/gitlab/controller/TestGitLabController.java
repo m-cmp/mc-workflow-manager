@@ -15,27 +15,27 @@ import kr.co.strato.mcmp.oss.model.Oss;
 @RestController
 public class TestGitLabController {
 
-	@Autowired
-	private GitLabService gitLabService;
-	
-	@GetMapping("/gitlab/connect")
-	public ResponseWrapper<Boolean> getApplication(@RequestParam(value="url") String url, @RequestParam(value="id") String id, @RequestParam(value="password") String password) {
-    	Oss oss = new Oss();
-    	oss.setOssUrl(url);
-    	oss.setOssUsername(id);
-    	oss.setOssPassword(password);
-
-		return new ResponseWrapper<>(gitLabService.isConnectByPw(oss));
-	}
-	
-	@GetMapping("/gitlab/{gitLabId}/project")
-	public ResponseWrapper<Project> getProject(@PathVariable Integer gitLabId) {
-		return new ResponseWrapper<>(gitLabService.getProject(gitLabId, "product-center", "test-boot-gradle"));
-	}
-
-	@GetMapping("/gitlab/{gitLabId}/file")
-	public ResponseWrapper<String> getFile(@PathVariable Integer gitLabId) {
-		return new ResponseWrapper<>(gitLabService.getFilePath(gitLabId, "product-center", "test-boot-gradle", "gradlew", "master"));
-	}
+//	@Autowired
+//	private GitLabService gitLabService;
+//
+//	@GetMapping("/gitlab/connect")
+//	public ResponseWrapper<Boolean> getApplication(@RequestParam(value="url") String url, @RequestParam(value="id") String id, @RequestParam(value="password") String password) {
+//    	Oss oss = new Oss();
+//    	oss.setOssUrl(url);
+//    	oss.setOssUsername(id);
+//    	oss.setOssPassword(password);
+//
+//		return new ResponseWrapper<>(gitLabService.isConnectByPw(oss));
+//	}
+//
+//	@GetMapping("/gitlab/{gitLabId}/project")
+//	public ResponseWrapper<Project> getProject(@PathVariable Integer gitLabId) {
+//		return new ResponseWrapper<>(gitLabService.getProject(gitLabId, "product-center", "test-boot-gradle"));
+//	}
+//
+//	@GetMapping("/gitlab/{gitLabId}/file")
+//	public ResponseWrapper<String> getFile(@PathVariable Integer gitLabId) {
+//		return new ResponseWrapper<>(gitLabService.getFilePath(gitLabId, "product-center", "test-boot-gradle", "gradlew", "master"));
+//	}
 
 }

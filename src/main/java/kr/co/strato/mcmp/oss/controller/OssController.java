@@ -27,7 +27,7 @@ import kr.co.strato.mcmp.oss.service.OssService;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Tag(name = "oss", description = "oss 설정 (GitLab, Jenkins, Harbor 등)")
+@Tag(name = "oss", description = "oss 설정 (GitLab, Jenkins, Harbor, Tumblebug 등)")
 @RestController
 public class OssController {
 
@@ -39,7 +39,7 @@ public class OssController {
 
 	@Autowired
 	private JenkinsService jenkinsService;
-	
+
 	@Autowired
 	private NexusService nexusService;
 
@@ -51,31 +51,31 @@ public class OssController {
 	public ResponseWrapper<List<Oss>> getOssList(@RequestParam(value="ossCd", required=false) String ossCd) {
 		return new ResponseWrapper<>(ossService.getOssList(ossCd));
 	}
+//
+//	@Operation(summary = "상세", description = "" )
+//	@GetMapping("/config/oss/{ossId}")
+//	public ResponseWrapper<Oss> getOss(@PathVariable int ossId) {
+//		return new ResponseWrapper<>(ossService.getOss(ossId));
+//	}
 
-	@Operation(summary = "상세", description = "" )
-	@GetMapping("/config/oss/{ossId}")
-	public ResponseWrapper<Oss> getOss(@PathVariable int ossId) {
-		return new ResponseWrapper<>(ossService.getOss(ossId));
-	}
-	
 	@Operation(summary = "OSS 정보 중복 체크(oss명, url, username)", description = "true : 중복 / false : 중복 아님")
 	@GetMapping("/config/oss/duplicate")
 	public ResponseWrapper<Boolean> isOssInfoDuplicated(@RequestParam String ossName, @RequestParam String ossUrl, @RequestParam String ossUsername) {
 		if ( StringUtils.isBlank(ossName) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossName"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossName");
 		}
 		else if ( StringUtils.isBlank(ossUrl) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossUrl"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossUrl");
 		}
 		else if ( StringUtils.isBlank(ossUsername) ) {
-    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossUsername"); 
+    		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "ossUsername");
 		}
-		
+
 		Oss oss = new Oss();
 		oss.setOssName(ossName);
 		oss.setOssUrl(ossUrl);
 		oss.setOssUsername(ossUsername);
-		
+
 		return new ResponseWrapper<>(ossService.isOssInfoDuplicated(oss));
 	}
 
@@ -84,7 +84,7 @@ public class OssController {
 	public ResponseWrapper<Integer> createOss(@RequestBody Oss oss) {
 		oss.setRegId("admin");
 		oss.setRegName("admin");
-		
+
 		return new ResponseWrapper<>(ossService.createOss(oss));
 	}
 
@@ -94,10 +94,10 @@ public class OssController {
 		if ( oss.getOssId() == null || oss.getOssId() == 0 ) {
 			oss.setOssId(ossId);
 		}
-		
+
 		oss.setModId("admin");
 		oss.setModName("admin");
-		
+
 		return new ResponseWrapper<>(ossService.updateOss(oss));
 	}
 
@@ -114,36 +114,36 @@ public class OssController {
 	public ResponseWrapper<Boolean> checkConnection(@RequestBody Oss oss) {
 		switch(oss.getOssCd()) {
 		case "JENKINS" :
-			if ( StringUtils.isBlank(oss.getOssUrl()) 
+			if ( StringUtils.isBlank(oss.getOssUrl())
 					|| StringUtils.isBlank(oss.getOssUsername())
-					|| StringUtils.isBlank(oss.getOssPassword()) ) {				
+					|| StringUtils.isBlank(oss.getOssPassword()) ) {
 	       		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "접속 정보 누락");
 			}
-			
+
 			// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
 			oss.setOssPassword(ossService.encryptAesString(oss.getOssPassword()));
-			
+
 			return new ResponseWrapper<>(jenkinsService.isJenkinsConnect(oss));
 		case "GITLAB" :
-			if ( StringUtils.isBlank(oss.getOssUrl()) 
+			if ( StringUtils.isBlank(oss.getOssUrl())
 					|| StringUtils.isBlank(oss.getOssUsername())
-					|| StringUtils.isBlank(oss.getOssPassword()) ) {				
+					|| StringUtils.isBlank(oss.getOssPassword()) ) {
 	       		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "접속 정보 누락");
 			}
-			
+
 			// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
 			oss.setOssPassword(ossService.encryptAesString(oss.getOssPassword()));
-			
+
 			return new ResponseWrapper<>(gitlabService.isConnectByPw(oss));
 		case "NEXUS" :
 			if ( StringUtils.isBlank(oss.getOssUrl())
-				|| StringUtils.isBlank(oss.getOssUsername()) ) {				
+				|| StringUtils.isBlank(oss.getOssUsername()) ) {
 	       		return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "접속 정보 누락");
 			}
-			
+
 			// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
 			oss.setOssToken(ossService.encryptAesString(oss.getOssToken()));
-			
+
 			return new ResponseWrapper<>(nexusService.checkNexusConnection(oss));
 		case "TUMBLEBUG" :
 			if ( StringUtils.isBlank(oss.getOssUrl())
@@ -153,7 +153,9 @@ public class OssController {
 			}
 
 			try {
-				List<InfraNameSpace> list = tumblebugService.getNamespaceList(oss.getOssUsername(), oss.getOssPassword());
+				oss.setOssPassword(ossService.encryptAesString(oss.getOssPassword()));
+
+				List<InfraNameSpace> list = tumblebugService.getNamespaceList(oss.getOssUsername(), oss.getOssPassword(), oss.getOssUrl());
 
 				if(list.size() >= 0)
 					return new ResponseWrapper<>(true);

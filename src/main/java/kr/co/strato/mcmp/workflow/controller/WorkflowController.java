@@ -6,26 +6,20 @@ import java.util.Map;
 
 import kr.co.strato.mcmp.workflow.model.Workflow;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.strato.mcmp.api.response.ResponseWrapper;
 import kr.co.strato.mcmp.workflow.service.WorkflowService;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import kr.co.strato.mcmp.api.response.ResponseCode;
 import kr.co.strato.mcmp.jenkins.pipeline.model.Pipeline;
 
 import javax.servlet.http.HttpServletRequest;
 
 @Tag(name = "Workflow", description = "워크플로우 배포 관리")
+@RequestMapping("/workflow")
 @RestController
 public class WorkflowController {
 
@@ -33,13 +27,13 @@ public class WorkflowController {
     private WorkflowService workflowService;
 
     @Operation(summary="워크플로우 목록 조회")
-    @GetMapping("/workflow/list")
+    @GetMapping("/list")
     public ResponseWrapper<List<Workflow>> getWorkflowList() {
         return new ResponseWrapper<>(workflowService.getWorkflowList(null));
     }
 
     @Operation(summary="워크플로우 등록")
-    @PostMapping("/workflow")
+    @PostMapping("")
     public ResponseWrapper<Integer> createWorkflow(@RequestBody Workflow workflow) throws IOException {
         if ( StringUtils.isBlank(workflow.getWorkflowName()) ) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowName");
@@ -61,13 +55,13 @@ public class WorkflowController {
     }
 
     @Operation(summary="워크플로우 상세 조회")
-    @GetMapping("/workflow/{workflowId}")
+    @GetMapping("/{workflowId}")
     public ResponseWrapper<Workflow> getWorkflow(@PathVariable int workflowId) {
         return new ResponseWrapper<>(workflowService.getWorkflow(workflowId));
     }
 
     @Operation(summary="워크플로우 수정")
-    @PutMapping("/workflow/{workflowId}")
+    @PutMapping("/{workflowId}")
     public ResponseWrapper<Boolean> updateWorkflow(@PathVariable int workflowId, @RequestBody Workflow workflow) throws IOException {
         if ( workflow.getWorkflowId() == null || workflow.getWorkflowId() == 0 ) {
             workflow.setWorkflowId(workflowId);
@@ -80,7 +74,7 @@ public class WorkflowController {
     }
 
     @Operation(summary="파이프라인 생성 > Default 조회")
-    @PostMapping("/workflow/jenkins/pipeline/default")
+    @PostMapping("/jenkins/pipeline/default")
     public ResponseWrapper<List<Pipeline>> getDefaultPipeline(@RequestBody Workflow workflow) {
 // TODO 추후 추가작업
 //        if ( StringUtils.isBlank(workflow.getWorkflowName()) ) {
@@ -94,7 +88,7 @@ public class WorkflowController {
     }
 
     @Operation(summary="워크플로우 명 중복 체크", description="true : 중복 / false : 중복 아님")
-    @GetMapping("/workflow/name/duplicate")
+    @GetMapping("/name/duplicate")
     public ResponseWrapper<Boolean> isWorkflowNameDuplicated(@RequestParam String workflowName) {
         if ( StringUtils.isBlank(workflowName) ) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowName");
@@ -104,13 +98,13 @@ public class WorkflowController {
     }
 
     @Operation(summary="파이프라인 구분 별 목록 조회")
-    @GetMapping("/workflow/jenkins/pipeline")
+    @GetMapping("/jenkins/pipeline")
     public ResponseWrapper<Map<String, List<Pipeline>>> getPipelineList() {
         return new ResponseWrapper<>(workflowService.getPipelineList());
     }
 
     @Operation(summary="워크플로우 배포 실행")
-    @GetMapping("/workflow/{workflowId}/run")
+    @GetMapping("/{workflowId}/run")
     public ResponseWrapper<Object> runWorkflowGet(HttpServletRequest request, @PathVariable int workflowId) {
         Workflow workflow = new Workflow();
         workflow.setWorkflowId(workflowId);
@@ -118,13 +112,13 @@ public class WorkflowController {
     }
 
     @Operation(summary="워크플로우 배포 실행")
-    @PostMapping("/workflow/run")
+    @PostMapping("/run")
     public ResponseWrapper<Object> runWorkflowPost(HttpServletRequest request, @RequestBody Workflow workflow) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflow));
     }
 
     @Operation(summary="워크플로우 배포 삭제")
-    @DeleteMapping("/workflow/{workflowId}")
+    @DeleteMapping("/{workflowId}")
     public ResponseWrapper<Boolean> deleteWorkflow(@PathVariable int workflowId) {
         return new ResponseWrapper<>(workflowService.deleteWorkflow(workflowId));
     }

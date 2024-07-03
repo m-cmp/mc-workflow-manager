@@ -6,10 +6,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class McmpBackendController {
 
-	@Operation(summary = "check alive")
-	@GetMapping("/")
-	public String get() {
-		return "hi, there!";
-	}
+//	@Operation(summary = "check alive")
+//	@GetMapping("/")
+//	public String get() {
+//		return "hi, there!";
+//	}
 	
 }

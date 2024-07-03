@@ -181,6 +181,22 @@ public class OssService {
 			return null;
 		}
 	}
+
+	/**
+	 * 패스워드 복호화
+	 * @param encryptedStr
+	 * @return
+	 */
+	public String decryptAesString(String encryptedStr) {
+		if (StringUtils.isNotBlank(encryptedStr)) {
+			// AES256으로 암호화된 문자열을 복호화
+			String decrypted = AES256Util.decrypt(encryptedStr);
+			// 복호화된 문자열을 Base64로 인코딩
+			return decrypted;
+		} else {
+			return null;
+		}
+	}
 }
 
 	

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.util.List;
 
 @Service
@@ -25,7 +26,16 @@ public class SwCatalogService {
         //    dtl.setScTitle(title);
         //}
         //System.out.println(dtl.getScTitle());
-        return scMapper.selectSwCatalogList(title);
+        //return scMapper.selectSwCatalogList(title);
+
+        List<SwCatalogDetail> scl = scMapper.selectSwCatalogList(title);
+
+        for(SwCatalogDetail swd : scl){
+            swd.setWorkflows(scMapper.selectRelationWorkflowList(swd.getScIdx()));
+            System.out.println("=======================" + swd.getWorkflows());
+            //swCatalogDetail.setWorkflows(scMapper.selectRelationSwCatalogList);
+        }
+        return scl;
     }
 
     public SwCatalog setSwCatalog(SwCatalogDetail swCatalogDetail){

@@ -3,6 +3,7 @@ package kr.co.strato.mcmp.catalog.mapper;
 import kr.co.strato.mcmp.catalog.model.SwCatalog;
 import kr.co.strato.mcmp.catalog.model.SwCatalogDetail;
 import kr.co.strato.mcmp.jenkins.pipeline.model.Pipeline;
+import kr.co.strato.mcmp.workflow.model.Workflow;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public interface SwCatalogMapper {
 
     public List<SwCatalog> selectRelationSwCatalogList(Integer scIdx);
 
-    public List<Pipeline> selectRelationWorkflowList(Integer scIdx);
+    public List<Workflow> selectRelationWorkflowList(Integer scIdx);
 
 
     public boolean insertSwCatalogRelationCatalog(Integer scIdx, Integer refIdx);

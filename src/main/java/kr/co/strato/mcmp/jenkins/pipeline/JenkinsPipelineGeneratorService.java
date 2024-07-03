@@ -99,17 +99,17 @@ public class JenkinsPipelineGeneratorService {
 		StringBuffer sb = new StringBuffer();
 
 		Oss oss =  ossService.getOssByOssCd("TUMBLEBUG");
-		System.err.println(oss.getOssUrl());
 
-		JenkinsPipelineUtil.appendLine(sb, "//It was created by the Devops portal.");
+		JenkinsPipelineUtil.appendLine(sb, "import groovy.json.JsonOutput");
+		JenkinsPipelineUtil.appendLine(sb, "\n");
 		JenkinsPipelineUtil.appendLine(sb, "pipeline {");
 		JenkinsPipelineUtil.appendLine(sb, "agent any", 1);
 		JenkinsPipelineUtil.appendLine(sb, "", 1);
 		JenkinsPipelineUtil.appendLine(sb, "environment {", 1);
 
-		JenkinsPipelineUtil.appendLine(sb, "MC_FFSPIDER_REST_URI = " + "'" + oss.getOssUrl() + "'", 2);
-		JenkinsPipelineUtil.appendLine(sb, "CB_TUMBLEBUG_SWAGGER_URI = "  + "'" + oss.getOssUrl() + "/tumblebug/api/index.html" + "'", 2);
-		JenkinsPipelineUtil.appendLine(sb, "MCIS_NAME = '${MCIS_NAME}'", 2);
+		JenkinsPipelineUtil.appendLine(sb, "CB_TUMBLEBUG_SWAGGER_URI = "  + "'" + oss.getOssUrl() + "/tumblebug" + "'", 2);
+		JenkinsPipelineUtil.appendLine(sb, "USER = " + "'" + oss.getOssUsername() + "'", 2);
+		JenkinsPipelineUtil.appendLine(sb, "USER_PASSWORD = " + "'" + ossService.decryptAesString(oss.getOssPassword()) + "'", 2);
 
 		JenkinsPipelineUtil.appendLine(sb, "}", 1);
 		JenkinsPipelineUtil.appendLine(sb, "", 1);
