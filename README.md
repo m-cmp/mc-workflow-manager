@@ -133,7 +133,7 @@ M-CMP의 mc-workflow-manager 서브시스템이 제공하는 기능은 다음과
 
 RUN ENV (임시 서버 연결 2024/06/30까지 가능, 이후 업데이트)
 - ${DB_DRIVER} : 기본값 org.mariadb.jdbc.Driver
-- ${DB} : 기본값 localhost:3306/m-cmp
+- ${DB_URL} : 기본값 localhost:3306/m-cmp
 - ${DB_ID}
 - ${DB_PW}
 
