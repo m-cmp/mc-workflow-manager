@@ -1,4 +1,4 @@
-package kr.co.strato.oss;
+package kr.co.strato.oss.controller;
 
 import io.swagger.annotations.Tag;
 import lombok.extern.slf4j.Slf4j;
