@@ -6,7 +6,6 @@ import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
 import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.service.OssService;
-import kr.co.strato.oss.service.OssServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,11 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Slf4j
-@Tag(name = "oss", description = "oss 설정")
+@Tag(name = "oss", description = "oss 관리")
 @RequestMapping("/oss")
 @RestController
 public class OssController {
-
     @Autowired
     private OssService ossService;
 
@@ -45,13 +43,13 @@ public class OssController {
         return new ResponseWrapper<>(ossService.isOssInfoDuplicated(ossDto));
     }
 
-    @Operation(summary = "등록", description = "oss 등록")
+    @Operation(summary = "OSS 등록", description = "oss 등록")
     @PostMapping("/regist")
-    public ResponseWrapper<Long> createOss(@RequestBody OssDto ossDto) {
-        return new ResponseWrapper<>(ossService.createOss(ossDto));
+    public ResponseWrapper<Long> registOss(@RequestBody OssDto ossDto) {
+        return new ResponseWrapper<>(ossService.registOss(ossDto));
     }
 
-    @Operation(summary = "수정", description = "oss 수정")
+    @Operation(summary = "OSS 수정", description = "oss 수정")
     @PutMapping("/modify/{ossIdx}")
     public ResponseWrapper<Long> updateOss(@PathVariable Long ossIdx, @RequestBody OssDto ossDto) {
         if ( ossIdx == 0 || ossDto.getOssIdx() == 0 ) {
@@ -60,16 +58,22 @@ public class OssController {
         return new ResponseWrapper<>(null);
     }
 
-    @Operation(summary = "삭제", description = "oss 삭제")
-    @DeleteMapping("/delete/{ossId}")
-    public ResponseWrapper<Void> deleteOss(@PathVariable Long ossId) {
-        ossService.deleteOss(ossId);
+    @Operation(summary = "OSS 삭제", description = "oss 삭제")
+    @DeleteMapping("/delete/{ossIdx}")
+    public ResponseWrapper<Void> deleteOss(@PathVariable Long ossIdx) {
+        ossService.deleteOss(ossIdx);
         return new ResponseWrapper<>();
     }
 
-    @Operation(summary = "연결확인", description = "oss 연결 확인")
+    @Operation(summary = "OSS 연결확인", description = "oss 연결 확인")
     @PostMapping("/connection/check")
     public ResponseWrapper<Boolean> checkConnection(@RequestBody OssDto ossDto) {
         return new ResponseWrapper<>(ossService.checkConnection(ossDto));
+    }
+
+    @Operation(summary = "OSS 상세 조회", description = "oss 상세조회" )
+    @GetMapping("/detail/{ossIdx}")
+    public ResponseWrapper<OssDto> detailOss(Long ossIdx) {
+        return new ResponseWrapper<>(ossService.detailOss(ossIdx));
     }
 }

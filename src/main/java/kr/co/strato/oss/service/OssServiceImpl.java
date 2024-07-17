@@ -1,7 +1,6 @@
 package kr.co.strato.oss.service;
 
 import kr.co.strato.oss.dto.OssTypeDto;
-import kr.co.strato.oss.entity.Oss;
 import kr.co.strato.oss.repository.OssTypeRepository;
 import kr.co.strato.tumblebug.dto.TumblebugDto;
 import kr.co.strato.jenkins.model.JenkinsCredential;
@@ -50,9 +49,9 @@ public class OssServiceImpl implements OssService {
 				.collect(Collectors.toList());
 
 		if ( !CollectionUtils.isEmpty(ossList) ) {
-			for ( OssDto oss : ossList ) {
-				oss.withModifiedEncriptPassword(oss, encryptBase64String(oss.getOssPassword()));
-			}
+			ossList = ossList.stream()
+					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encryptBase64String(ossDto.getOssPassword())))
+					.collect(Collectors.toList());
 		}
 
 		return ossList;
@@ -70,9 +69,9 @@ public class OssServiceImpl implements OssService {
 				.collect(Collectors.toList());
 
 		if ( !CollectionUtils.isEmpty(ossList) ) {
-			for ( OssDto oss : ossList ) {
-				oss.withModifiedEncriptPassword(oss, encryptBase64String(oss.getOssPassword()));
-			}
+			ossList = ossList.stream()
+					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encryptBase64String(ossDto.getOssPassword())))
+					.collect(Collectors.toList());
 		}
 
 		return ossList;
@@ -84,9 +83,10 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	@Override
-	public Long createOss(OssDto ossDto) {
-		ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
-		OssDto.from(ossRepository.save(ossDto));
+	public Long registOss(OssDto ossDto) {
+		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
+		ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+		OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
 		return ossDto.getOssIdx();
 	}
 
@@ -97,9 +97,11 @@ public class OssServiceImpl implements OssService {
 	 */
 	@Override
 	public Long updateOss(OssDto ossDto) {
-		ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
+
+		ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 		managedJenkinsCredential(ossDto, "update");
-		ossRepository.save(ossDto);
+		ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto));
 		return ossDto.getOssIdx();
 	}
 
@@ -123,7 +125,7 @@ public class OssServiceImpl implements OssService {
 	@Transactional
 	@Override
 	public Boolean checkConnection(OssDto ossDto) {
-		OssTypeDto osstypeDto = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
+		OssTypeDto osstypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
 
 		if(!osstypeDto.getOssTypeName().isEmpty()) {
 			switch(osstypeDto.getOssTypeName()) {
@@ -135,7 +137,7 @@ public class OssServiceImpl implements OssService {
 						return false;
 					}
 					// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
-					ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+					ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 					return jenkinsService.isJenkinsConnect(ossDto);
 
 				case "TUMBLEBUG" :
@@ -148,7 +150,7 @@ public class OssServiceImpl implements OssService {
 
 					try {
 						// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
-						ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+						ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 						List<TumblebugDto> list = tumblebugService.getNamespaceList(ossDto);
 
 						if(list.size() >= 0) return true;
@@ -192,14 +194,14 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-//	/**
-//	 * OSS 정보 상세 조회
-//	 * @param ossIdx
-//	 * @return
-//	 */
-//	public OssDto getOss(Long ossIdx) {
-//		return ossRepository.findByOssIdx(ossIdx);
-//	}
+	/**
+	 * OSS 정보 상세 조회
+	 * @param ossIdx
+	 * @return
+	 */
+	public OssDto detailOss(Long ossIdx) {
+		return OssDto.from(ossRepository.findByOssIdx(ossIdx));
+	}
 
 //	/**
 //	 * OSS 정보 상세 조회
@@ -217,7 +219,7 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	public Boolean isOssInfoDuplicated(OssDto ossDto) {
-		return ossRepository.findByOssNameAndOssUrlAndOssUsername(
+		return ossRepository.existsByOssNameAndOssUrlAndOssUsername(
 				ossDto.getOssName(),
 				ossDto.getOssUrl(),
 				ossDto.getOssUsername());
@@ -230,7 +232,7 @@ public class OssServiceImpl implements OssService {
 	 * TODO : 고도화 (같은 oss 여러개 입력받기)
 	 */
 	private void managedJenkinsCredential(OssDto managedOss, String managedType) {
-		OssTypeDto ossTypeDto = ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx());
+		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx()));
 
 		if ( !StringUtils.equals("JENKINS", ossTypeDto.getOssTypeName()) ) {
 			OssDto jenkins = OssDto.from(ossRepository.findByOssType_OssTypeName("JENKINS"));

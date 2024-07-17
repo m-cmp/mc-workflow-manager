@@ -11,9 +11,10 @@ public interface OssService {
     List<OssDto> getAllOssList();
     List<OssDto> getOssList(String ossName);
     Boolean isOssInfoDuplicated(OssDto ossDto);
-    Long createOss(OssDto ossDto);
+    Long registOss(OssDto ossDto);
     Long updateOss(OssDto ossDto);
     @Transactional
     void deleteOss(Long ossIdx);
     Boolean checkConnection(OssDto ossDto);
+    OssDto detailOss(Long ossIdx);
 }

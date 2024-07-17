@@ -10,8 +10,8 @@ import java.util.List;
 public interface OssRepository extends JpaRepository<Oss, Long> {
     List<Oss> findAll();
     List<Oss> findByOssName(String ossName);
-    Boolean findByOssNameAndOssUrlAndOssUsername(String ossName, String ossUrl, String ossUsername);
-    Oss save(OssDto ossDto);
+    Boolean existsByOssNameAndOssUrlAndOssUsername(String ossName, String ossUrl, String ossUsername);
+    Oss save(Oss oss);
     Oss findByOssType_OssTypeName(String ossTypeName);
     Oss findByOssIdx(Long ossIdx);
 }

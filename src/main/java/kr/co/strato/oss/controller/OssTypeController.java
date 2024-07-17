@@ -2,14 +2,10 @@ package kr.co.strato.oss.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
-import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.dto.OssTypeDto;
-import kr.co.strato.oss.service.OssService;
 import kr.co.strato.oss.service.OssTypeService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
