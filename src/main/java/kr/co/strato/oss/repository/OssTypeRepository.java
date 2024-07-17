@@ -7,5 +7,8 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OssTypeRepository extends JpaRepository<OssType, Long> {
-    OssTypeDto findByOssTypeIdx(Long ossTypeIdx);
+    OssType findByOssTypeIdx(Long ossTypeIdx);
+    OssType save(OssTypeDto ossTypeDto);
+    void deleteById(Long ossTypeIdx);
+
 }
