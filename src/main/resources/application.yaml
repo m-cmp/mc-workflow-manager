@@ -10,7 +10,7 @@ spring:
     name: workflow-manager
   #h2 db 설정
   datasource:
-    url: jdbc:h2:file:./workflow # 프로젝트 루트/db/ 안에 h2.db파일(test.mv.db) 생성
+    url: jdbc:h2:file:./document/workflow # 프로젝트 루트/db/ 안에 h2.db파일(test.mv.db) 생성
     #url: jdbc:h2:~/test # user root에 생성
     driver-class-name: org.h2.Driver
     username: workflow
