@@ -72,6 +72,10 @@ dependencies {
 
     implementation 'commons-net:commons-net:3.6'
 
+    // Jenkins 2024-07-16
+    //Jenkins-Rest ( https://github.com/cdancy/jenkins-rest )
+    implementation 'io.github.cdancy:jenkins-rest:1.0.1:all'
+
 
 
 

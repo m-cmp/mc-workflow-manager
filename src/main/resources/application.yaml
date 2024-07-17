@@ -24,23 +24,25 @@ spring:
         web-allow-others: true # 원격연결(배포 후 외부에서) 허용
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create
+      #        ddl-auto: create # 실행할 때에 테이블을 자동으로 생성시킬것인지 #create-drop, update, validate, none
+      # create : SessionFactory 시작시 스키마를 삭제하고 다시 생성
+      # create-drop : SessionFactory 종료 시 스키마를 삭제
+      # update : SessionFactory 연결된 DB와 비교하여 추가된 항목은 추가 만약 같은 변수명이면 오류발생
+      # validate : SessionFactory 시작시 객체구성과 스키마가 다르다면 예외 발생
+      # none: 아무것도 안함
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
         show_sql: true
-        ddl-auto: create # 실행할 때에 테이블을 자동으로 생성시킬것인지 #create-drop, update, validate, none
-          # create : SessionFactory 시작시 스키마를 삭제하고 다시 생성
-          # create-drop : SessionFactory 종료 시 스키마를 삭제
-          # update : SessionFactory 연결된 DB와 비교하여 추가된 항목은 추가 만약 같은 변수명이면 오류발생
-          # validate : SessionFactory 시작시 객체구성과 스키마가 다르다면 예외 발생
-        # none: 아무것도 안함
-  # 처음에 더미데이터등을 넣기위해 sql을 실행 가능
-  #        hbm2ddl:
-  #          import_files: classpath:db/data.sql # DB 파일 명시적으로 선택
-  #          import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor # 멀티 라인 입력 가능하도록
-  #        connection:
-  #          charSet: UTF-8 # 인코딩 설정
+        # 처음에 더미데이터등을 넣기위해 sql을 실행 가능
+        #        hbm2ddl:
+        #          import_files: classpath:db/data.sql # DB 파일 명시적으로 선택
+        #          import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor # 멀티 라인 입력 가능하도록
+        #        connection:
+        #          charSet: UTF-8 # 인코딩 설정
 
 
   servlet:
@@ -49,3 +51,6 @@ spring:
       max-request-size: 500MB
 object:
   object-mapper-pretty-print: true
+
+aes:
+  key: fb1755281b0ca6184a0ee644e6477ee7
