@@ -11,155 +11,277 @@
 			"name": "OSS",
 			"item": [
 				{
-					"name": "OSS 목록",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/oss/list",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"oss",
-								"list"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OSS 명 중복 검사",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/oss/duplicate?ossName=test&ossUrl=http://localhost:8080&ossUsername=admin",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"oss",
-								"duplicate"
-							],
-							"query": [
-								{
-									"key": "ossName",
-									"value": "test"
+					"name": "oss",
+					"item": [
+						{
+							"name": "OSS 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/oss/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 명 중복 검사",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/oss/duplicate?ossName=test&ossUrl=http://localhost:8080&ossUsername=admin",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"duplicate"
+									],
+									"query": [
+										{
+											"key": "ossName",
+											"value": "test"
+										},
+										{
+											"key": "ossUrl",
+											"value": "http://localhost:8080"
+										},
+										{
+											"key": "ossUsername",
+											"value": "admin"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 수정",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossDesc\": \"string\",\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"string\",\r\n  \"ossPassword\": \"string\",\r\n  \"ossTypeIdx\": 0,\r\n  \"ossUrl\": \"string\",\r\n  \"ossUsername\": \"string\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
 								},
-								{
-									"key": "ossUrl",
-									"value": "http://localhost:8080"
+								"url": {
+									"raw": "{{base_url}}/oss/modify/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"modify",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/oss/delete/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"delete",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
 								},
-								{
-									"key": "ossUsername",
-									"value": "admin"
+								"url": {
+									"raw": "{{base_url}}/oss/regist",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"regist"
+									]
 								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OSS 수정",
-					"request": {
-						"method": "PUT",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"ossDesc\": \"string\",\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"string\",\r\n  \"ossPassword\": \"string\",\r\n  \"ossTypeIdx\": 0,\r\n  \"ossUrl\": \"string\",\r\n  \"ossUsername\": \"string\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
+							},
+							"response": []
 						},
-						"url": {
-							"raw": "{{base_url}}/oss/modify/1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"oss",
-								"modify",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OSS 삭제",
-					"request": {
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{base_url}}/oss/delete/1",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"oss",
-								"delete",
-								"1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OSS 등록",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"ossDesc\": \"string\",\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"string\",\r\n  \"ossPassword\": \"string\",\r\n  \"ossTypeIdx\": 0,\r\n  \"ossUrl\": \"string\",\r\n  \"ossUsername\": \"string\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
+						{
+							"name": "OSS 연결 확인",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/oss/connection/check",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"connection",
+										"check"
+									]
 								}
-							}
-						},
-						"url": {
-							"raw": "{{base_url}}/oss/regist",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"oss",
-								"regist"
-							]
+							},
+							"response": []
 						}
-					},
-					"response": []
+					]
 				},
 				{
-					"name": "OSS 연결 확인",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\r\n  \"ossDesc\": \"string\",\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"string\",\r\n  \"ossPassword\": \"string\",\r\n  \"ossTypeIdx\": 0,\r\n  \"ossUrl\": \"string\",\r\n  \"ossUsername\": \"string\"\r\n}",
-							"options": {
-								"raw": {
-									"language": "json"
+					"name": "ossType",
+					"item": [
+						{
+							"name": "OSS Type 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"젠킨스\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ossType/regist",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"regist"
+									]
 								}
-							}
+							},
+							"response": []
 						},
-						"url": {
-							"raw": "{{base_url}}/connection/check",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"connection",
-								"check"
-							]
+						{
+							"name": "OSS Type 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 수정",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossTypeIdx\": 1,\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"JENKINS\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ossType/modify/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"modify",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 상세",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/detail/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"detail",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/delete/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"delete",
+										"1"
+									]
+								}
+							},
+							"response": []
 						}
-					},
-					"response": []
+					]
 				}
 			]
 		}
