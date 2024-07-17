@@ -1,12 +1,15 @@
 package kr.co.strato.oss.entity;
 
+import kr.co.strato.oss.dto.OssDto;
 import lombok.*;
 
 import javax.persistence.*;
 
-@Data
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "oss")
 public class Oss {
     @Id
@@ -32,4 +35,5 @@ public class Oss {
 
     @Column(name = "oss_password")
     private String ossPassword;
+
 }

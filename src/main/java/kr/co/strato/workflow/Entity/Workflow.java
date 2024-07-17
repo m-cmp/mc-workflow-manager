@@ -1,15 +1,15 @@
 package kr.co.strato.workflow.Entity;
 
 import kr.co.strato.oss.entity.Oss;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
-@Data
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "workflow")
 public class Workflow {
     @Id

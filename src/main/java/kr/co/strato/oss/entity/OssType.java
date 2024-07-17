@@ -4,9 +4,11 @@ import lombok.*;
 
 import javax.persistence.*;
 
-@Data
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
+@Getter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "oss_type")
 public class OssType {
         @Id
