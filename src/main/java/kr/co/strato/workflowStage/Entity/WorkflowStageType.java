@@ -1,4 +1,4 @@
-package kr.co.strato.stage.Entity;
+package kr.co.strato.workflowStage.Entity;
 
 import lombok.*;
 
