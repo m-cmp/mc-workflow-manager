@@ -25,7 +25,8 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: none
+#      ddl-auto: create
       #        ddl-auto: create # 실행할 때에 테이블을 자동으로 생성시킬것인지 #create-drop, update, validate, none
       # create : SessionFactory 시작시 스키마를 삭제하고 다시 생성
       # create-drop : SessionFactory 종료 시 스키마를 삭제

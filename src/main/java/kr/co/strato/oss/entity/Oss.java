@@ -1,6 +1,5 @@
 package kr.co.strato.oss.entity;
 
-import kr.co.strato.oss.dto.OssDto;
 import lombok.*;
 
 import javax.persistence.*;

@@ -19,23 +19,6 @@ public class JenkinsPipelineService {
 //	@Autowired
 //	private JenkinsPipelineMapper pipelineMapper;
 //
-//	/**
-//	 * 스테이지 목록 조회
-//	 * @param pipeline
-//	 * @return
-//	 */
-//	public List<Pipeline> getPipelineList(Pipeline pipeline) {
-//		return pipelineMapper.selectJenkinsPipelineList(pipeline);
-//	}
-//
-//	/**
-//	 * 스테이지 상세 조회
-//	 * @param pipelineId
-//	 * @return
-//	 */
-//	public Pipeline getPipeline(int pipelineId) {
-//		return pipelineMapper.selectJenkinsPipeline(pipelineId);
-//	}
 //
 //	/**
 //	 * 기본 스크립트 조회
@@ -81,35 +64,6 @@ public class JenkinsPipelineService {
 //
 //		// 중복이면 true / 아니면 false
 //		return pipelineMapper.isPipelineNameDuplicated(pipeline);
-//	}
-//
-//	/**
-//	 * 스테이지 등록
-//	 * @param pipeline
-//	 * @return
-//	 */
-//	public int createPipeline(Pipeline pipeline) {
-//		pipelineMapper.insertJenkinsPipeline(pipeline);
-//		return pipeline.getPipelineId();
-//	}
-//
-//	/**
-//	 * 스테이지 수정
-//	 * @param pipeline
-//	 * @return
-//	 */
-//	public int updatePipeline(Pipeline pipeline) {
-//		pipelineMapper.updateJenkinsPipeline(pipeline);
-//		return pipeline.getPipelineId();
-//	}
-//
-//	/**
-//	 * 스테이지 삭제
-//	 * @param pipelineId
-//	 * @return
-//	 */
-//	public int deletePipeline(int pipelineId) {
-//		return pipelineMapper.deleteJenkinsPipeline(pipelineId);
 //	}
 }
 

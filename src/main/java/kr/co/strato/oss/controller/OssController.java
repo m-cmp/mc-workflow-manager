@@ -6,20 +6,20 @@ import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
 import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.service.OssService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
 @Tag(name = "oss", description = "oss 관리")
+@Slf4j
+@RequiredArgsConstructor
 @RequestMapping("/oss")
 @RestController
 public class OssController {
-    @Autowired
-    private OssService ossService;
+    private final OssService ossService;
 
     @Operation(summary = "OSS 목록 조회", description = "oss 모든 목록조회" )
     @GetMapping("/list")
@@ -55,7 +55,7 @@ public class OssController {
         if ( ossIdx == 0 || ossDto.getOssIdx() == 0 ) {
             return new ResponseWrapper<>(ossService.updateOss(ossDto));
         }
-        return new ResponseWrapper<>(null);
+        return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "OssIdx");
     }
 
     @Operation(summary = "OSS 삭제", description = "oss 삭제")

@@ -1,6 +1,5 @@
 package kr.co.strato.tumblebug.dto;
 
-import kr.co.strato.oss.entity.Oss;
 import lombok.Builder;
 import lombok.Getter;
 

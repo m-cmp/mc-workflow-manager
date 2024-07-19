@@ -2,23 +2,25 @@ package kr.co.strato.workflowStage.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
 import kr.co.strato.workflowStage.dto.WorkflowStageTypeDto;
 import kr.co.strato.workflowStage.service.WorkflowStageTypeService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
 @Tag(name = "Workflow Stage Type", description = "워크플로우 스테이지 타입 관리")
+@Slf4j
+@RequiredArgsConstructor
 @RequestMapping("/workflowStageType")
 @RestController
 public class WorkflowStageTypeController {
 
-    @Autowired
-    private WorkflowStageTypeService workflowStageTypeService;
+    private final WorkflowStageTypeService workflowStageTypeService;
 
     @Operation(summary="워크플로우 스테이지 타입 목록")
     @GetMapping("/list")
@@ -38,7 +40,7 @@ public class WorkflowStageTypeController {
         if ( workflowStageTypeIdx != 0 || workflowStageTypeDto.getWorkflowStageTypeIdx() != 0 ) {
             return new ResponseWrapper<>(workflowStageTypeService.updateWorkflowStageType(workflowStageTypeDto));
         }
-        return new ResponseWrapper<>(null);
+        return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowStageTypeIdx");
     }
 
     @Operation(summary="워크플로우 스테이지 타입 삭제")

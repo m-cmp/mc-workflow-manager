@@ -2,9 +2,10 @@ package kr.co.strato.tumblebug.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import kr.co.strato.tumblebug.dto.TumblebugDto;
 import kr.co.strato.oss.dto.OssDto;
+import kr.co.strato.tumblebug.dto.TumblebugDto;
 import kr.co.strato.util.AES256Util;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -14,10 +15,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@RequiredArgsConstructor
 @Service
 public class TumblebugService {
-    @Autowired
-    private TumblebugRestClient client;
+    private final TumblebugRestClient client;
 
     public List<TumblebugDto> getNamespaceList(OssDto ossDto) {
 

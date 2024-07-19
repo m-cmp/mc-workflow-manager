@@ -1,18 +1,18 @@
 package kr.co.strato.oss.service;
 
-import kr.co.strato.oss.dto.OssTypeDto;
-import kr.co.strato.oss.repository.OssTypeRepository;
-import kr.co.strato.tumblebug.dto.TumblebugDto;
 import kr.co.strato.jenkins.model.JenkinsCredential;
 import kr.co.strato.jenkins.service.JenkinsService;
 import kr.co.strato.oss.dto.OssDto;
+import kr.co.strato.oss.dto.OssTypeDto;
 import kr.co.strato.oss.repository.OssRepository;
+import kr.co.strato.oss.repository.OssTypeRepository;
+import kr.co.strato.tumblebug.dto.TumblebugDto;
 import kr.co.strato.tumblebug.service.TumblebugService;
 import kr.co.strato.util.AES256Util;
 import kr.co.strato.util.Base64Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -22,20 +22,17 @@ import java.util.stream.Collectors;
 
 
 @Log4j2
+@RequiredArgsConstructor
 @Service
 public class OssServiceImpl implements OssService {
 
-	@Autowired
-	private OssRepository ossRepository;
+	private final OssRepository ossRepository;
 
-	@Autowired
-	private OssTypeRepository ossTypeRepository;
+	private final OssTypeRepository ossTypeRepository;
 
-	@Autowired
-	private JenkinsService jenkinsService;
+	private final JenkinsService jenkinsService;
 
-	@Autowired
-	private TumblebugService tumblebugService;
+	private final TumblebugService tumblebugService;
 
 	/**
 	 * OSS 목록 조회

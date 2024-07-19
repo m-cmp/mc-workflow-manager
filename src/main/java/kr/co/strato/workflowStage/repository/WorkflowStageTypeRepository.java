@@ -1,8 +1,6 @@
 package kr.co.strato.workflowStage.repository;
 
-import kr.co.strato.workflowStage.Entity.WorkflowStage;
 import kr.co.strato.workflowStage.Entity.WorkflowStageType;
-import kr.co.strato.workflowStage.dto.WorkflowStageTypeDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +12,6 @@ public interface WorkflowStageTypeRepository extends JpaRepository<WorkflowStage
     WorkflowStageType save(WorkflowStageType workflowStageType);
     void deleteById(Long workflowStageTypeIdx);
     WorkflowStageType findByWorkflowStageTypeIdx(Long workflowStageTypeIdx);
+
+    WorkflowStageType findByWorkflowStageTypeName(String workflowStageTypeName);
 }

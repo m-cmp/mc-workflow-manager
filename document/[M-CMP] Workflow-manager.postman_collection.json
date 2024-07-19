@@ -406,7 +406,167 @@
 				},
 				{
 					"name": "WorkflowStage",
-					"item": []
+					"item": [
+						{
+							"name": "Workflow Stage 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"workflowStageTypeIdx\": 1,\r\n  \"workflowStageOrder\": 1,\r\n  \"workflowStageName\": \"test_stage\",\r\n  \"workflowStageDesc\": \"테스트\",\r\n  \"workflowStageContent\": \"스크립트\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/workflowStage/regist",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"regist"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 수정",
+							"request": {
+								"method": "PUT",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"workflowStageIdx\": 1,\r\n    \"workflowStageTypeIdx\": 1,\r\n    \"workflowStageOrder\": 1,\r\n    \"workflowStageName\": \"test stage\",\r\n    \"workflowStageDesc\": \"테스트\",\r\n    \"workflowStageContent\": \"script\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/workflowStage/modify/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"modify",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/delete/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"delete",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 상세",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/detail/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"detail",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 중복체크",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/duplicate?workflowStageTypeName=Test&workflowStageName=test stage",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"duplicate"
+									],
+									"query": [
+										{
+											"key": "workflowStageTypeName",
+											"value": "Test"
+										},
+										{
+											"key": "workflowStageName",
+											"value": "test stage"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage Default Script 조회",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/default/script/Test",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage",
+										"default",
+										"script",
+										"Test"
+									]
+								}
+							},
+							"response": []
+						}
+					]
 				}
 			]
 		}

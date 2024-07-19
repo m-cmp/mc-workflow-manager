@@ -1,8 +1,8 @@
 package kr.co.strato.oss.service;
 
 import kr.co.strato.oss.dto.OssTypeDto;
-import kr.co.strato.oss.entity.OssType;
 import kr.co.strato.oss.repository.OssTypeRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,11 +13,11 @@ import java.util.stream.Collectors;
 
 
 @Log4j2
+@RequiredArgsConstructor
 @Service
 public class OssTypeServiceImpl implements OssTypeService {
 
-	@Autowired
-	private OssTypeRepository ossTypeRepository;
+	private final OssTypeRepository ossTypeRepository;
 
 	/**
 	 * OSS Type 목록 조회

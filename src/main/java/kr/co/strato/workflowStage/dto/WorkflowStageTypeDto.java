@@ -1,7 +1,5 @@
 package kr.co.strato.workflowStage.dto;
 
-import kr.co.strato.oss.dto.OssTypeDto;
-import kr.co.strato.oss.entity.OssType;
 import kr.co.strato.workflowStage.Entity.WorkflowStageType;
 import lombok.Builder;
 import lombok.Getter;

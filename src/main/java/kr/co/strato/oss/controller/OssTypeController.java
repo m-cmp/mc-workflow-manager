@@ -2,23 +2,24 @@ package kr.co.strato.oss.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
 import kr.co.strato.oss.dto.OssTypeDto;
 import kr.co.strato.oss.service.OssTypeService;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Slf4j
 @Tag(name = "oss 타입", description = "JENKINS / GITLAB / TUMBLEBUG / Etc...")
+@Slf4j
+@RequiredArgsConstructor
 @RequestMapping("/ossType")
 @RestController
 public class OssTypeController {
 
-    @Autowired
-    private OssTypeService ossTypeService;
+    private final OssTypeService ossTypeService;
 
     @Operation(summary = "OSS 타입 목록 조회", description = "oss Type 목록조회" )
     @GetMapping("/list")
@@ -38,7 +39,7 @@ public class OssTypeController {
         if ( ossTypeIdx != 0 || ossTypeDto.getOssTypeIdx() != 0 ) {
             return new ResponseWrapper<>(ossTypeService.updateOssType(ossTypeDto));
         }
-        return new ResponseWrapper<>(null);
+        return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "OssTypeIdx");
     }
 
     @Operation(summary = "OSS 타입 삭제", description = "oss Type 삭제")
