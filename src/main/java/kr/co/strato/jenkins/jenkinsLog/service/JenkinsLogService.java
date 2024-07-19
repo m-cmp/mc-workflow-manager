@@ -13,19 +13,17 @@ package kr.co.strato.jenkins.jenkinsLog.service;
 //import kr.co.strato.workflow.model.WorkflowHistory;
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.http.ResponseEntity;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class JenkinsLogService {
-//    @Autowired
-//    private JenkinsRestApi api;
-//    @Autowired
-//    private OssMapper ossMapper;
-//
-//    @Autowired
-//    private WorkflowMapper workflowMapper;
+//    private final JenkinsRestApi api;
+//    private final OssMapper ossMapper;
+//    private final WorkflowMapper workflowMapper;
 //
 //    public List<WorkflowHistory> getLogs(Integer workflowId) {
 //        // 1. 정보 Get

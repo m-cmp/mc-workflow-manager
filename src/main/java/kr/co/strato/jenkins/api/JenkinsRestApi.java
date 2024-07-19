@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +33,13 @@ import kr.co.strato.util.AES256Util;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@RequiredArgsConstructor
 @Component
 public class JenkinsRestApi {
 	
 	private static final int DEFAULT_RETRY_INTERVAL = 3000;
 
-	@Autowired
-	private JenkinsRestClient client;
+	private final JenkinsRestClient client;
 
     /**
      * JenkinsClient Object 획득

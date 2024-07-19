@@ -11,6 +11,7 @@ import javax.xml.xpath.XPathExpressionException;
 import kr.co.strato.jenkins.api.JenkinsRestApi;
 //import kr.co.strato.workflow.model.Workflow;
 import kr.co.strato.oss.dto.OssDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 @Slf4j
+@RequiredArgsConstructor
 @Service
 public class JenkinsService {
 
@@ -42,8 +44,7 @@ public class JenkinsService {
 
 	private static final String PIPELINE_XML_PATH = "/flow-definition/definition/script";
 
-	@Autowired
-	private JenkinsRestApi api;
+	private final JenkinsRestApi api;
 
     /*******
      * jenkins 연결 확인
