@@ -1,13 +1,13 @@
 package kr.co.strato.oss.service;
 
-import kr.co.strato.jenkins.model.JenkinsCredential;
-import kr.co.strato.jenkins.service.JenkinsService;
+import kr.co.strato.workflow.service.jenkins.model.JenkinsCredential;
+import kr.co.strato.workflow.service.jenkins.service.JenkinsService;
 import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.dto.OssTypeDto;
 import kr.co.strato.oss.repository.OssRepository;
 import kr.co.strato.oss.repository.OssTypeRepository;
-import kr.co.strato.tumblebug.dto.TumblebugDto;
-import kr.co.strato.tumblebug.service.TumblebugService;
+import kr.co.strato.workflow.tumblebug.dto.TumblebugDto;
+import kr.co.strato.workflow.tumblebug.service.TumblebugService;
 import kr.co.strato.util.AES256Util;
 import kr.co.strato.util.Base64Util;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,6 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
 
 @Log4j2
 @RequiredArgsConstructor

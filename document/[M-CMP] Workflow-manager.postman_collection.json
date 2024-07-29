@@ -11,8 +11,146 @@
 			"name": "OSS",
 			"item": [
 				{
+					"name": "ossType",
+					"item": [
+						{
+							"name": "OSS Type 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"젠킨스\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ossType",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 수정",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossTypeIdx\": 1,\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"JENKINS TEST\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/ossType/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 상세",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS Type 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/ossType/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"ossType",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
 					"name": "oss",
 					"item": [
+						{
+							"name": "OSS 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/oss",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss"
+									]
+								}
+							},
+							"response": []
+						},
 						{
 							"name": "OSS 목록",
 							"request": {
@@ -26,6 +164,52 @@
 									"path": [
 										"oss",
 										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 수정",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossDesc\": \"TEST 젠킨스\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/oss/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "OSS 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/oss/delete/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"delete",
+										"1"
 									]
 								}
 							},
@@ -64,80 +248,6 @@
 							"response": []
 						},
 						{
-							"name": "OSS 수정",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"ossDesc\": \"string\",\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"string\",\r\n  \"ossPassword\": \"string\",\r\n  \"ossTypeIdx\": 0,\r\n  \"ossUrl\": \"string\",\r\n  \"ossUsername\": \"string\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/oss/modify/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"oss",
-										"modify",
-										"1"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS 삭제",
-							"request": {
-								"method": "DELETE",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/oss/delete/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"oss",
-										"delete",
-										"1"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS 등록",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/oss/regist",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"oss",
-										"regist"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "OSS 연결 확인",
 							"request": {
 								"method": "POST",
@@ -152,130 +262,13 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/oss/connection/check",
+									"raw": "{{base_url}}/oss/connection-check",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"oss",
-										"connection",
-										"check"
-									]
-								}
-							},
-							"response": []
-						}
-					]
-				},
-				{
-					"name": "ossType",
-					"item": [
-						{
-							"name": "OSS Type 등록",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"젠킨스\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/ossType/regist",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"regist"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS Type 목록",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/ossType/list",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"list"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS Type 수정",
-							"request": {
-								"method": "PUT",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n  \"ossTypeIdx\": 1,\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"JENKINS\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/ossType/modify/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"modify",
-										"1"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS Type 상세",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/ossType/detail/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"detail",
-										"1"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS Type 삭제",
-							"request": {
-								"method": "DELETE",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/ossType/delete/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"delete",
-										"1"
+										"connection-check"
 									]
 								}
 							},
@@ -291,6 +284,32 @@
 				{
 					"name": "WorkflowStageType",
 					"item": [
+						{
+							"name": "Workflow Stage Type 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"workflowStageTypeName\": \"Test\",\r\n    \"workflowStageTypeDesc\": \"테스트\"\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/workflowStageType",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStageType"
+									]
+								}
+							},
+							"response": []
+						},
 						{
 							"name": "Workflow Stage Type 목록",
 							"request": {
@@ -310,36 +329,9 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Type 등록",
-							"request": {
-								"method": "POST",
-								"header": [],
-								"body": {
-									"mode": "raw",
-									"raw": "{\r\n    \"workflowStageTypeName\": \"Test\",\r\n    \"workflowStageTypeDesc\": \"테스트\"\r\n}",
-									"options": {
-										"raw": {
-											"language": "json"
-										}
-									}
-								},
-								"url": {
-									"raw": "{{base_url}}/workflowStageType/regist",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"workflowStageType",
-										"regist"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "Workflow Stage Type 수정",
 							"request": {
-								"method": "PUT",
+								"method": "PATCH",
 								"header": [],
 								"body": {
 									"mode": "raw",
@@ -351,13 +343,12 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/workflowStageType/modify/1",
+									"raw": "{{base_url}}/workflowStageType/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStageType",
-										"modify",
 										"1"
 									]
 								}
@@ -370,13 +361,12 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/workflowStageType/delete/1",
+									"raw": "{{base_url}}/workflowStageType/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStageType",
-										"delete",
 										"1"
 									]
 								}
@@ -389,13 +379,12 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/workflowStageType/detail/1",
+									"raw": "{{base_url}}/workflowStageType/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStageType",
-										"detail",
 										"1"
 									]
 								}
@@ -407,24 +396,6 @@
 				{
 					"name": "WorkflowStage",
 					"item": [
-						{
-							"name": "Workflow Stage 목록",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/workflowStage/list",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"workflowStage",
-										"list"
-									]
-								}
-							},
-							"response": []
-						},
 						{
 							"name": "Workflow Stage 등록",
 							"request": {
@@ -440,13 +411,30 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/workflowStage/regist",
+									"raw": "{{base_url}}/workflowStage",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflowStage"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Stage 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflowStage/list",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStage",
-										"regist"
+										"list"
 									]
 								}
 							},
@@ -467,13 +455,12 @@
 									}
 								},
 								"url": {
-									"raw": "{{base_url}}/workflowStage/modify/1",
+									"raw": "{{base_url}}/workflowStage/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStage",
-										"modify",
 										"1"
 									]
 								}
@@ -486,13 +473,12 @@
 								"method": "DELETE",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/workflowStage/delete/1",
+									"raw": "{{base_url}}/workflowStage/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStage",
-										"delete",
 										"1"
 									]
 								}
@@ -505,13 +491,12 @@
 								"method": "GET",
 								"header": [],
 								"url": {
-									"raw": "{{base_url}}/workflowStage/detail/1",
+									"raw": "{{base_url}}/workflowStage/1",
 									"host": [
 										"{{base_url}}"
 									],
 									"path": [
 										"workflowStage",
-										"detail",
 										"1"
 									]
 								}
@@ -567,6 +552,213 @@
 							"response": []
 						}
 					]
+				}
+			]
+		},
+		{
+			"name": "Workflow",
+			"item": [
+				{
+					"name": "Workflow",
+					"item": [
+						{
+							"name": "Workflow 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 등록",
+							"request": {
+								"method": "POST",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"workflowInfo\": {\r\n        \"workflowName\": \"test-ysh-1\",\r\n        \"workflowPurpose\": \"test\",\r\n        \"ossIdx\": 1,\r\n        \"script\": \"tttttt\"\r\n    },\r\n    \"workflowParams\": [\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"paramKey\": \"key\",\r\n            \"paramValue\": \"value\"\r\n        },\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"paramKey\": \"key\",\r\n            \"paramValue\": \"value\"\r\n        }\r\n    ],\r\n    \"workflowStageMappings\": [\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"stageOrder\": 1,\r\n            \"workflowStageTypeIdx\": 1,\r\n            \"stageContent\": \"test\"\r\n        },\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"stageOrder\": 2,\r\n            \"workflowStageTypeIdx\": 1,\r\n            \"stageContent\": \"test\"\r\n        }\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/workflow",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 수정",
+							"request": {
+								"method": "PATCH",
+								"header": [],
+								"body": {
+									"mode": "raw",
+									"raw": "{\r\n    \"workflowInfo\": {\r\n        \"workflowIdx\": 1,\r\n        \"workflowName\": \"test-ysh-1\",\r\n        \"workflowPurpose\": \"test123\",\r\n        \"ossIdx\": 1,\r\n        \"script\": \"ttttttdasdfasdfasdf\"\r\n    },\r\n    \"workflowParams\": [\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"paramKey\": \"key12\",\r\n            \"paramValue\": \"value12\"\r\n        },\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"paramKey\": \"key34\",\r\n            \"paramValue\": \"value34\"\r\n        }\r\n    ],\r\n    \"workflowStageMappings\": [\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"stageOrder\": 1,\r\n            \"workflowStageTypeIdx\": 1,\r\n            \"stageContent\": \"test12\"\r\n        },\r\n        {\r\n            \"workflowIdx\": 1,\r\n            \"stageOrder\": 2,\r\n            \"workflowStageTypeIdx\": 1,\r\n            \"stageContent\": \"test34\"\r\n        }\r\n    ]\r\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{base_url}}/workflow/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 삭제",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 상세",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"1"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 중복 확인",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/name/duplicate?workflowName=test-ysh-1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"name",
+										"duplicate"
+									],
+									"query": [
+										{
+											"key": "workflowName",
+											"value": "test-ysh-1"
+										}
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow Type 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/workflowStageList",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"workflowStageList"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Workflow 템플릿",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/template/test",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"template",
+										"test"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Workflow History",
+					"item": [
+						{
+							"name": "Workflow History 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/workflow/history/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"workflow",
+										"history",
+										"1"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Workflow Param",
+					"item": []
 				}
 			]
 		}

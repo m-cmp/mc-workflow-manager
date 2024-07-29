@@ -28,13 +28,13 @@ public class OssTypeController {
     }
 
     @Operation(summary = "OSS 타입 등록", description = "oss Type 등록")
-    @PostMapping("/regist")
+    @PostMapping
     public ResponseWrapper<Long> registOssType(@RequestBody OssTypeDto ossTypeDto) {
         return new ResponseWrapper<>(ossTypeService.registOssType(ossTypeDto));
     }
 
     @Operation(summary = "OSS 타입 수정", description = "oss Type 수정")
-    @PutMapping("/modify/{ossTypeIdx}")
+    @PatchMapping("/{ossTypeIdx}")
     public ResponseWrapper<Long> updateOssType(@PathVariable Long ossTypeIdx, @RequestBody OssTypeDto ossTypeDto) {
         if ( ossTypeIdx != 0 || ossTypeDto.getOssTypeIdx() != 0 ) {
             return new ResponseWrapper<>(ossTypeService.updateOssType(ossTypeDto));
@@ -43,14 +43,14 @@ public class OssTypeController {
     }
 
     @Operation(summary = "OSS 타입 삭제", description = "oss Type 삭제")
-    @DeleteMapping("/delete/{ossTypeIdx}")
+    @DeleteMapping("/{ossTypeIdx}")
     public ResponseWrapper<Void> deleteOssType(@PathVariable Long ossTypeIdx) {
         ossTypeService.deleteOssType(ossTypeIdx);
         return new ResponseWrapper<>();
     }
 
     @Operation(summary = "OSS 타입 상세", description = "oss Type 상세정보")
-    @GetMapping("/detail/{ossTypeIdx}")
+    @GetMapping("/{ossTypeIdx}")
     public ResponseWrapper<OssTypeDto> detailOssType(@PathVariable Long ossTypeIdx) {
         return new ResponseWrapper<>(ossTypeService.detailOssType(ossTypeIdx));
     }

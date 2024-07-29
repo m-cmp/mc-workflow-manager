@@ -9,7 +9,6 @@ import kr.co.strato.workflowStage.service.WorkflowStageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,13 +29,13 @@ public class WorkflowStageController {
     }
 
     @Operation(summary="워크플로우 스테이지 등록")
-    @PostMapping("/regist")
+    @PostMapping
     public ResponseWrapper<Long> registWorkflowStage(@RequestBody WorkflowStageDto workflowStageDto) {
         return new ResponseWrapper<>(workflowStageService.registWorkflowStage(workflowStageDto));
     }
 
     @Operation(summary="워크플로우 스테이지 수정")
-    @PutMapping("/modify/{workflowStageIdx}")
+    @PatchMapping("/{workflowStageIdx}")
     public ResponseWrapper<Long> updateWorkflowStage(@PathVariable Long workflowStageIdx, @RequestBody WorkflowStageDto workflowStageDto) {
         if ( workflowStageIdx != 0 || workflowStageDto.getWorkflowStageIdx() != 0 ) {
             return new ResponseWrapper<>(workflowStageService.updateWorkflowStage(workflowStageDto));
@@ -45,14 +44,14 @@ public class WorkflowStageController {
     }
 
     @Operation(summary="워크플로우 스테이지 삭제")
-    @DeleteMapping("/delete/{workflowStageIdx}")
+    @DeleteMapping("/{workflowStageIdx}")
     public ResponseWrapper<Void> deleteWorkflowStage(@PathVariable Long workflowStageIdx) {
         workflowStageService.deleteWorkflowStage(workflowStageIdx);
         return new ResponseWrapper<>();
     }
 
     @Operation(summary="워크플로우 스테이지 상세")
-    @GetMapping("/detail/{workflowStageIdx}")
+    @GetMapping("/{workflowStageIdx}")
     public ResponseWrapper<WorkflowStageDto> detailWorkflowStage(@PathVariable Long workflowStageIdx) {
         return new ResponseWrapper<>(workflowStageService.detailWorkflowStage(workflowStageIdx));
     }

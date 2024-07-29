@@ -16,12 +16,13 @@ public class WorkflowStageMapping {
     @Column(name = "mapping_idx")
     private Long mappingIdx;
 
+//    @ManyToOne(cascade = CascadeType.ALL)
     @ManyToOne
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;
 
     @Column(name = "stage_order")
-    private Byte stageOrder;
+    private Integer stageOrder;
 
     @Column(name = "workflow_stage_type_idx")
     private Long workflowStageTypeIdx;

@@ -1,6 +1,5 @@
 package kr.co.strato.oss.dto;
 
-import kr.co.strato.oss.entity.Oss;
 import kr.co.strato.oss.entity.OssType;
 import lombok.Builder;
 import lombok.Getter;

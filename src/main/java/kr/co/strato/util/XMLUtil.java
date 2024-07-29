@@ -1,16 +1,15 @@
 package kr.co.strato.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.text.MessageFormat;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.XML;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -25,18 +24,8 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.XML;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-
+import java.io.*;
+import java.text.MessageFormat;
 
 public class XMLUtil { 
 	private static Logger log = LoggerFactory.getLogger(XMLUtil.class);
@@ -217,8 +206,7 @@ public class XMLUtil {
 	
 	public static Node getXPathNode(Document doc, String nodeXPath) throws XPathExpressionException {
 		XPath xPath = XPathFactory.newInstance().newXPath();
-		Node node = (Node)xPath.evaluate(nodeXPath,
-				doc.getDocumentElement(), XPathConstants.NODE);
+		Node node = (Node)xPath.evaluate(nodeXPath, doc.getDocumentElement(), XPathConstants.NODE);
 		return node;
 	}
 	
@@ -245,6 +233,21 @@ public class XMLUtil {
 		JSONObject json = new JSONObject(JsonStr);
 		String xml = XML.toString(json);
 		return xml;
+	}
+
+	public static Document appendXml(Document templateDoc, String path, String content) throws XPathExpressionException {
+
+		Document doc = (Document) templateDoc.cloneNode(true);
+		Node node = getXPathNode(doc, path);
+		if (node != null) {
+			node.setTextContent(content);
+			return doc;
+		}
+		return null;
+	}
+
+	public static String XmlToString(Document document){
+		return wrtieXMLString(document);
 	}
 
 }

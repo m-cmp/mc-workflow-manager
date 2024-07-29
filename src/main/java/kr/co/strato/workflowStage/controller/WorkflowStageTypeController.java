@@ -8,7 +8,6 @@ import kr.co.strato.workflowStage.dto.WorkflowStageTypeDto;
 import kr.co.strato.workflowStage.service.WorkflowStageTypeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,13 +28,13 @@ public class WorkflowStageTypeController {
     }
 
     @Operation(summary="워크플로우 스테이지 타입 등록")
-    @PostMapping("/regist")
+    @PostMapping
     public ResponseWrapper<Long> registWorkflowStage(@RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
         return new ResponseWrapper<>(workflowStageTypeService.registWorkflowStage(workflowStageTypeDto));
     }
 
     @Operation(summary="워크플로우 스테이지 타입 수정")
-    @PutMapping("/modify/{workflowStageTypeIdx}")
+    @PatchMapping("/{workflowStageTypeIdx}")
     public ResponseWrapper<Long> updateWorkflowStageType(@PathVariable Long workflowStageTypeIdx, @RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
         if ( workflowStageTypeIdx != 0 || workflowStageTypeDto.getWorkflowStageTypeIdx() != 0 ) {
             return new ResponseWrapper<>(workflowStageTypeService.updateWorkflowStageType(workflowStageTypeDto));
@@ -44,14 +43,14 @@ public class WorkflowStageTypeController {
     }
 
     @Operation(summary="워크플로우 스테이지 타입 삭제")
-    @DeleteMapping("/delete/{workflowStageTypeIdx}")
+    @DeleteMapping("{workflowStageTypeIdx}")
     public ResponseWrapper<Void> deleteWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
         workflowStageTypeService.deleteWorkflowStageType(workflowStageTypeIdx);
         return new ResponseWrapper<>();
     }
 
     @Operation(summary="워크플로우 스테이지 타입 상세")
-    @GetMapping("/detail/{workflowStageTypeIdx}")
+    @GetMapping("/{workflowStageTypeIdx}")
     public ResponseWrapper<WorkflowStageTypeDto> detailWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
         return new ResponseWrapper<>(workflowStageTypeService.detailWorkflowStageType(workflowStageTypeIdx));
     }

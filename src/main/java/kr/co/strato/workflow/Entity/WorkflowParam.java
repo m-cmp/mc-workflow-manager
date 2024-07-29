@@ -16,6 +16,7 @@ public class WorkflowParam {
     @Column(name = "param_idx")
     private Long paramIdx;
 
+//    @ManyToOne(cascade = CascadeType.ALL)
     @ManyToOne
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;

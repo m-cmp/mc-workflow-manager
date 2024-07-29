@@ -18,7 +18,7 @@ spring:
   #h2 console 활성화 및 경로 설정
   h2:
     console:
-      enabled: true # http://localhost:28086/h2-console/으로 접속가능
+      enabled: true # http://localhost:18083/h2-console/으로 접속가능
       path: /h2-console
       settings:
         web-allow-others: true # 원격연결(배포 후 외부에서) 허용
