@@ -85,24 +85,6 @@
 							"response": []
 						},
 						{
-							"name": "OSS Type 상세",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/ossType/1",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"ossType",
-										"1"
-									]
-								}
-							},
-							"response": []
-						},
-						{
 							"name": "OSS Type 삭제",
 							"request": {
 								"method": "DELETE",
@@ -126,6 +108,24 @@
 					"name": "oss",
 					"item": [
 						{
+							"name": "OSS 목록",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/oss/list",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"oss",
+										"list"
+									]
+								}
+							},
+							"response": []
+						},
+						{
 							"name": "OSS 등록",
 							"request": {
 								"method": "POST",
@@ -146,24 +146,6 @@
 									],
 									"path": [
 										"oss"
-									]
-								}
-							},
-							"response": []
-						},
-						{
-							"name": "OSS 목록",
-							"request": {
-								"method": "GET",
-								"header": [],
-								"url": {
-									"raw": "{{base_url}}/oss/list",
-									"host": [
-										"{{base_url}}"
-									],
-									"path": [
-										"oss",
-										"list"
 									]
 								}
 							},
@@ -275,6 +257,24 @@
 							"response": []
 						}
 					]
+				},
+				{
+					"name": "OSS Type 상세",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/ossType/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"ossType",
+								"1"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},

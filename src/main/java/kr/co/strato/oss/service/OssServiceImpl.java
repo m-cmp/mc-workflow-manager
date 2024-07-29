@@ -1,5 +1,6 @@
 package kr.co.strato.oss.service;
 
+import kr.co.strato.oss.entity.Oss;
 import kr.co.strato.workflow.service.jenkins.model.JenkinsCredential;
 import kr.co.strato.workflow.service.jenkins.service.JenkinsService;
 import kr.co.strato.oss.dto.OssDto;
@@ -46,7 +47,7 @@ public class OssServiceImpl implements OssService {
 
 		if ( !CollectionUtils.isEmpty(ossList) ) {
 			ossList = ossList.stream()
-					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encryptBase64String(ossDto.getOssPassword())))
+					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
 					.collect(Collectors.toList());
 		}
 
@@ -66,7 +67,7 @@ public class OssServiceImpl implements OssService {
 
 		if ( !CollectionUtils.isEmpty(ossList) ) {
 			ossList = ossList.stream()
-					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encryptBase64String(ossDto.getOssPassword())))
+					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
 					.collect(Collectors.toList());
 		}
 
@@ -196,7 +197,8 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	public OssDto detailOss(Long ossIdx) {
-		return OssDto.from(ossRepository.findByOssIdx(ossIdx));
+		Oss oss = ossRepository.findByOssIdx(ossIdx);
+		return OssDto.withDetailDecryptPassword(oss, encodingBase64String(decryptAesString(oss.getOssPassword())));
 	}
 
 //	/**

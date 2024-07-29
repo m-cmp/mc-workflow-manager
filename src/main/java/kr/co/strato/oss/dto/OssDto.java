@@ -67,7 +67,18 @@ public class OssDto {
                 .ossPassword(password)
                 .build();
     }
-    // Duplicate Object set
+    // 패스워드 decrypt set
+    public static OssDto withDetailDecryptPassword(Oss oss, String password) {
+        return OssDto.builder()
+                .ossIdx(oss.getOssIdx())
+                .ossTypeIdx(oss.getOssType().getOssTypeIdx())
+                .ossName(oss.getOssName())
+                .ossDesc(oss.getOssDesc())
+                .ossUrl(oss.getOssUrl())
+                .ossUsername(oss.getOssUsername())
+                .ossPassword(password)
+                .build();
+    }    // Duplicate Object set
     public static OssDto setOssAttributesDuplicate(String ossName, String ossUrl, String ossUsername) {
         return OssDto.builder()
                 .ossName(ossName)
