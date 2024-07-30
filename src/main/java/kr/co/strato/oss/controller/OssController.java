@@ -37,7 +37,7 @@ public class OssController {
     @Operation(summary = "OSS 수정", description = "oss 수정")
     @PatchMapping("/{ossIdx}")
     public ResponseWrapper<Long> updateOss(@PathVariable Long ossIdx, @RequestBody OssDto ossDto) {
-        if ( ossIdx == 0 || ossDto.getOssIdx() == 0 ) {
+        if ( ossIdx != 0 || ossDto.getOssIdx() != 0 ) {
             return new ResponseWrapper<>(ossService.updateOss(ossDto));
         }
         return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "OssIdx");
@@ -45,7 +45,7 @@ public class OssController {
 
     @Operation(summary = "OSS 삭제", description = "oss 삭제")
     @DeleteMapping("/{ossIdx}")
-    public ResponseWrapper<Void> deleteOss(@PathVariable Long ossIdx) {
+    public ResponseWrapper<Boolean> deleteOss(@PathVariable Long ossIdx) {
         ossService.deleteOss(ossIdx);
         return new ResponseWrapper<>();
     }

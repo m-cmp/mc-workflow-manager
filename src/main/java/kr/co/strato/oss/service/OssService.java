@@ -14,7 +14,7 @@ public interface OssService {
     Long registOss(OssDto ossDto);
     Long updateOss(OssDto ossDto);
     @Transactional
-    void deleteOss(Long ossIdx);
+    Boolean deleteOss(Long ossIdx);
     Boolean checkConnection(OssDto ossDto);
     OssDto detailOss(Long ossIdx);
 }

@@ -79,11 +79,12 @@ public class OssServiceImpl implements OssService {
 	 * @param ossDto
 	 * @return
 	 */
+	@Transactional
 	@Override
 	public Long registOss(OssDto ossDto) {
 		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
 		ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
-		OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
+		ossDto = OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
 		return ossDto.getOssIdx();
 	}
 
@@ -108,10 +109,13 @@ public class OssServiceImpl implements OssService {
 	 */
 	@Transactional
 	@Override
-	public void deleteOss(Long ossIdx) {
+	public Boolean deleteOss(Long ossIdx) {
+		Boolean result = false;
 		OssDto deleteOss = OssDto.from(ossRepository.findByOssIdx(ossIdx));
 		managedJenkinsCredential(deleteOss, "delete");
 		ossRepository.deleteById(ossIdx);
+		result = true;
+		return result;
 	}
 
 	/**
