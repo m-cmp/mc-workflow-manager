@@ -44,9 +44,8 @@ public class OssTypeController {
 
     @Operation(summary = "OSS 타입 삭제", description = "oss Type 삭제")
     @DeleteMapping("/{ossTypeIdx}")
-    public ResponseWrapper<Void> deleteOssType(@PathVariable Long ossTypeIdx) {
-        ossTypeService.deleteOssType(ossTypeIdx);
-        return new ResponseWrapper<>();
+    public ResponseWrapper<Boolean> deleteOssType(@PathVariable Long ossTypeIdx) {
+        return new ResponseWrapper<>(ossTypeService.deleteOssType(ossTypeIdx));
     }
 
     @Operation(summary = "OSS 타입 상세", description = "oss Type 상세정보")

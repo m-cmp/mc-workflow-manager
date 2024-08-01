@@ -37,4 +37,12 @@ public class WorkflowStageTypeDto {
                 .workflowStageTypeDesc(workflowStageTypeDto.getWorkflowStageTypeDesc())
                 .build();
     }
+
+    // saveWorkflowStageType : 타입 저장
+    public static WorkflowStageType saveWorkflowStageType(String workflowStageTypeName, String workflowStageTypeDesc) {
+        return WorkflowStageType.builder()
+                .workflowStageTypeName(workflowStageTypeName)
+                .workflowStageTypeDesc(workflowStageTypeDesc)
+                .build();
+    }
 }

@@ -10,7 +10,7 @@ public interface WorkflowStageService {
     List<WorkflowStageDto> getWorkflowStageList();
     Long registWorkflowStage(WorkflowStageDto workflowStageDto);
     Long updateWorkflowStage(WorkflowStageDto workflowStageDto);
-    void deleteWorkflowStage(Long workflowStageIdx);
+    Boolean deleteWorkflowStage(Long workflowStageIdx);
     WorkflowStageDto detailWorkflowStage(Long workflowStageIdx);
     Boolean isWorkflowStageNameDuplicated(String workflowStageTypeName, String workflowStageName);
     List<WorkflowStageDto> getDefaultWorkflowStage(String workflowStageTypeName);

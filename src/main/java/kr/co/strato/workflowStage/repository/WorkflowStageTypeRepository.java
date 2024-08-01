@@ -12,6 +12,6 @@ public interface WorkflowStageTypeRepository extends JpaRepository<WorkflowStage
     WorkflowStageType save(WorkflowStageType workflowStageType);
     void deleteById(Long workflowStageTypeIdx);
     WorkflowStageType findByWorkflowStageTypeIdx(Long workflowStageTypeIdx);
-
     WorkflowStageType findByWorkflowStageTypeName(String workflowStageTypeName);
+    Boolean existsByWorkflowStageTypeName(String workflowStageTypeName);
 }

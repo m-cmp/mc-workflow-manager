@@ -12,6 +12,6 @@ public interface OssTypeService {
     Long registOssType(OssTypeDto ossTypeDto);
     Long updateOssType(OssTypeDto ossTypeDto);
     @Transactional
-    void deleteOssType(Long ossIdx);
+    Boolean deleteOssType(Long ossIdx);
     OssTypeDto detailOssType(Long ossIdx);
 }

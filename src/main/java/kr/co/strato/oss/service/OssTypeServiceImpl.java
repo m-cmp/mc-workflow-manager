@@ -1,9 +1,11 @@
 package kr.co.strato.oss.service;
 
+import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.dto.OssTypeDto;
 import kr.co.strato.oss.repository.OssTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -58,10 +60,17 @@ public class OssTypeServiceImpl implements OssTypeService {
 	 */
 	@Transactional
 	@Override
-	public void deleteOssType(Long ossTypeIdx) {
-		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossTypeIdx));
-		if(ossTypeDto.getOssTypeIdx() != 0) {
-			ossTypeRepository.deleteById(ossTypeIdx);
+	public Boolean deleteOssType(Long ossTypeIdx) {
+		try {
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossTypeIdx));
+			if(ossTypeDto.getOssTypeIdx() != 0) {
+				ossTypeRepository.deleteById(ossTypeIdx);
+			}
+			return true;
+		} catch (EmptyResultDataAccessException e) {
+			return false;
+		} catch (Exception e) {
+			return false;
 		}
 	}
 

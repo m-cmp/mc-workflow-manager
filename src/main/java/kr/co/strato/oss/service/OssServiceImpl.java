@@ -14,6 +14,7 @@ import kr.co.strato.util.Base64Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -110,12 +111,16 @@ public class OssServiceImpl implements OssService {
 	@Transactional
 	@Override
 	public Boolean deleteOss(Long ossIdx) {
-		Boolean result = false;
-		OssDto deleteOss = OssDto.from(ossRepository.findByOssIdx(ossIdx));
-		managedJenkinsCredential(deleteOss, "delete");
-		ossRepository.deleteById(ossIdx);
-		result = true;
-		return result;
+		try {
+			OssDto deleteOss = OssDto.from(ossRepository.findByOssIdx(ossIdx));
+			managedJenkinsCredential(deleteOss, "delete");
+			ossRepository.deleteById(ossIdx);
+			return true;
+		} catch (EmptyResultDataAccessException e) {
+			return false;
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**

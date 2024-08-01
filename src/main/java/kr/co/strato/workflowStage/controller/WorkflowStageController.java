@@ -45,9 +45,8 @@ public class WorkflowStageController {
 
     @Operation(summary="워크플로우 스테이지 삭제")
     @DeleteMapping("/{workflowStageIdx}")
-    public ResponseWrapper<Void> deleteWorkflowStage(@PathVariable Long workflowStageIdx) {
-        workflowStageService.deleteWorkflowStage(workflowStageIdx);
-        return new ResponseWrapper<>();
+    public ResponseWrapper<Boolean> deleteWorkflowStage(@PathVariable Long workflowStageIdx) {
+        return new ResponseWrapper<>(workflowStageService.deleteWorkflowStage(workflowStageIdx));
     }
 
     @Operation(summary="워크플로우 스테이지 상세")
