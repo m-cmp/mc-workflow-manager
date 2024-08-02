@@ -14,4 +14,5 @@ public interface OssRepository extends JpaRepository<Oss, Long> {
     Oss save(Oss oss);
     Oss findByOssType_OssTypeName(String ossTypeName);
     Oss findByOssIdx(Long ossIdx);
+    void deleteByOssIdx(Long ossIdx);
 }

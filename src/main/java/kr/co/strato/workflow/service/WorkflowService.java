@@ -3,8 +3,10 @@ package kr.co.strato.workflow.service;
 import kr.co.strato.workflow.dto.entityMappingDto.WorkflowDto;
 import kr.co.strato.workflow.dto.entityMappingDto.WorkflowHistoryDto;
 import kr.co.strato.workflow.dto.entityMappingDto.WorkflowParamDto;
+import kr.co.strato.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.strato.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.strato.workflow.dto.resDto.WorkflowDetailResDto;
+import kr.co.strato.workflow.dto.resDto.WorkflowListResDto;
 import kr.co.strato.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
 import kr.co.strato.workflowStage.dto.WorkflowStageDto;
 
@@ -13,7 +15,7 @@ import java.util.List;
 public interface WorkflowService {
 
     // Workflow 목록
-    List<WorkflowDto> getWorkflowList();
+    List<WorkflowListResDto> getWorkflowList();
 
     // Workflow 등록
     Long registWorkflow(WorkflowReqDto workflowReqDto);
@@ -40,7 +42,7 @@ public interface WorkflowService {
     List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList();
 
     // Workflow 기본 템플릿 조회
-    List<WorkflowStageDto> getWorkflowTemplate(String workflowName);
+    List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName);
     
     // Workflow History
     List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx);

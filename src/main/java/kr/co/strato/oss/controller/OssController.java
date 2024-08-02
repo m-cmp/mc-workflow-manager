@@ -46,8 +46,7 @@ public class OssController {
     @Operation(summary = "OSS 삭제", description = "oss 삭제")
     @DeleteMapping("/{ossIdx}")
     public ResponseWrapper<Boolean> deleteOss(@PathVariable Long ossIdx) {
-        ossService.deleteOss(ossIdx);
-        return new ResponseWrapper<>();
+        return new ResponseWrapper<>(ossService.deleteOss(ossIdx));
     }
 
     @Operation(summary = "OSS 상세 조회", description = "oss 상세조회" )

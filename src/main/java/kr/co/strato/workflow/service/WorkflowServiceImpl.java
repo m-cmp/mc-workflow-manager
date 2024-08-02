@@ -1,6 +1,7 @@
 package kr.co.strato.workflow.service;
 
 import com.cdancy.jenkins.rest.domain.job.BuildInfo;
+import kr.co.strato.workflow.dto.resDto.WorkflowListResDto;
 import kr.co.strato.workflow.service.jenkins.JenkinsPipelineGeneratorService;
 import kr.co.strato.workflow.service.jenkins.service.JenkinsService;
 import kr.co.strato.oss.dto.OssDto;
@@ -69,11 +70,33 @@ public class WorkflowServiceImpl implements WorkflowService {
      * @return
      */
     @Override
-    public List<WorkflowDto> getWorkflowList() {
-        return workflowRepository.findAll()
-                .stream()
-                .map(WorkflowDto::from)
-                .collect(Collectors.toList());
+    public List<WorkflowListResDto> getWorkflowList() {
+
+        List<WorkflowDto> workflowList = workflowRepository.findAll()
+            .stream()
+            .map(WorkflowDto::from)
+            .collect(Collectors.toList());
+
+        List<WorkflowListResDto> list = new ArrayList<>();
+        workflowList.forEach((workflow)-> {
+
+            WorkflowDto workflowDto = WorkflowDto.from(workflowRepository.findByWorkflowIdx(workflow.getWorkflowIdx()));
+
+            List<WorkflowParamDto> paramList =
+                    workflowParamRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx()).stream()
+                            .map(WorkflowParamDto::from)
+                            .collect(Collectors.toList());
+
+            List<WorkflowStageMappingDto> stageList =
+                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx()).stream()
+                            .map(WorkflowStageMappingDto::from)
+                            .collect(Collectors.toList());
+
+            WorkflowListResDto workflowListData = WorkflowListResDto.of(workflowDto, paramList, stageList);
+
+            list.add(workflowListData);
+        });
+        return list;
     }
 
     /**
@@ -99,7 +122,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
             // DB
             if ( isCreate ) {
-                OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(workflowReqDto.getWorkflowInfo().getOssIdx()));
+                OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
                 // 1. Workflow
                 Workflow workflow = workflowRepository.save(WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto));
 
@@ -347,7 +370,7 @@ public class WorkflowServiceImpl implements WorkflowService {
      * @return
      */
     @Override
-    public List<WorkflowStageDto> getWorkflowTemplate(String workflowName) {
+    public List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName) {
         return pipelineService.getWorkflowTemplate(workflowName);
     }
 

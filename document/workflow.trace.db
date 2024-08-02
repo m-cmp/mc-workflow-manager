@@ -82,3 +82,166 @@ org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "WHERE[*]
         WORKFLOW0_.WORKFLOW_NAME='test-ysh-1' "; SQL statement:
 where
         workflow0_.workflow_name='test-ysh-1' [42000-199]
+2024-08-02 09:29:55 jdbc[35]: null
+org.h2.message.DbException: The connection was not closed by the application and is garbage collected [90018-199]
+	at org.h2.message.DbException.get(DbException.java:205)
+	at org.h2.message.DbException.get(DbException.java:181)
+	at org.h2.message.DbException.get(DbException.java:170)
+	at org.h2.jdbc.JdbcConnection.closeOld(JdbcConnection.java:242)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:182)
+	at org.h2.jdbc.JdbcConnection.<init>(JdbcConnection.java:148)
+	at org.h2.Driver.connect(Driver.java:69)
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:138)
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:364)
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:206)
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:476)
+	at com.zaxxer.hikari.pool.HikariPool.access$100(HikariPool.java:71)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:726)
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:712)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1136)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:635)
+	at java.base/java.lang.Thread.run(Thread.java:842)
+Caused by: org.h2.jdbc.JdbcSQLNonTransientConnectionException: The connection was not closed by the application and is garbage collected [90018-199]
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:617)
+	at org.h2.message.DbException.getJdbcSQLException(DbException.java:427)
+	... 18 more
+2024-08-02 10:01:50 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM OSS WHERE OSS_IDX=1
+
+
+SELECT[*] * FROM WORKFLOW "; SQL statement:
+delete from oss where oss_idx=1
+
+
+select * from workflow [42000-199]
+2024-08-02 10:01:52 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM OSS WHERE OSS_IDX=1
+
+
+SELECT[*] * FROM WORKFLOW "; SQL statement:
+delete from oss where oss_idx=1
+
+
+select * from workflow [42000-199]
+2024-08-02 10:01:56 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM OSS WHERE OSS_IDX=1
+
+
+SELECT[*] * FROM WORKFLOW "; SQL statement:
+delete from oss where oss_idx=1
+
+
+select * from workflow [42000-199]
+2024-08-02 10:02:24 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM OSS WHERE OSS_IDX=1
+
+
+SELECT[*] * FROM WORKFLOW "; SQL statement:
+delete from oss where oss_idx=1
+
+
+select * from workflow [42000-199]
+2024-08-02 10:02:26 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM OSS WHERE OSS_IDX=1
+
+
+SELECT[*] * FROM WORKFLOW "; SQL statement:
+delete from oss where oss_idx=1
+
+
+select * from workflow [42000-199]
+2024-08-02 10:03:13 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+DELETE[*] FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:03:15 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+DELETE[*] FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:03:53 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+DELETE[*] FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:04:16 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+delete from workflow_stage_mapping where workflow_idx=2 [42000-199]
+2024-08-02 10:04:43 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+DELETE[*] FROM WORKFLOW_PARAM WHERE PARAM_IDX=9
+DELETE FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=2
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+delete from workflow_param where param_idx=9
+delete from workflow_stage_mapping where workflow_idx=2
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:04:57 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=2
+
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=2
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=2
+
+delete from workflow_stage_mapping where workflow_idx=2
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:15 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=10
+
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=9
+DELETE FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=10
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=10
+
+delete from workflow_stage_mapping where workflow_idx=9
+delete from workflow_stage_mapping where workflow_idx=10
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:19 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE WORKFLOW_IDX=10
+
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=9
+DELETE FROM WORKFLOW_STAGE_MAPPING WHERE WORKFLOW_IDX=10
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where workflow_idx=10
+
+delete from workflow_stage_mapping where workflow_idx=9
+delete from workflow_stage_mapping where workflow_idx=10
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:35 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE PARAM_IDX=10
+
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=9
+DELETE FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=10
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where param_idx=10
+
+delete from workflow_stage_mapping where mapping_idx=9
+delete from workflow_stage_mapping where mapping_idx=10
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:40 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_PARAM WHERE PARAM_IDX=10
+
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=9
+DELETE FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=10
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_param where param_idx=10
+
+delete from workflow_stage_mapping where mapping_idx=9
+delete from workflow_stage_mapping where mapping_idx=10
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:46 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=9
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=10
+DELETE FROM WORKFLOW WHERE WORKFLOW_IDX=2 "; SQL statement:
+delete from workflow_stage_mapping where mapping_idx=9
+delete from workflow_stage_mapping where mapping_idx=10
+delete from workflow where workflow_idx=2 [42000-199]
+2024-08-02 10:05:52 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=9
+DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=10 "; SQL statement:
+delete from workflow_stage_mapping where mapping_idx=9
+delete from workflow_stage_mapping where mapping_idx=10 [42000-199]

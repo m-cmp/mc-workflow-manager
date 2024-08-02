@@ -5,8 +5,10 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import kr.co.strato.api.response.ResponseCode;
 import kr.co.strato.api.response.ResponseWrapper;
 import kr.co.strato.workflow.dto.entityMappingDto.WorkflowDto;
+import kr.co.strato.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.strato.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.strato.workflow.dto.resDto.WorkflowDetailResDto;
+import kr.co.strato.workflow.dto.resDto.WorkflowListResDto;
 import kr.co.strato.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
 import kr.co.strato.workflow.service.WorkflowService;
 import kr.co.strato.workflowStage.dto.WorkflowStageDto;
@@ -26,7 +28,7 @@ public class WorkflowController {
 
     @Operation(summary="워크플로우 목록 조회")
     @GetMapping("/list")
-    public ResponseWrapper<List<WorkflowDto>> getWorkflowList() {
+    public ResponseWrapper<List<WorkflowListResDto>> getWorkflowList() {
         return new ResponseWrapper<>(workflowService.getWorkflowList());
     }
 
@@ -96,7 +98,7 @@ public class WorkflowController {
 
     @Operation(summary="Template 조회")
     @GetMapping("/template/{workflowName}")
-    public ResponseWrapper<List<WorkflowStageDto>> getWorkflowTemplate(@PathVariable String workflowName) {
+    public ResponseWrapper<List<WorkflowStageMappingDto>> getWorkflowTemplate(@PathVariable String workflowName) {
         if ( StringUtils.isBlank(workflowName) ) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowName");
         }

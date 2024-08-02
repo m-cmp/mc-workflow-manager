@@ -2,6 +2,7 @@ package kr.co.strato.workflow.service.jenkins;
 
 import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.util.JenkinsPipelineUtil;
+import kr.co.strato.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.strato.workflowStage.dto.WorkflowStageDto;
 import org.springframework.stereotype.Service;
 
@@ -70,15 +71,15 @@ public class JenkinsPipelineGeneratorService {
 	 * Template 조회 (Workflow)
 	 * @return
 	 */
-	public List<WorkflowStageDto> getWorkflowTemplate(String workflowName) {
+	public List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName) {
 
 		// Checkout And Build 파이프라인(CHECKOUTBUILD)
-		WorkflowStageDto startPipeline = WorkflowStageDto.setWorkflowTemplate(getStartPipelineWorkflow(workflowName));
+		WorkflowStageMappingDto startPipeline = WorkflowStageMappingDto.setWorkflowTemplate(getStartPipelineWorkflow(workflowName));
 
 		// Docker Image or WAR File Upload(FILEUPLOAD)
-		WorkflowStageDto endPipeline = WorkflowStageDto.setWorkflowTemplate(getEndPipeline());
+		WorkflowStageMappingDto endPipeline = WorkflowStageMappingDto.setWorkflowTemplate(getEndPipeline());
 
-		List<WorkflowStageDto> pipelines = new ArrayList<>();
+		List<WorkflowStageMappingDto> pipelines = new ArrayList<>();
 		pipelines.add(startPipeline);
 		pipelines.add(endPipeline);
 

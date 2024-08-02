@@ -114,7 +114,7 @@ public class OssServiceImpl implements OssService {
 		try {
 			OssDto deleteOss = OssDto.from(ossRepository.findByOssIdx(ossIdx));
 			managedJenkinsCredential(deleteOss, "delete");
-			ossRepository.deleteById(ossIdx);
+			ossRepository.deleteByOssIdx(ossIdx);
 			return true;
 		} catch (EmptyResultDataAccessException e) {
 			return false;

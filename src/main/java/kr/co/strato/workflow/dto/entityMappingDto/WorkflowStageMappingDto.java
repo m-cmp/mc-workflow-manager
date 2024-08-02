@@ -3,6 +3,7 @@ package kr.co.strato.workflow.dto.entityMappingDto;
 import kr.co.strato.oss.dto.OssDto;
 import kr.co.strato.oss.dto.OssTypeDto;
 import kr.co.strato.workflow.Entity.WorkflowStageMapping;
+import kr.co.strato.workflowStage.dto.WorkflowStageDto;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -27,13 +28,13 @@ public class WorkflowStageMappingDto {
     }
 
     // of : 내부 (dto -> dto)
-    public static WorkflowStageMappingDto of(WorkflowStageMappingDto workflowStageMappingBaseData) {
+    public static WorkflowStageMappingDto of(WorkflowStageMappingDto workflowStageMappingDto) {
         return WorkflowStageMappingDto.builder()
-                .mappingIdx(workflowStageMappingBaseData.getMappingIdx())
-                .workflowIdx(workflowStageMappingBaseData.getWorkflowIdx())
-                .stageOrder(workflowStageMappingBaseData.getStageOrder())
-                .workflowStageTypeIdx(workflowStageMappingBaseData.getWorkflowStageTypeIdx())
-                .stageContent(workflowStageMappingBaseData.getStageContent())
+                .mappingIdx(workflowStageMappingDto.getMappingIdx())
+                .workflowIdx(workflowStageMappingDto.getWorkflowIdx())
+                .stageOrder(workflowStageMappingDto.getStageOrder())
+                .workflowStageTypeIdx(workflowStageMappingDto.getWorkflowStageTypeIdx())
+                .stageContent(workflowStageMappingDto.getStageContent())
                 .build();
     }
 
@@ -45,6 +46,13 @@ public class WorkflowStageMappingDto {
                 .stageOrder(workflowStageMappingBaseData.getStageOrder())
                 .workflowStageTypeIdx(workflowStageMappingBaseData.getWorkflowStageTypeIdx())
                 .stageContent(workflowStageMappingBaseData.getStageContent())
+                .build();
+    }
+
+    // default Script Set
+    public static WorkflowStageMappingDto setWorkflowTemplate(String workflowStageContent) {
+        return WorkflowStageMappingDto.builder()
+                .stageContent(workflowStageContent)
                 .build();
     }
 }

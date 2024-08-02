@@ -72,11 +72,4 @@ public class WorkflowStageDto {
                 .build();
         return List.of(workflowStageDto);
     }
-
-    // default Script Set
-    public static WorkflowStageDto setWorkflowTemplate(String workflowStageContent) {
-        return WorkflowStageDto.builder()
-                .workflowStageContent(workflowStageContent)
-                .build();
-    }
 }
