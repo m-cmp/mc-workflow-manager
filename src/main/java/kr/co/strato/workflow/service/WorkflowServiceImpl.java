@@ -167,7 +167,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                     workflowReqDto.getWorkflowParams());
 
             if ( isUpdate ) {
-                OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(workflowReqDto.getWorkflowInfo().getOssIdx()));
+                OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
                 // 1. Workflow
                 Workflow workflow = workflowRepository.save(WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto));
 

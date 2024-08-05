@@ -1,6 +1,7 @@
 package kr.co.strato.oss.service;
 
 import kr.co.strato.oss.entity.Oss;
+import kr.co.strato.oss.entity.OssType;
 import kr.co.strato.workflow.service.jenkins.model.JenkinsCredential;
 import kr.co.strato.workflow.service.jenkins.service.JenkinsService;
 import kr.co.strato.oss.dto.OssDto;
@@ -57,17 +58,30 @@ public class OssServiceImpl implements OssService {
 
 	/**
 	 * OSS 목록 조회
-	 * @param ossName
+	 * @param ossTypeName
 	 * @return List<OssDto> ossDtoList
 	 */
 	@Override
-	public List<OssDto> getOssList(String ossName) {
-		List<OssDto> ossList = ossRepository.findByOssName(ossName).stream()
+	public List<OssDto> getOssList(String ossTypeName) {
+		List<OssTypeDto> ossTypeList = ossTypeRepository.findByOssTypeName(ossTypeName)
+				.stream()
+				.map(OssTypeDto::from)
+				.collect(Collectors.toList());
+		log.info(ossTypeList);
+
+		// ossTypeList에서 ossTypeIdx 목록을 추출
+		List<Long> ossTypeIdxList = ossTypeList.stream()
+				.map(OssTypeDto::getOssTypeIdx)
+				.collect(Collectors.toList());
+
+		List<OssDto> ossList = ossRepository.findByOssTypeIdxIn(ossTypeIdxList)
+				.stream()
 				.map(OssDto::from)
 				.collect(Collectors.toList());
 
 		if ( !CollectionUtils.isEmpty(ossList) ) {
-			ossList = ossList.stream()
+			ossList = ossList
+					.stream()
 					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
 					.collect(Collectors.toList());
 		}

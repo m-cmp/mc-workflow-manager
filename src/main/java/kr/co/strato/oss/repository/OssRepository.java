@@ -2,6 +2,8 @@ package kr.co.strato.oss.repository;
 
 import kr.co.strato.oss.entity.Oss;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -10,6 +12,8 @@ import java.util.List;
 public interface OssRepository extends JpaRepository<Oss, Long> {
     List<Oss> findAll();
     List<Oss> findByOssName(String ossName);
+    @Query("SELECT o FROM Oss o WHERE o.ossType.ossTypeIdx IN :ossTypeIdxs")
+    List<Oss> findByOssTypeIdxIn(@Param("ossTypeIdxs") List<Long> ossTypeIdxs);
     Boolean existsByOssNameAndOssUrlAndOssUsername(String ossName, String ossUrl, String ossUsername);
     Oss save(Oss oss);
     Oss findByOssType_OssTypeName(String ossTypeName);

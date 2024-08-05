@@ -28,6 +28,12 @@ public class OssController {
         return new ResponseWrapper<>(ossService.getAllOssList());
     }
 
+    @Operation(summary = "OSS 목록 조회", description = "oss 목록조회(Keyword)" )
+    @GetMapping("/list/{ossTypeName}")
+    public ResponseWrapper<List<OssDto>> getOssList(@PathVariable("ossTypeName") String ossTypeName) {
+        return new ResponseWrapper<>(ossService.getOssList(ossTypeName));
+    }
+
     @Operation(summary = "OSS 등록", description = "oss 등록")
     @PostMapping
     public ResponseWrapper<Long> registOss(@RequestBody OssDto ossDto) {

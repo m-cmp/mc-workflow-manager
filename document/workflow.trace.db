@@ -245,3 +245,6 @@ org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "DELETE F
 DELETE[*] FROM WORKFLOW_STAGE_MAPPING WHERE MAPPING_IDX=10 "; SQL statement:
 delete from workflow_stage_mapping where mapping_idx=9
 delete from workflow_stage_mapping where mapping_idx=10 [42000-199]
+2024-08-05 11:12:02 jdbc[15]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column """WORKFLOW_STAGE_CONTENT"" VARCHAR(255) NOT NULL": "STRINGDECODE('    stage(''workflow stage test'') {\n      steps {\n        echo ''>>>>>STAGE: GITLAB CHECKOUT''\n  \n        scr... (341)"; SQL statement:
+insert into workflow_stage (workflow_stage_idx, workflow_stage_content, workflow_stage_desc, workflow_stage_name, workflow_stage_order, workflow_stage_type_idx) values (default, ?, ?, ?, ?, ?) [22001-199]

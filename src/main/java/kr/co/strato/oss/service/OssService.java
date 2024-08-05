@@ -9,7 +9,7 @@ import java.util.List;
 @Service
 public interface OssService {
     List<OssDto> getAllOssList();
-    List<OssDto> getOssList(String ossName);
+    List<OssDto> getOssList(String ossTypeName);
     Boolean isOssInfoDuplicated(OssDto ossDto);
     Long registOss(OssDto ossDto);
     Long updateOss(OssDto ossDto);
