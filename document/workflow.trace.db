@@ -248,3 +248,11 @@ delete from workflow_stage_mapping where mapping_idx=10 [42000-199]
 2024-08-05 11:12:02 jdbc[15]: exception
 org.h2.jdbc.JdbcSQLDataException: Value too long for column """WORKFLOW_STAGE_CONTENT"" VARCHAR(255) NOT NULL": "STRINGDECODE('    stage(''workflow stage test'') {\n      steps {\n        echo ''>>>>>STAGE: GITLAB CHECKOUT''\n  \n        scr... (341)"; SQL statement:
 insert into workflow_stage (workflow_stage_idx, workflow_stage_content, workflow_stage_desc, workflow_stage_name, workflow_stage_order, workflow_stage_type_idx) values (default, ?, ?, ?, ?, ?) [22001-199]
+2024-08-06 09:13:28 jdbc[13]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Syntax error in SQL statement "SELECT * FROM WORKFLOW
+SELECT[*] * FROM WORKFLOW_STAGE_MAPPING"; SQL statement:
+SELECT * FROM WORKFLOW
+SELECT * FROM WORKFLOW_STAGE_MAPPING [42000-199]
+2024-08-07 13:39:28 jdbc[63]: exception
+org.h2.jdbc.JdbcSQLDataException: Value too long for column """SCRIPT"" VARCHAR(255)": "STRINGDECODE('import groovy.json.JsonOutput\n\n\npipeline {\n  agent any\n  \n  environment {\n  }\n  \n  stages {\n    stage(''... (389)"; SQL statement:
+insert into workflow (workflow_idx, oss_idx, script, workflow_name, workflow_purpose) values (default, ?, ?, ?, ?) [22001-199]

@@ -34,10 +34,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -182,7 +179,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                 // 3. Workflow Stage Mapping (삭제 후 재등록)
                 if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowStageMappings()) ) {
                     workflowReqDto.getWorkflowStageMappings().forEach(stage -> {
-                                workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflow.getWorkflowIdx());
+                        workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflow.getWorkflowIdx());
                     });
                     workflowReqDto.getWorkflowStageMappings().forEach(stage -> {
                         workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, WorkflowDto.from(workflow), ossDto, ossTypeDto));
@@ -326,7 +323,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId);
 
         // 배포 이력 정보 등록
-        workflowHistoryRepository.save(WorkflowHistoryDto.buildEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto, workflowReqDto.getWorkflowInfo().getScript(), null, null));
+        workflowHistoryRepository.save(WorkflowHistoryDto.buildEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto, workflowReqDto.getWorkflowInfo().getScript(), "root", null));
 
 
         // Jenkins Job 실행 대기
@@ -334,7 +331,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         log.info("BuildInfo ==> {}", buildInfo.toString());
         // TODO : 실행후 액션 필요 (기존 : History에 결과값 추가)
 
-        return false;
+        return true;
     }
 
     /**
