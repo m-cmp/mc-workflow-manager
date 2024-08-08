@@ -29,3 +29,8 @@ HELP.md
 
 ### VS Code ###
 .vscode/
+
+
+### DB ###
+workflow.mv.db
+workflow.trace.db
