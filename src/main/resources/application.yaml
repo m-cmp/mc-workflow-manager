@@ -31,13 +31,13 @@ spring:
         show_sql: true
         hbm2ddl: # 처음에 더미데이터등을 넣기위해 sql을 실행
           #import_files: ./data.sql # 확인필요
-          import_files: classpath:./import.sql
+          import_files: classpath:import.sql
           import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor # 멀티 라인 입력 가능하도록
           connection:
             charSet: UTF-8 # 인코딩 설정
           sql:
             init:
-              data-locations: classpath:./import.sql
+              data-locations: classpath:import.sql
               mode: ${SQL_DATA_INIT:always} # ${SQL_DATA_INIT:never}
               platform: h2
               #schema-locations: classpath:ddl.sql

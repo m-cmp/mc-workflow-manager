@@ -27,19 +27,19 @@ echo "==========================================================================
 echo "JAVA 17 INSTALL FINISH"
 echo "======================================================================================"
 
-echo "======================================================================================"
-echo "GRADLE INSTALL START"
-echo "======================================================================================"
-#Install Gradle
-gradle --version
-sudo apt install -y unzip
-cd $HOME/mcmp
-wget -c https://services.gradle.org/distributions/gradle-7.6-bin.zip -P /tmp
-sudo unzip -d /opt/gradle /tmp/gradle-7.6-bin.zip
-sudo chown -R $USER:$USER /opt/gradle
-echo "======================================================================================"
-echo "GRADLE INSTALL FINISH"
-echo "======================================================================================"
+#echo "======================================================================================"
+#echo "GRADLE INSTALL START"
+#echo "======================================================================================"
+##Install Gradle
+#gradle --version
+#sudo apt install -y unzip
+#cd $HOME/mcmp
+#wget -c https://services.gradle.org/distributions/gradle-7.6-bin.zip -P /tmp
+#sudo unzip -d /opt/gradle /tmp/gradle-7.6-bin.zip
+#sudo chown -R $USER:$USER /opt/gradle
+#echo "======================================================================================"
+#echo "GRADLE INSTALL FINISH"
+#echo "======================================================================================"
 
 #echo "======================================================================================"
 #echo "GIT INSTALL START"
