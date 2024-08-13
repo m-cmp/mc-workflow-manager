@@ -1,4 +1,4 @@
-FROM docker.io/library/openjdk:11-jdk-slim
+FROM docker.io/library/openjdk:17-jdk-slim
 ENV TZ=Asia/Seoul
-COPY build/libs/wfManager-0.0.1.jar /wfManager-0.0.1.jar
-ENTRYPOINT ["java", "-jar", "/wfManager-0.0.1.jar"]
+COPY build/libs/workflow_manager-0.2.1.jar /workflow_manager-0.2.1.jar
+ENTRYPOINT ["java", "-jar", "/workflow_manager-0.2.1.jar"]

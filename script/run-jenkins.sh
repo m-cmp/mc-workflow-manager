@@ -1,5 +1,8 @@
 #!/bin/bash
 
+echo "======================================================================================"
+echo "JENKINS RUN START"
+echo "======================================================================================"
 cd $HOME
 if [ ! -d mcmp ]; then
   mkdir -p $HOME/mcmp/oss/jenkins
@@ -30,8 +33,12 @@ sudo docker run -itd \
 $APP_IMAGE
 
 # 컨테이너가 완전히 시작될 때까지 잠시 대기
-echo "Waiting for MariaDB to start..."
+echo "Waiting for Jenkins to start..."
 sleep 10
 
 echo "Init Password"
 sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+
+echo "======================================================================================"
+echo "JENKINS RUN FINISH"
+echo "======================================================================================"

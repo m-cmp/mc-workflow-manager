@@ -1,0 +1,53 @@
+server:
+  port: 18083
+config:
+  config-string: workflow,manager,m-cmp
+spring:
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  application:
+    name: workflow-manager
+  #h2 db 설정
+  datasource:
+    url: jdbc:h2:file:./document/workflow # 프로젝트 루트/db/ 안에 h2.db파일(test.mv.db) 생성
+    driver-class-name: org.h2.Driver
+    username: ${DB_ID:workflow}
+    password: ${DB_PW:tjxjfkxh!23}
+  h2:
+    console:
+      enabled: true # http://localhost:18083/h2-console/으로 접속가능
+      path: /h2-console
+      settings:
+        web-allow-others: true # 원격연결(배포 후 외부에서) 허용
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: ${DB_INIT_YN:create}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+        show_sql: true
+        hbm2ddl: # 처음에 더미데이터등을 넣기위해 sql을 실행
+          #import_files: ./data.sql # 확인필요
+          import_files: classpath:import.sql
+          import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor # 멀티 라인 입력 가능하도록
+          connection:
+            charSet: UTF-8 # 인코딩 설정
+          sql:
+            init:
+              data-locations: classpath:import.sql
+              mode: ${SQL_DATA_INIT:always} # ${SQL_DATA_INIT:never}
+              platform: h2
+              #schema-locations: classpath:ddl.sql
+
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+object:
+  object-mapper-pretty-print: true
+
+aes:
+  key: fb1755281b0ca6184a0ee644e6477ee7
