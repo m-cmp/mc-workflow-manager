@@ -36,7 +36,7 @@ public class WorkflowStageController {
 
     @Operation(summary="워크플로우 스테이지 수정")
     @PatchMapping("/{workflowStageIdx}")
-    public ResponseWrapper<Long> updateWorkflowStage(@PathVariable Long workflowStageIdx, @RequestBody WorkflowStageDto workflowStageDto) {
+    public ResponseWrapper<Boolean> updateWorkflowStage(@PathVariable Long workflowStageIdx, @RequestBody WorkflowStageDto workflowStageDto) {
         if ( workflowStageIdx != 0 || workflowStageDto.getWorkflowStageIdx() != 0 ) {
             return new ResponseWrapper<>(workflowStageService.updateWorkflowStage(workflowStageDto));
         }

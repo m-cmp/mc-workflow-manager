@@ -10,4 +10,5 @@ import java.util.List;
 public interface WorkflowParamRepository extends JpaRepository<WorkflowParam, Long> {
     void deleteByWorkflow_WorkflowIdx(Long workflowIdx);
     List<WorkflowParam> findByWorkflow_WorkflowIdx(Long workflowIdx);
+    List<WorkflowParam> findByWorkflow_WorkflowIdxAndEventListenerYn(Long workflowIdx, String eventListenerYn);
 }

@@ -13,6 +13,7 @@ public class WorkflowParamDto {
     private Long workflowIdx;
     private String paramKey;
     private String paramValue;
+    private String eventListenerYn;
 
     // from : 외부 (entity -> dto)
     public static WorkflowParamDto from(WorkflowParam workflowParam) {
@@ -21,6 +22,7 @@ public class WorkflowParamDto {
                 .workflowIdx(workflowParam.getWorkflow().getWorkflowIdx())
                 .paramKey(workflowParam.getParamKey())
                 .paramValue(workflowParam.getParamValue())
+                .eventListenerYn(workflowParam.getEventListenerYn())
                 .build();
     }
 
@@ -31,6 +33,7 @@ public class WorkflowParamDto {
                 .workflowIdx(workflowParamBaseData.getWorkflowIdx())
                 .paramKey(workflowParamBaseData.getParamKey())
                 .paramValue(workflowParamBaseData.getParamValue())
+                .eventListenerYn(workflowParamBaseData.getEventListenerYn())
                 .build();
     }
 
@@ -41,6 +44,7 @@ public class WorkflowParamDto {
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .paramKey(WorkflowParamBaseData.getParamKey())
                 .paramValue(WorkflowParamBaseData.getParamValue())
+                .eventListenerYn(WorkflowParamBaseData.getEventListenerYn())
                 .build();
     }
 }

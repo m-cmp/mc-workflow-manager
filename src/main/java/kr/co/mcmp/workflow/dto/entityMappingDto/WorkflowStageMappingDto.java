@@ -12,7 +12,7 @@ public class WorkflowStageMappingDto {
     private Long mappingIdx;
     private Long workflowIdx;
     private Integer stageOrder;
-    private Long workflowStageTypeIdx;
+    private Long workflowStageIdx;
     private String stageContent;
 
     // from : 외부 (entity -> dto)
@@ -21,7 +21,7 @@ public class WorkflowStageMappingDto {
                 .mappingIdx(workflowStageMapping.getMappingIdx())
                 .workflowIdx(workflowStageMapping.getWorkflow().getWorkflowIdx())
                 .stageOrder(workflowStageMapping.getStageOrder())
-                .workflowStageTypeIdx(workflowStageMapping.getWorkflowStageTypeIdx())
+                .workflowStageIdx(workflowStageMapping.getWorkflowStageIdx())
                 .stageContent(workflowStageMapping.getStageContent())
                 .build();
     }
@@ -32,7 +32,7 @@ public class WorkflowStageMappingDto {
                 .mappingIdx(workflowStageMappingDto.getMappingIdx())
                 .workflowIdx(workflowStageMappingDto.getWorkflowIdx())
                 .stageOrder(workflowStageMappingDto.getStageOrder())
-                .workflowStageTypeIdx(workflowStageMappingDto.getWorkflowStageTypeIdx())
+                .workflowStageIdx(workflowStageMappingDto.getWorkflowStageIdx())
                 .stageContent(workflowStageMappingDto.getStageContent())
                 .build();
     }
@@ -43,7 +43,7 @@ public class WorkflowStageMappingDto {
                 .mappingIdx(workflowStageMappingBaseData.getMappingIdx())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .stageOrder(workflowStageMappingBaseData.getStageOrder())
-                .workflowStageTypeIdx(workflowStageMappingBaseData.getWorkflowStageTypeIdx())
+                .workflowStageIdx(workflowStageMappingBaseData.getWorkflowStageIdx())
                 .stageContent(workflowStageMappingBaseData.getStageContent())
                 .build();
     }

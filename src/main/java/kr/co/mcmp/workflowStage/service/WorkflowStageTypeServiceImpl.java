@@ -1,10 +1,13 @@
 package kr.co.mcmp.workflowStage.service;
 
+import kr.co.mcmp.workflowStage.Entity.WorkflowStageType;
 import kr.co.mcmp.workflowStage.dto.WorkflowStageTypeDto;
+import kr.co.mcmp.workflowStage.repository.WorkflowStageRepository;
 import kr.co.mcmp.workflowStage.repository.WorkflowStageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -16,18 +19,25 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
 
     private final WorkflowStageTypeRepository workflowStageTypeRepository;
 
+    private final WorkflowStageRepository workflowStageRepository;
+
     /**
      * Workflow Stage Type 생성
      * @return
      */
     @Override
     public List<WorkflowStageTypeDto> getWorkflowStageTypeList() {
-        List<WorkflowStageTypeDto> workflowStageTypeDtoList =
-                workflowStageTypeRepository.findAll()
-                .stream()
-                .map(WorkflowStageTypeDto::from)
-                .collect(Collectors.toList());;
-        return workflowStageTypeDtoList;
+        try {
+            List<WorkflowStageTypeDto> workflowStageTypeDtoList =
+                    workflowStageTypeRepository.findAll()
+                            .stream()
+                            .map(WorkflowStageTypeDto::from)
+                            .collect(Collectors.toList());
+            return workflowStageTypeDtoList;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -37,8 +47,15 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
      */
     @Override
     public Long registWorkflowStage(WorkflowStageTypeDto workflowStageTypeDto) {
-        WorkflowStageTypeDto result = WorkflowStageTypeDto.from(workflowStageTypeRepository.save(WorkflowStageTypeDto.toEntity(workflowStageTypeDto)));
-        return result.getWorkflowStageTypeIdx();
+        try {
+            WorkflowStageType workflowStageType = workflowStageTypeRepository.save(WorkflowStageTypeDto.toEntity(workflowStageTypeDto));
+            WorkflowStageTypeDto result = WorkflowStageTypeDto.from(workflowStageType);
+
+            return result.getWorkflowStageTypeIdx();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -47,9 +64,16 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
      * @return
      */
     @Override
-    public Long updateWorkflowStageType(WorkflowStageTypeDto workflowStageTypeDto) {
-        WorkflowStageTypeDto result = WorkflowStageTypeDto.from(workflowStageTypeRepository.save(WorkflowStageTypeDto.toEntity(workflowStageTypeDto)));
-        return result.getWorkflowStageTypeIdx();
+    public Boolean updateWorkflowStageType(WorkflowStageTypeDto workflowStageTypeDto) {
+        Boolean result = false;
+        try {
+            workflowStageTypeRepository.save(WorkflowStageTypeDto.toEntity(workflowStageTypeDto));
+
+            result = true;
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return result;
     }
 
     /**
@@ -58,8 +82,20 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
      * @return
      */
     @Override
-    public void deleteWorkflowStageType(Long workflowStageTypeIdx) {
-        workflowStageTypeRepository.deleteById(workflowStageTypeIdx);
+    @Transactional
+    public Boolean deleteWorkflowStageType(Long workflowStageTypeIdx) {
+        Boolean result = false;
+        try {
+            WorkflowStageType workflowStageType = workflowStageTypeRepository.findByWorkflowStageTypeIdx(workflowStageTypeIdx);
+
+            if(!workflowStageRepository.existsByWorkflowStageType(workflowStageType)) {
+                workflowStageTypeRepository.deleteById(workflowStageTypeIdx);
+                result = true;
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return result;
     }
 
     /**
@@ -69,6 +105,13 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
      */
     @Override
     public WorkflowStageTypeDto detailWorkflowStageType(Long workflowStageTypeIdx) {
-        return WorkflowStageTypeDto.from(workflowStageTypeRepository.findByWorkflowStageTypeIdx(workflowStageTypeIdx));
+        try {
+            WorkflowStageType workflowStageEntity = workflowStageTypeRepository.findByWorkflowStageTypeIdx(workflowStageTypeIdx);
+
+            return WorkflowStageTypeDto.from(workflowStageEntity);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return null;
+        }
     }
 }

@@ -24,8 +24,8 @@ public class WorkflowStageMapping {
     @Column(name = "stage_order")
     private Integer stageOrder;
 
-    @Column(name = "workflow_stage_type_idx")
-    private Long workflowStageTypeIdx;
+    @Column(name = "workflow_stage_idx")
+    private Long workflowStageIdx;
 
     @Column(name = "stage")
     private String stageContent;

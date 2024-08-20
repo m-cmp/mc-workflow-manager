@@ -15,4 +15,5 @@ public interface WorkflowStageRepository extends JpaRepository<WorkflowStage, Lo
     Boolean existsByWorkflowStageTypeAndWorkflowStageName(WorkflowStageType workflowStageType, String workflowStageName);
 
     List<WorkflowStage> findByWorkflowStageType(WorkflowStageType workflowStageType);
+    Boolean existsByWorkflowStageType(WorkflowStageType workflowStageType);
 }

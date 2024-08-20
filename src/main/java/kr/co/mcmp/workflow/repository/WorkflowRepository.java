@@ -1,5 +1,6 @@
 package kr.co.mcmp.workflow.repository;
 
+import kr.co.mcmp.oss.entity.Oss;
 import kr.co.mcmp.workflow.Entity.Workflow;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -12,4 +13,6 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     Workflow findByWorkflowIdx(Long workflowIdx);
     Workflow findByWorkflowName(String workflowName);
     void deleteByWorkflowIdx(Long workflowIdx);
+
+    Boolean existsByOss(Oss oss);
 }

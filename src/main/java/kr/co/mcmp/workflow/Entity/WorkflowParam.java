@@ -1,6 +1,7 @@
 package kr.co.mcmp.workflow.Entity;
 
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 import javax.persistence.*;
 
@@ -16,7 +17,6 @@ public class WorkflowParam {
     @Column(name = "param_idx")
     private Long paramIdx;
 
-//    @ManyToOne(cascade = CascadeType.ALL)
     @ManyToOne
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;
@@ -26,4 +26,14 @@ public class WorkflowParam {
 
     @Column(name = "param_value")
     private String paramValue;
+
+    @Column(name = "event_listener_yn")
+    private String eventListenerYn;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.eventListenerYn == null) {
+            this.eventListenerYn = "N";
+        }
+    }
 }

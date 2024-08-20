@@ -2,6 +2,7 @@ package kr.co.mcmp.workflowStage.service;
 
 import kr.co.mcmp.workflowStage.dto.WorkflowStageTypeDto;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -11,9 +12,10 @@ public interface WorkflowStageTypeService {
 
     Long registWorkflowStage(WorkflowStageTypeDto workflowStageTypeDto);
 
-    Long updateWorkflowStageType(WorkflowStageTypeDto workflowStageTypeDto);
+    Boolean updateWorkflowStageType(WorkflowStageTypeDto workflowStageTypeDto);
 
-    void deleteWorkflowStageType(Long workflowStageTypeIdx);
+    @Transactional
+    Boolean deleteWorkflowStageType(Long workflowStageTypeIdx);
 
     WorkflowStageTypeDto detailWorkflowStageType(Long workflowStageTypeIdx);
 }

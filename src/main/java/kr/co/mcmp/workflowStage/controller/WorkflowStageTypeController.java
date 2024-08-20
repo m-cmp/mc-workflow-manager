@@ -35,7 +35,7 @@ public class WorkflowStageTypeController {
 
     @Operation(summary="워크플로우 스테이지 타입 수정")
     @PatchMapping("/{workflowStageTypeIdx}")
-    public ResponseWrapper<Long> updateWorkflowStageType(@PathVariable Long workflowStageTypeIdx, @RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
+    public ResponseWrapper<Boolean> updateWorkflowStageType(@PathVariable Long workflowStageTypeIdx, @RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
         if ( workflowStageTypeIdx != 0 || workflowStageTypeDto.getWorkflowStageTypeIdx() != 0 ) {
             return new ResponseWrapper<>(workflowStageTypeService.updateWorkflowStageType(workflowStageTypeDto));
         }
@@ -44,9 +44,8 @@ public class WorkflowStageTypeController {
 
     @Operation(summary="워크플로우 스테이지 타입 삭제")
     @DeleteMapping("{workflowStageTypeIdx}")
-    public ResponseWrapper<Void> deleteWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
-        workflowStageTypeService.deleteWorkflowStageType(workflowStageTypeIdx);
-        return new ResponseWrapper<>();
+    public ResponseWrapper<Boolean> deleteWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
+        return new ResponseWrapper<>(workflowStageTypeService.deleteWorkflowStageType(workflowStageTypeIdx));
     }
 
     @Operation(summary="워크플로우 스테이지 타입 상세")

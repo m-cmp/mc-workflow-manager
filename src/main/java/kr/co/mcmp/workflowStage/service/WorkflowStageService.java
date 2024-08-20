@@ -9,7 +9,7 @@ import java.util.List;
 public interface WorkflowStageService {
     List<WorkflowStageDto> getWorkflowStageList();
     Long registWorkflowStage(WorkflowStageDto workflowStageDto);
-    Long updateWorkflowStage(WorkflowStageDto workflowStageDto);
+    Boolean updateWorkflowStage(WorkflowStageDto workflowStageDto);
     Boolean deleteWorkflowStage(Long workflowStageIdx);
     WorkflowStageDto detailWorkflowStage(Long workflowStageIdx);
     Boolean isWorkflowStageNameDuplicated(String workflowStageTypeName, String workflowStageName);
