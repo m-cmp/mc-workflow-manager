@@ -2,6 +2,7 @@ package kr.co.mcmp.workflowStage.service;
 
 import kr.co.mcmp.workflowStage.dto.WorkflowStageDto;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -10,6 +11,7 @@ public interface WorkflowStageService {
     List<WorkflowStageDto> getWorkflowStageList();
     Long registWorkflowStage(WorkflowStageDto workflowStageDto);
     Boolean updateWorkflowStage(WorkflowStageDto workflowStageDto);
+    @Transactional
     Boolean deleteWorkflowStage(Long workflowStageIdx);
     WorkflowStageDto detailWorkflowStage(Long workflowStageIdx);
     Boolean isWorkflowStageNameDuplicated(String workflowStageTypeName, String workflowStageName);

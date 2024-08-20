@@ -45,7 +45,13 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
     @Override
     public Long registWorkflowStage(WorkflowStageDto workflowStageDto) {
         try {
-            WorkflowStageType workflowStageTypeEntity = workflowStageTypeRepository.findByWorkflowStageTypeIdx(workflowStageDto.getWorkflowStageTypeIdx());
+
+            Boolean existsWorkflowType = workflowStageTypeRepository.existsByWorkflowStageTypeName(workflowStageDto.getWorkflowStageTypeName());
+            if(!existsWorkflowType) {
+                workflowStageTypeRepository.save(WorkflowStageTypeDto.saveWorkflowStageType(workflowStageDto.getWorkflowStageTypeName(), ""));
+            }
+
+            WorkflowStageType workflowStageTypeEntity = workflowStageTypeRepository.findByWorkflowStageTypeName(workflowStageDto.getWorkflowStageTypeName());
             WorkflowStageTypeDto workflowStageTypeDto = WorkflowStageTypeDto.from(workflowStageTypeEntity);
 
             WorkflowStage workflowStageEntity =  workflowStageRepository.save(WorkflowStageDto.toEntity(workflowStageDto, workflowStageTypeDto));
@@ -75,11 +81,12 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
     }
 
     @Override
+    @Transactional
     public Boolean deleteWorkflowStage(Long workflowStageIdx) {
         Boolean result = false;
         try {
             if(!workflowStageMappingRepository.existsByWorkflowStageIdx(workflowStageIdx)) {
-                workflowStageRepository.deleteById(workflowStageIdx);
+                workflowStageRepository.deleteByWorkflowStageIdx(workflowStageIdx);
                 result = true;
             }
         } catch (Exception e) {
@@ -102,10 +109,6 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
     @Transactional
     public Boolean isWorkflowStageNameDuplicated(String workflowStageTypeName, String workflowStageName) {
         try {
-            Boolean existsWorkflowType = workflowStageTypeRepository.existsByWorkflowStageTypeName(workflowStageTypeName);
-            if(!existsWorkflowType) {
-                workflowStageTypeRepository.save(WorkflowStageTypeDto.saveWorkflowStageType(workflowStageTypeName, "test"));
-            }
             WorkflowStageType workflowStageType = workflowStageTypeRepository.findByWorkflowStageTypeName(workflowStageTypeName);
             return workflowStageRepository.existsByWorkflowStageTypeAndWorkflowStageName(workflowStageType, workflowStageName);
         } catch (Exception e) {
