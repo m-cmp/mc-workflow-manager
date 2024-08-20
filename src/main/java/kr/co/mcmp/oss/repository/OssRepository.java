@@ -1,6 +1,7 @@
 package kr.co.mcmp.oss.repository;
 
 import kr.co.mcmp.oss.entity.Oss;
+import kr.co.mcmp.oss.entity.OssType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,4 +20,6 @@ public interface OssRepository extends JpaRepository<Oss, Long> {
     Oss findByOssType_OssTypeName(String ossTypeName);
     Oss findByOssIdx(Long ossIdx);
     void deleteByOssIdx(Long ossIdx);
+
+    Boolean existsByOssType(OssType ossType);
 }

@@ -16,6 +16,8 @@ public class Oss {
     @Column(name = "oss_idx")
     private Long ossIdx;
 
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "oss_type_idx")
     @ManyToOne
     @JoinColumn(name = "oss_type_idx", nullable = false)
     private OssType ossType;

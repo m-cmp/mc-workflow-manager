@@ -12,7 +12,7 @@ public interface OssService {
     List<OssDto> getOssList(String ossTypeName);
     Boolean isOssInfoDuplicated(OssDto ossDto);
     Long registOss(OssDto ossDto);
-    Long updateOss(OssDto ossDto);
+    Boolean updateOss(OssDto ossDto);
     @Transactional
     Boolean deleteOss(Long ossIdx);
     Boolean checkConnection(OssDto ossDto);

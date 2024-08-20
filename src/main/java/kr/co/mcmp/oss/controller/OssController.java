@@ -42,7 +42,7 @@ public class OssController {
 
     @Operation(summary = "OSS 수정", description = "oss 수정")
     @PatchMapping("/{ossIdx}")
-    public ResponseWrapper<Long> updateOss(@PathVariable Long ossIdx, @RequestBody OssDto ossDto) {
+    public ResponseWrapper<Boolean> updateOss(@PathVariable Long ossIdx, @RequestBody OssDto ossDto) {
         if ( ossIdx != 0 || ossDto.getOssIdx() != 0 ) {
             return new ResponseWrapper<>(ossService.updateOss(ossDto));
         }
