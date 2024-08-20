@@ -1,4301 +1,3023 @@
-swagger: '2.0'
-info:
-  description: Api Documentation
-  version: '1.0'
-  title: Api Documentation
-  termsOfService: urn:tos
-  contact: {}
-  license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0
-host: localhost:18083
-basePath: /
-paths:
-  /:
-    get:
-      tags:
-        - mcmp-backend-controller
-      summary: check alive
-      operationId: getUsingGET
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /applications/search/artifacthub/package/{keyword}:
-    get:
-      tags:
-        - applications-controller
-      summary: artifactHub package 목록 조회(helm 조회)
-      operationId: getPackageListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: keyword
-          in: path
-          description: keyword
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«ArtifactHubPackageResponse»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /applications/search/artifacthub/repository/{keyword}:
-    get:
-      tags:
-        - applications-controller
-      summary: artifactHub repository 목록 조회
-      operationId: getRepositoryListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: keyword
-          in: path
-          description: keyword
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«ArtifactHubRespositoryResponse»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /applications/search/dockerhub/catalog/{keyword}:
-    get:
-      tags:
-        - applications-controller
-      summary: dockerHub catalog 조회(image 조회)
-      operationId: getCatalogListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: keyword
-          in: path
-          description: keyword
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«DockerHubCatalogResponse»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /applications/search/dockerhub/namespace/{keyword}:
-    get:
-      tags:
-        - applications-controller
-      summary: dockerHub namespace 조회
-      operationId: getNamespaceInfoUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: keyword
-          in: path
-          description: keyword
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«DockerHubNamespaceResponse»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy:
-    post:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 등록
-      operationId: createCatalogDeployUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: catalogDeploy
-          description: catalogDeploy
-          required: true
-          schema:
-            $ref: '#/definitions/CatalogDeploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy/copy:
-    post:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 정보 복사
-      operationId: getCatalogDeployByCatalogNameUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: catalogDeploy
-          description: catalogDeploy
-          required: true
-          schema:
-            $ref: '#/definitions/CatalogDeploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«CatalogDeploy»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy/list:
-    post:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 목록 조회
-      operationId: getCatalogDeployListUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: catalogDeploy
-          description: catalogDeploy
-          required: true
-          schema:
-            $ref: '#/definitions/CatalogDeploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«CatalogDeploy»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy/name/duplicate:
-    get:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포명 중복 체크
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: isCatalogDeployNameDuplicatedUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: deployName
-          in: query
-          description: deployName
-          required: true
-          type: string
-        - name: k8sId
-          in: query
-          description: k8sId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy/values:
-    post:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 설정 조회 > values.yaml 파일 조회
-      operationId: getValuesYamlUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: catalogDeploy
-          description: catalogDeploy
-          required: true
-          schema:
-            $ref: '#/definitions/CatalogDeploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«string»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/deploy/{catalogDeployId}:
-    get:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 상세 조회
-      operationId: getCatalogDeployUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: catalogDeployId
-          in: path
-          description: catalogDeployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«CatalogDeploy»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 수정
-      operationId: upodateCatalogDeployUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: catalogDeploy
-          description: catalogDeploy
-          required: true
-          schema:
-            $ref: '#/definitions/CatalogDeploy'
-        - name: catalogDeployId
-          in: path
-          description: catalogDeployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 삭제
-      operationId: deleteCatalogDeployUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: catalogDeployId
-          in: path
-          description: catalogDeployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /catalog/deploy/{catalogDeployId}/run:
-    get:
-      tags:
-        - catalog-deploy-controller
-      summary: 카탈로그 배포 실행
-      operationId: runCatalogDeployUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: catalogDeployId
-          in: path
-          description: catalogDeployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«string»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/list:
-    get:
-      tags:
-        - catalog-controller
-      summary: 카탈로그 목록 조회
-      operationId: getCatalogListUsingGET_1
-      produces:
-        - '*/*'
-      parameters:
-        - name: nexusId
-          in: query
-          description: nexusId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Catalog»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/nexus/{nexusId}:
-    get:
-      tags:
-        - catalog-controller
-      summary: nexus repository 목폭조회
-      operationId: getNexusRepositoryUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: nexusId
-          in: path
-          description: nexusId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Catalog»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/nexus/{nexusId}/{repository}:
-    get:
-      tags:
-        - catalog-controller
-      summary: nexus repository 구성 목록조회
-      operationId: getNexusRepositoryInUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: nexusId
-          in: path
-          description: nexusId
-          required: true
-          type: integer
-          format: int32
-        - name: repository
-          in: path
-          description: repository
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Catalog»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    post:
-      tags:
-        - catalog-controller
-      summary: nexus file 등록(lib/jar/tar/etc...)
-      operationId: setLibNexusUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Catalog»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/software/:
-    get:
-      tags:
-        - sw-catalog-controller
-      summary: 카탈로그 목록 조회
-      operationId: getSwCatalogUsingGET
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«SwCatalog»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    post:
-      tags:
-        - sw-catalog-controller
-      summary: 카탈로그 내용 입력
-      operationId: setAppCtUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: swCatalogDetail
-          description: swCatalogDetail
-          required: true
-          schema:
-            $ref: '#/definitions/SwCatalogDetail'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«SwCatalog»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - sw-catalog-controller
-      summary: 카탈로그 내용 수정
-      operationId: editSwCatalogUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: swCatalogDetail
-          description: swCatalogDetail
-          required: true
-          schema:
-            $ref: '#/definitions/SwCatalogDetail'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«SwCatalog»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /catalog/software/relation/sw-catalog/{scIdx}:
-    post:
-      tags:
-        - sw-catalog-controller
-      summary: 연관 카탈로그 추가
-      operationId: addAppCtRelationUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-        - in: body
-          name: swCatalog
-          description: swCatalog
-          required: true
-          schema:
-            $ref: '#/definitions/SwCatalog'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - sw-catalog-controller
-      summary: 연관 카탈로그 삭제
-      operationId: delAppCtRelationUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-        - in: body
-          name: swCatalog
-          description: swCatalog
-          required: true
-          schema:
-            $ref: '#/definitions/SwCatalog'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /catalog/software/relation/workflow/{scIdx}:
-    post:
-      tags:
-        - sw-catalog-controller
-      summary: 연관 workflow 추가
-      operationId: addAppCtWorkflowUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: pipeline
-          description: pipeline
-          required: true
-          schema:
-            $ref: '#/definitions/Pipeline'
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - sw-catalog-controller
-      summary: 연관 workflow 삭제
-      operationId: delAppCtWorkflowUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: pipeline
-          description: pipeline
-          required: true
-          schema:
-            $ref: '#/definitions/Pipeline'
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /catalog/software/{scIdx}:
-    get:
-      tags:
-        - sw-catalog-controller
-      summary: 카탈로그 내용 조회
-      operationId: getAppCtDetailUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«SwCatalog»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - sw-catalog-controller
-      summary: 카탈로그 내용 삭제
-      operationId: delSwCatalogUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: scIdx
-          in: path
-          description: scIdx
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /common/group/{commonGroupCd}:
-    get:
-      tags:
-        - common-controller
-      summary: 공통코드 목록 조회
-      operationId: getCommonCodeListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: commonGroupCd
-          in: path
-          description: commonGroupCd
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«CommonCode»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /common/group/{commonGroupCd}/code:
-    post:
-      tags:
-        - common-controller
-      summary: 공통코드 추가
-      operationId: createCommonCodeUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: code
-          description: code
-          required: true
-          schema:
-            $ref: '#/definitions/CommonCode'
-        - name: commonGroupCd
-          in: path
-          description: commonGroupCd
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«string»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /common/group/{commonGroupCd}/code/{commonCd}:
-    delete:
-      tags:
-        - common-controller
-      summary: 공통코드 삭제
-      operationId: deleteCommonCodeUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: commonCd
-          in: path
-          description: commonCd
-          required: true
-          type: string
-        - name: commonGroupCd
-          in: path
-          description: commonGroupCd
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /config/k8s:
-    post:
-      tags:
-        - k-8-s-controller
-      summary: 등록
-      operationId: createK8SUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: k8s
-          description: k8s
-          required: true
-          schema:
-            $ref: '#/definitions/K8SConfig'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/k8s/connection/check:
-    post:
-      tags:
-        - k-8-s-controller
-      summary: 연결확인
-      operationId: checkConnectionUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: argocd
-          description: argocd
-          required: true
-          schema:
-            $ref: '#/definitions/ArgocdConfig'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/k8s/count:
-    get:
-      tags:
-        - k-8-s-controller
-      summary: provider별 count
-      operationId: getK8SCountUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: providerCd
-          in: query
-          description: providerCd
-          required: false
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Map«string,object»»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/k8s/list:
-    get:
-      tags:
-        - k-8-s-controller
-      summary: 목록 조회
-      operationId: getK8SListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: providerCd
-          in: query
-          description: providerCd
-          required: false
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«K8SConfig»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/k8s/name/duplicate:
-    get:
-      tags:
-        - k-8-s-controller
-      summary: 이름 중복 확인
-      operationId: isNameDuplicateUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: k8sName
-          in: query
-          description: k8sName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/k8s/{k8sId}:
-    get:
-      tags:
-        - k-8-s-controller
-      summary: 상세
-      operationId: getK8SUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: k8sId
-          in: path
-          description: k8sId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«K8SConfig»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - k-8-s-controller
-      summary: 수정
-      operationId: updateK8SUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: k8s
-          description: k8s
-          required: true
-          schema:
-            $ref: '#/definitions/K8SConfig'
-        - name: k8sId
-          in: path
-          description: k8sId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - k-8-s-controller
-      summary: 삭제
-      operationId: deleteK8SUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: k8sId
-          in: path
-          description: k8sId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Void»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /config/oss:
-    post:
-      tags:
-        - oss-controller
-      summary: 등록
-      operationId: createOssUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: oss
-          description: oss
-          required: true
-          schema:
-            $ref: '#/definitions/Oss'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/oss/connection/check:
-    post:
-      tags:
-        - oss-controller
-      summary: 연결확인
-      operationId: checkConnectionUsingPOST_1
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: oss
-          description: oss
-          required: true
-          schema:
-            $ref: '#/definitions/Oss'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/oss/duplicate:
-    get:
-      tags:
-        - oss-controller
-      summary: OSS 정보 중복 체크(oss명, url, username)
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: isOssInfoDuplicatedUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: ossName
-          in: query
-          description: ossName
-          required: true
-          type: string
-        - name: ossUrl
-          in: query
-          description: ossUrl
-          required: true
-          type: string
-        - name: ossUsername
-          in: query
-          description: ossUsername
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/oss/list:
-    get:
-      tags:
-        - oss-controller
-      summary: 목록 조회
-      operationId: getOssListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: ossCd
-          in: query
-          description: ossCd
-          required: false
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Oss»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /config/oss/{ossId}:
-    get:
-      tags:
-        - oss-controller
-      summary: 상세
-      operationId: getOssUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: ossId
-          in: path
-          description: ossId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Oss»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - oss-controller
-      summary: 수정
-      operationId: updateOssUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: oss
-          description: oss
-          required: true
-          schema:
-            $ref: '#/definitions/Oss'
-        - name: ossId
-          in: path
-          description: ossId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - oss-controller
-      summary: 삭제
-      operationId: deleteOssUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: ossId
-          in: path
-          description: ossId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Void»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /deploy:
-    post:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 등록
-      operationId: createDeployUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: deploy
-          description: deploy
-          required: true
-          schema:
-            $ref: '#/definitions/Deploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/gitlab/connection/check:
-    get:
-      tags:
-        - deploy-controller
-      summary: GitLab Clone URL 연결 체크
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: checkGitlabProjectPathConnectionUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: gitlabId
-          in: query
-          description: gitlabId
-          required: true
-          type: integer
-          format: int32
-        - name: gitlabProjectPath
-          in: query
-          description: gitlabProjectPath
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/jenkins/pipeline/default:
-    get:
-      tags:
-        - deploy-controller
-      summary: 파이프라인 생성 > Default 조회
-      operationId: getDefaultPipelineUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: branch
-          in: query
-          description: branch
-          required: true
-          type: string
-        - name: deployName
-          in: query
-          description: deployName
-          required: true
-          type: string
-        - name: gitlabId
-          in: query
-          description: gitlabId
-          required: true
-          type: integer
-          format: int32
-        - name: gitlabProjectPath
-          in: query
-          description: gitlabProjectPath
-          required: true
-          type: string
-        - name: k8sId
-          in: query
-          description: k8sId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Pipeline»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/jenkins/pipeline/{pipelineCd}:
-    get:
-      tags:
-        - deploy-controller
-      summary: 파이프라인 구분 별 목록 조회
-      operationId: getPipelineListUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: pipelineCd
-          in: path
-          description: pipelineCd
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Pipeline»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/list:
-    post:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 목록 조회
-      operationId: getDeployListUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: deploy
-          description: deploy
-          required: true
-          schema:
-            $ref: '#/definitions/Deploy'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Deploy»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/name/duplicate:
-    get:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포명 중복 체크
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: isDeployNameDuplicatedUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: deployName
-          in: query
-          description: deployName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /deploy/{deployId}:
-    get:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 상세 조회
-      operationId: getDeployUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: deployId
-          in: path
-          description: deployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Deploy»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 수정
-      operationId: updateDeployUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: deploy
-          description: deploy
-          required: true
-          schema:
-            $ref: '#/definitions/Deploy'
-        - name: deployId
-          in: path
-          description: deployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 삭제
-      operationId: deleteDeployUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: deployId
-          in: path
-          description: deployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /deploy/{deployId}/run:
-    post:
-      tags:
-        - deploy-controller
-      summary: 워크플로우 배포 실행
-      operationId: runDeployUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - name: deployId
-          in: path
-          description: deployId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«object»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /error:
-    get:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingGET
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    head:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingHEAD
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    post:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingDELETE
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    options:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingOPTIONS
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-    patch:
-      tags:
-        - basic-error-controller
-      summary: error
-      operationId: errorUsingPATCH
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-            additionalProperties:
-              type: object
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /gitlab/connect:
-    get:
-      tags:
-        - test-git-lab-controller
-      summary: getApplication
-      operationId: getApplicationUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: id
-          in: query
-          description: id
-          required: true
-          type: string
-        - name: password
-          in: query
-          description: password
-          required: true
-          type: string
-        - name: url
-          in: query
-          description: url
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /gitlab/{gitLabId}/file:
-    get:
-      tags:
-        - test-git-lab-controller
-      summary: getFile
-      operationId: getFileUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: gitLabId
-          in: path
-          description: gitLabId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«string»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /gitlab/{gitLabId}/project:
-    get:
-      tags:
-        - test-git-lab-controller
-      summary: getProject
-      operationId: getProjectUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: gitLabId
-          in: path
-          description: gitLabId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Project»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /index.html:
-    get:
-      tags:
-        - swagger-welcome-web-mvc
-      summary: redirectToUi
-      operationId: redirectToUiUsingGET
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /infra:
-    get:
-      tags:
-        - infra-provisioning-controller
-      summary: 인프라 목록
-      operationId: getInfraUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: passWord
-          in: query
-          description: passWord
-          required: true
-          type: string
-        - name: userName
-          in: query
-          description: userName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Mcis»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    post:
-      tags:
-        - infra-provisioning-controller
-      summary: 인프라 생성
-      operationId: setInfraUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - name: description
-          in: query
-          required: false
-          type: string
-        - name: infraIdx
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: installMonAgent
-          in: query
-          required: false
-          type: string
-        - name: label
-          in: query
-          required: false
-          type: string
-        - name: name
-          in: query
-          required: false
-          type: string
-        - name: vm.commonImage
-          in: query
-          required: false
-          type: string
-        - name: vm.commonSpec
-          in: query
-          required: false
-          type: string
-        - name: vm.description
-          in: query
-          required: false
-          type: string
-        - name: vm.label
-          in: query
-          required: false
-          type: string
-        - name: vm.name
-          in: query
-          required: false
-          type: string
-        - name: vm.rootDiskSize
-          in: query
-          required: false
-          type: string
-        - name: vm.rootDiskType
-          in: query
-          required: false
-          type: string
-        - name: vm.subGroupSize
-          in: query
-          required: false
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«InfraCommon»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /infra/deploy:
-    get:
-      tags:
-        - infra-provisioning-controller
-      summary: 인프라 생성 및 카탈로그 배포
-      operationId: setInfraDeployUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: description
-          in: query
-          required: false
-          type: string
-        - name: infraIdx
-          in: query
-          required: false
-          type: integer
-          format: int32
-        - name: installMonAgent
-          in: query
-          required: false
-          type: string
-        - name: label
-          in: query
-          required: false
-          type: string
-        - name: name
-          in: query
-          required: false
-          type: string
-        - name: vm.commonImage
-          in: query
-          required: false
-          type: string
-        - name: vm.commonSpec
-          in: query
-          required: false
-          type: string
-        - name: vm.description
-          in: query
-          required: false
-          type: string
-        - name: vm.label
-          in: query
-          required: false
-          type: string
-        - name: vm.name
-          in: query
-          required: false
-          type: string
-        - name: vm.rootDiskSize
-          in: query
-          required: false
-          type: string
-        - name: vm.rootDiskType
-          in: query
-          required: false
-          type: string
-        - name: vm.subGroupSize
-          in: query
-          required: false
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«InfraCommon»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /ns:
-    get:
-      tags:
-        - infra-provisioning-controller
-      summary: 네임스페이스 목록
-      operationId: getNamesapceUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: passWord
-          in: query
-          description: passWord
-          required: true
-          type: string
-        - name: userName
-          in: query
-          description: userName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«InfraNameSpace»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /v3/api-docs:
-    get:
-      tags:
-        - open-api-web-mvc-resource
-      summary: openapiJson
-      operationId: openapiJsonUsingGET
-      produces:
-        - application/json
-      parameters:
-        - name: apiDocsUrl
-          in: query
-          description: apiDocsUrl
-          required: false
-          type: string
-        - name: country
-          in: query
-          required: false
-          type: string
-        - name: displayCountry
-          in: query
-          required: false
-          type: string
-        - name: displayLanguage
-          in: query
-          required: false
-          type: string
-        - name: displayName
-          in: query
-          required: false
-          type: string
-        - name: displayScript
-          in: query
-          required: false
-          type: string
-        - name: displayVariant
-          in: query
-          required: false
-          type: string
-        - name: extensionKeys
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: ISO3Country
-          in: query
-          required: false
-          type: string
-        - name: ISO3Language
-          in: query
-          required: false
-          type: string
-        - name: language
-          in: query
-          required: false
-          type: string
-        - name: script
-          in: query
-          required: false
-          type: string
-        - name: unicodeLocaleAttributes
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: unicodeLocaleKeys
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: variant
-          in: query
-          required: false
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /v3/api-docs.yaml:
-    get:
-      tags:
-        - open-api-web-mvc-resource
-      summary: openapiYaml
-      operationId: openapiYamlUsingGET
-      produces:
-        - application/vnd.oai.openapi
-      parameters:
-        - name: apiDocsUrl
-          in: query
-          description: apiDocsUrl
-          required: false
-          type: string
-        - name: country
-          in: query
-          required: false
-          type: string
-        - name: displayCountry
-          in: query
-          required: false
-          type: string
-        - name: displayLanguage
-          in: query
-          required: false
-          type: string
-        - name: displayName
-          in: query
-          required: false
-          type: string
-        - name: displayScript
-          in: query
-          required: false
-          type: string
-        - name: displayVariant
-          in: query
-          required: false
-          type: string
-        - name: extensionKeys
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: ISO3Country
-          in: query
-          required: false
-          type: string
-        - name: ISO3Language
-          in: query
-          required: false
-          type: string
-        - name: language
-          in: query
-          required: false
-          type: string
-        - name: script
-          in: query
-          required: false
-          type: string
-        - name: unicodeLocaleAttributes
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: unicodeLocaleKeys
-          in: query
-          required: false
-          type: array
-          items:
-            type: string
-          collectionFormat: multi
-        - name: variant
-          in: query
-          required: false
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: string
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /v3/api-docs/swagger-config:
-    get:
-      tags:
-        - swagger-config-resource
-      summary: openapiJson
-      operationId: openapiJsonUsingGET_1
-      produces:
-        - application/json
-      responses:
-        '200':
-          description: OK
-          schema:
-            type: object
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /wf/pipeline:
-    post:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 등록
-      operationId: createPipelineUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: pipeline
-          description: pipeline
-          required: true
-          schema:
-            $ref: '#/definitions/Pipeline'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /wf/pipeline/default:
-    get:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 기본 스크립트 조회
-      operationId: getDefaultPipelineUsingGET_1
-      produces:
-        - '*/*'
-      parameters:
-        - name: pipelineCd
-          in: query
-          description: pipelineCd
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Pipeline»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /wf/pipeline/list:
-    post:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 목록 조회
-      operationId: getPipelineListUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: pipeline
-          description: pipeline
-          required: true
-          schema:
-            $ref: '#/definitions/Pipeline'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Pipeline»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /wf/pipeline/name/duplicate:
-    get:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 명 중복 체크
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: isPipelineNameDuplicatedUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: pipelineCd
-          in: query
-          description: pipelineCd
-          required: true
-          type: string
-        - name: pipelineName
-          in: query
-          description: pipelineName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /wf/pipeline/{pipelineId}:
-    get:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 조회
-      operationId: getPipelineUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: pipelineId
-          in: path
-          description: pipelineId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Pipeline»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 수정
-      operationId: updatePipelineUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: pipeline
-          description: pipeline
-          required: true
-          schema:
-            $ref: '#/definitions/Pipeline'
-        - name: pipelineId
-          in: path
-          description: pipelineId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - jenkins-pipeline-controller
-      summary: 스테이지 삭제
-      operationId: deletePipelineUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: pipelineId
-          in: path
-          description: pipelineId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /workflow:
-    post:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 등록
-      operationId: createWorkflowUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: workflow
-          description: workflow
-          required: true
-          schema:
-            $ref: '#/definitions/Workflow'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«int»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /workflow/jenkins/pipeline:
-    get:
-      tags:
-        - workflow-controller
-      summary: 파이프라인 구분 별 목록 조회
-      operationId: getPipelineListUsingGET_1
-      produces:
-        - '*/*'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Map«string,List«Pipeline»»»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /workflow/jenkins/pipeline/default:
-    post:
-      tags:
-        - workflow-controller
-      summary: 파이프라인 생성 > Default 조회
-      operationId: getDefaultPipelineUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: workflow
-          description: workflow
-          required: true
-          schema:
-            $ref: '#/definitions/Workflow'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Pipeline»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /workflow/list:
-    post:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 목록 조회
-      operationId: getWorkflowListUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: workflow
-          description: workflow
-          required: true
-          schema:
-            $ref: '#/definitions/Workflow'
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«List«Workflow»»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /workflow/name/duplicate:
-    get:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 명 중복 체크
-      description: 'true : 중복 / false : 중복 아님'
-      operationId: isWorkflowNameDuplicatedUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: workflowName
-          in: query
-          description: workflowName
-          required: true
-          type: string
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-  /workflow/{workflowId}:
-    get:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 상세 조회
-      operationId: getWorkflowUsingGET
-      produces:
-        - '*/*'
-      parameters:
-        - name: workflowId
-          in: path
-          description: workflowId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«Workflow»'
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    put:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 수정
-      operationId: updateWorkflowUsingPUT
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - in: body
-          name: workflow
-          description: workflow
-          required: true
-          schema:
-            $ref: '#/definitions/Workflow'
-        - name: workflowId
-          in: path
-          description: workflowId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-    delete:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 배포 삭제
-      operationId: deleteWorkflowUsingDELETE
-      produces:
-        - '*/*'
-      parameters:
-        - name: workflowId
-          in: path
-          description: workflowId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«boolean»'
-        '204':
-          description: No Content
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-  /workflow/{workflowId}/run:
-    post:
-      tags:
-        - workflow-controller
-      summary: 워크플로우 배포 실행
-      operationId: runWorkflowUsingPOST
-      consumes:
-        - application/json
-      produces:
-        - '*/*'
-      parameters:
-        - name: workflowId
-          in: path
-          description: workflowId
-          required: true
-          type: integer
-          format: int32
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/ResponseWrapper«object»'
-        '201':
-          description: Created
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '404':
-          description: Not Found
-definitions:
-  Architecture:
-    type: object
-    properties:
-      label:
-        type: string
-      name:
-        type: string
-    title: Architecture
-  ArgocdConfig:
-    type: object
-    properties:
-      argocdPassword:
-        type: string
-      argocdToken:
-        type: string
-      argocdUrl:
-        type: string
-      argocdUsername:
-        type: string
-    title: ArgocdConfig
-  ArtifactHubPackageResponse:
-    type: object
-    properties:
-      packages:
-        type: array
-        items:
-          $ref: '#/definitions/Package'
-    title: ArtifactHubPackageResponse
-  ArtifactHubRespositoryResponse:
-    type: object
-    properties:
-      digest:
-        type: string
-      disabled:
-        type: boolean
-      display_name:
-        type: string
-      erified_publisher:
-        type: boolean
-      kind:
-        type: integer
-        format: int32
-      last_tracking_ts:
-        type: integer
-        format: int64
-      name:
-        type: string
-      official:
-        type: string
-      repository_id:
-        type: string
-      scanner_disabled:
-        type: boolean
-      url:
-        type: string
-      user_alias:
-        type: string
-    title: ArtifactHubRespositoryResponse
-  Catalog:
-    type: object
-    properties:
-      catalogId:
-        type: integer
-        format: int32
-      catalogName:
-        type: string
-      catalogTypeCd:
-        type: string
-      catalogVersion:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: Catalog
-  CatalogDeploy:
-    type: object
-    properties:
-      argocdPassword:
-        type: string
-      argocdToken:
-        type: string
-      argocdUrl:
-        type: string
-      argocdUsername:
-        type: string
-      catalogDeployId:
-        type: integer
-        format: int32
-      catalogDeployYaml:
-        type: string
-      catalogName:
-        type: string
-      catalogTypeCd:
-        type: string
-      catalogVersion:
-        type: string
-      content:
-        type: string
-      deployName:
-        type: string
-      k8sDesc:
-        type: string
-      k8sId:
-        type: integer
-        format: int32
-      k8sName:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      namespace:
-        type: string
-      nexusId:
-        type: integer
-        format: int32
-      providerCd:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: CatalogDeploy
-  Category:
-    type: object
-    properties:
-      name:
-        type: string
-      slug:
-        type: string
-    title: Category
-  CommonCode:
-    type: object
-    properties:
-      codeDesc:
-        type: string
-      codeName:
-        type: string
-      codeOrder:
-        type: integer
-        format: int32
-      commonCd:
-        type: string
-      commonGroupCd:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      protectedYn:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: CommonCode
-  CustomAttribute:
-    type: object
-    properties:
-      key:
-        type: string
-      value:
-        type: string
-    title: CustomAttribute
-  Deploy:
-    type: object
-    properties:
-      branch:
-        type: string
-      gitlabId:
-        type: integer
-        format: int32
-      gitlabProjectPath:
-        type: string
-      groupName:
-        type: string
-      jenkinsId:
-        type: integer
-        format: int32
-      jenkinsJobName:
-        type: string
-      k8sId:
-        type: integer
-        format: int32
-      k8sName:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      pipelineScript:
-        type: string
-      pipelines:
-        type: array
-        items:
-          $ref: '#/definitions/Pipeline'
-      projectName:
-        type: string
-      providerCd:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-      vmId:
-        type: integer
-        format: int32
-      vmName:
-        type: string
-      workflowId:
-        type: integer
-        format: int32
-      workflowName:
-        type: string
-      workflowYaml:
-        type: string
-    title: Deploy
-  DockerHubCatalogResponse:
-    type: object
-    properties:
-      results:
-        type: array
-        items:
-          $ref: '#/definitions/Result'
-    title: DockerHubCatalogResponse
-  DockerHubNamespaceResponse:
-    type: object
-    properties:
-      count:
-        type: integer
-        format: int32
-      next:
-        type: string
-      page:
-        type: integer
-        format: int32
-      page_size:
-        type: integer
-        format: int32
-      previous:
-        type: string
-      results:
-        type: array
-        items:
-          $ref: '#/definitions/Result'
-    title: DockerHubNamespaceResponse
-  InfraCommon:
-    type: object
-    properties:
-      description:
-        type: string
-      infraIdx:
-        type: integer
-        format: int32
-      installMonAgent:
-        type: string
-      k8s:
-        $ref: '#/definitions/K8S'
-      label:
-        type: string
-      name:
-        type: string
-      vm:
-        $ref: '#/definitions/VM'
-    title: InfraCommon
-  InfraNameSpace:
-    type: object
-    properties:
-      description:
-        type: string
-      id:
-        type: string
-      k8s:
-        type: string
-      name:
-        type: string
-    title: InfraNameSpace
-  JenkinsStage:
-    type: object
-    properties:
-      durationMillis:
-        type: integer
-        format: int64
-      endTimeMillis:
-        type: integer
-        format: int64
-      id:
-        type: string
-      name:
-        type: string
-      pauseDurationMillis:
-        type: integer
-        format: int64
-      startTimeMillis:
-        type: integer
-        format: int64
-      status:
-        type: string
-    title: JenkinsStage
-  JenkinsWorkflow:
-    type: object
-    properties:
-      durationTimeMillis:
-        type: integer
-        format: int64
-      name:
-        type: string
-      stages:
-        type: array
-        items:
-          $ref: '#/definitions/JenkinsStage'
-      startTimeMillis:
-        type: integer
-        format: int64
-      status:
-        type: string
-    title: JenkinsWorkflow
-  K8S:
-    type: object
-    title: K8S
-  K8SConfig:
-    type: object
-    properties:
-      argocdPassword:
-        type: string
-      argocdToken:
-        type: string
-      argocdUrl:
-        type: string
-      argocdUsername:
-        type: string
-      content:
-        type: string
-      k8sDesc:
-        type: string
-      k8sId:
-        type: integer
-        format: int32
-      k8sName:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      providerCd:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: K8SConfig
-  Location:
-    type: object
-    properties:
-      display:
-        type: string
-      latitude:
-        type: number
-        format: double
-      longitude:
-        type: number
-        format: double
-    title: Location
-  LogoUrl:
-    type: object
-    properties:
-      large:
-        type: string
-      small:
-        type: string
-    title: LogoUrl
-  Mcis:
-    type: object
-    properties:
-      id:
-        type: string
-      installMonAgent:
-        type: string
-      label:
-        type: string
-      masterIp:
-        type: string
-      masterSSHPort:
-        type: string
-      masterVmId:
-        type: string
-      name:
-        type: string
-      namespace:
-        type: string
-      status:
-        type: string
-      statusCount:
-        $ref: '#/definitions/StatusCount'
-      systemLabel:
-        type: string
-      targetAction:
-        type: string
-      targetStatus:
-        type: string
-      vm:
-        type: array
-        items:
-          $ref: '#/definitions/VM'
-    title: Mcis
-  ModelAndView:
-    type: object
-    properties:
-      empty:
-        type: boolean
-      model:
-        type: object
-      modelMap:
-        type: object
-        additionalProperties:
-          type: object
-      reference:
-        type: boolean
-      status:
-        type: string
-        enum:
-          - ACCEPTED
-          - ALREADY_REPORTED
-          - BAD_GATEWAY
-          - BAD_REQUEST
-          - BANDWIDTH_LIMIT_EXCEEDED
-          - CHECKPOINT
-          - CONFLICT
-          - CONTINUE
-          - CREATED
-          - DESTINATION_LOCKED
-          - EXPECTATION_FAILED
-          - FAILED_DEPENDENCY
-          - FORBIDDEN
-          - FOUND
-          - GATEWAY_TIMEOUT
-          - GONE
-          - HTTP_VERSION_NOT_SUPPORTED
-          - IM_USED
-          - INSUFFICIENT_SPACE_ON_RESOURCE
-          - INSUFFICIENT_STORAGE
-          - INTERNAL_SERVER_ERROR
-          - I_AM_A_TEAPOT
-          - LENGTH_REQUIRED
-          - LOCKED
-          - LOOP_DETECTED
-          - METHOD_FAILURE
-          - METHOD_NOT_ALLOWED
-          - MOVED_PERMANENTLY
-          - MOVED_TEMPORARILY
-          - MULTIPLE_CHOICES
-          - MULTI_STATUS
-          - NETWORK_AUTHENTICATION_REQUIRED
-          - NON_AUTHORITATIVE_INFORMATION
-          - NOT_ACCEPTABLE
-          - NOT_EXTENDED
-          - NOT_FOUND
-          - NOT_IMPLEMENTED
-          - NOT_MODIFIED
-          - NO_CONTENT
-          - OK
-          - PARTIAL_CONTENT
-          - PAYLOAD_TOO_LARGE
-          - PAYMENT_REQUIRED
-          - PERMANENT_REDIRECT
-          - PRECONDITION_FAILED
-          - PRECONDITION_REQUIRED
-          - PROCESSING
-          - PROXY_AUTHENTICATION_REQUIRED
-          - REQUESTED_RANGE_NOT_SATISFIABLE
-          - REQUEST_ENTITY_TOO_LARGE
-          - REQUEST_HEADER_FIELDS_TOO_LARGE
-          - REQUEST_TIMEOUT
-          - REQUEST_URI_TOO_LONG
-          - RESET_CONTENT
-          - SEE_OTHER
-          - SERVICE_UNAVAILABLE
-          - SWITCHING_PROTOCOLS
-          - TEMPORARY_REDIRECT
-          - TOO_EARLY
-          - TOO_MANY_REQUESTS
-          - UNAUTHORIZED
-          - UNAVAILABLE_FOR_LEGAL_REASONS
-          - UNPROCESSABLE_ENTITY
-          - UNSUPPORTED_MEDIA_TYPE
-          - UPGRADE_REQUIRED
-          - URI_TOO_LONG
-          - USE_PROXY
-          - VARIANT_ALSO_NEGOTIATES
-      view:
-        $ref: '#/definitions/View'
-      viewName:
-        type: string
-    title: ModelAndView
-  Namespace:
-    type: object
-    properties:
-      avatarUrl:
-        type: string
-      fullPath:
-        type: string
-      id:
-        type: integer
-        format: int64
-      kind:
-        type: string
-      name:
-        type: string
-      path:
-        type: string
-      webUrl:
-        type: string
-    title: Namespace
-  OperatingSystem:
-    type: object
-    properties:
-      label:
-        type: string
-      name:
-        type: string
-    title: OperatingSystem
-  Oss:
-    type: object
-    properties:
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      ossCd:
-        type: string
-      ossDesc:
-        type: string
-      ossId:
-        type: integer
-        format: int32
-      ossName:
-        type: string
-      ossPassword:
-        type: string
-      ossToken:
-        type: string
-      ossUrl:
-        type: string
-      ossUsername:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: Oss
-  Owner:
-    type: object
-    properties:
-      avatarUrl:
-        type: string
-      createdAt:
-        type: string
-        format: date-time
-      email:
-        type: string
-      id:
-        type: integer
-        format: int64
-      name:
-        type: string
-      state:
-        type: string
-      username:
-        type: string
-      webUrl:
-        type: string
-    title: Owner
-  Package:
-    type: object
-    properties:
-      description:
-        type: string
-      has_values_schema:
-        type: string
-      name:
-        type: string
-      normalized_name:
-        type: string
-      package_id:
-        type: string
-      repository:
-        $ref: '#/definitions/Repository'
-    title: Package
-  Permissions:
-    type: object
-    properties:
-      groupAccess:
-        $ref: '#/definitions/ProjectAccess'
-      projectAccess:
-        $ref: '#/definitions/ProjectAccess'
-    title: Permissions
-  Pipeline:
-    type: object
-    properties:
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      pipelineCd:
-        type: string
-      pipelineCdName:
-        type: string
-      pipelineId:
-        type: integer
-        format: int32
-      pipelineName:
-        type: string
-      pipelineOrder:
-        type: integer
-        format: int32
-      pipelineScript:
-        type: string
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-    title: Pipeline
-  Project:
-    type: object
-    properties:
-      approvalsBeforeMerge:
-        type: integer
-        format: int32
-      archived:
-        type: boolean
-      autoDevopsDeployStrategy:
-        type: string
-        enum:
-          - continuous
-          - manual
-          - timed_incremental
-      autoDevopsEnabled:
-        type: boolean
-      autocloseReferencedIssues:
-        type: boolean
-      avatarUrl:
-        type: string
-      buildCoverageRegex:
-        type: string
-      buildGitStrategy:
-        type: string
-        enum:
-          - clone
-          - fetch
-      canCreateMergeRequestIn:
-        type: boolean
-      ciConfigPath:
-        type: string
-      ciDefaultGitDepth:
-        type: integer
-        format: int32
-      ciForwardDeploymentEnabled:
-        type: boolean
-      containerRegistryEnabled:
-        type: boolean
-      createdAt:
-        type: string
-        format: date-time
-      creatorId:
-        type: integer
-        format: int64
-      customAttributes:
-        type: array
-        items:
-          $ref: '#/definitions/CustomAttribute'
-      defaultBranch:
-        type: string
-      description:
-        type: string
-      emailsDisabled:
-        type: boolean
-      emptyRepo:
-        type: boolean
-      forkedFromProject:
-        $ref: '#/definitions/Project'
-      forksCount:
-        type: integer
-        format: int32
-      httpUrlToRepo:
-        type: string
-      id:
-        type: integer
-        format: int64
-      importStatus:
-        type: string
-        enum:
-          - failed
-          - finished
-          - none
-          - scheduled
-          - started
-      initializeWithReadme:
-        type: boolean
-      issuesEnabled:
-        type: boolean
-      jobsEnabled:
-        type: boolean
-      lastActivityAt:
-        type: string
-        format: date-time
-      lfsEnabled:
-        type: boolean
-      license:
-        $ref: '#/definitions/ProjectLicense'
-      licenseUrl:
-        type: string
-      markedForDeletionOn:
-        type: string
-        format: date-time
-      mergeMethod:
-        type: string
-        enum:
-          - ff
-          - merge
-          - rebase_merge
-      mergeRequestsEnabled:
-        type: boolean
-      name:
-        type: string
-      nameWithNamespace:
-        type: string
-      namespace:
-        $ref: '#/definitions/Namespace'
-      onlyAllowMergeIfAllDiscussionsAreResolved:
-        type: boolean
-      onlyAllowMergeIfPipelineSucceeds:
-        type: boolean
-      openIssuesCount:
-        type: integer
-        format: int32
-      owner:
-        $ref: '#/definitions/Owner'
-      packagesEnabled:
-        type: boolean
-      path:
-        type: string
-      pathWithNamespace:
-        type: string
-      permissions:
-        $ref: '#/definitions/Permissions'
-      printingMergeRequestLinkEnabled:
-        type: boolean
-      public:
-        type: boolean
-      publicJobs:
-        type: boolean
-      readmeUrl:
-        type: string
-      removeSourceBranchAfterMerge:
-        type: boolean
-      repositoryStorage:
-        type: string
-      requestAccessEnabled:
-        type: boolean
-      resolveOutdatedDiffDiscussions:
-        type: boolean
-      runnersToken:
-        type: string
-      sharedRunnersEnabled:
-        type: boolean
-      sharedWithGroups:
-        type: array
-        items:
-          $ref: '#/definitions/ProjectSharedGroup'
-      snippetsEnabled:
-        type: boolean
-      squashOption:
-        type: string
-        enum:
-          - always
-          - default_off
-          - default_on
-          - never
-      sshUrlToRepo:
-        type: string
-      starCount:
-        type: integer
-        format: int32
-      statistics:
-        $ref: '#/definitions/ProjectStatistics'
-      suggestionCommitMessage:
-        type: string
-      tagList:
-        type: array
-        items:
-          type: string
-      visibility:
-        type: string
-        enum:
-          - internal
-          - private
-          - public
-      visibilityLevel:
-        type: integer
-        format: int32
-      wallEnabled:
-        type: boolean
-      webUrl:
-        type: string
-      wikiEnabled:
-        type: boolean
-    title: Project
-  ProjectAccess:
-    type: object
-    properties:
-      accessLevel:
-        type: string
-        enum:
-          - '-1'
-          - '0'
-          - '10'
-          - '20'
-          - '30'
-          - '40'
-          - '5'
-          - '50'
-          - '60'
-      notificationLevel:
-        type: integer
-        format: int32
-    title: ProjectAccess
-  ProjectLicense:
-    type: object
-    properties:
-      htmlUrl:
-        type: string
-      key:
-        type: string
-      name:
-        type: string
-      nickname:
-        type: string
-      sourceUrl:
-        type: string
-    title: ProjectLicense
-  ProjectSharedGroup:
-    type: object
-    properties:
-      groupAccessLevel:
-        type: string
-        enum:
-          - '-1'
-          - '0'
-          - '10'
-          - '20'
-          - '30'
-          - '40'
-          - '5'
-          - '50'
-          - '60'
-      groupFullPath:
-        type: string
-      groupId:
-        type: integer
-        format: int64
-      groupName:
-        type: string
-    title: ProjectSharedGroup
-  ProjectStatistics:
-    type: object
-    properties:
-      commitCount:
-        type: integer
-        format: int64
-      jobArtifactsSize:
-        type: integer
-        format: int64
-      lfsObjectsSize:
-        type: integer
-        format: int64
-      packagesSize:
-        type: integer
-        format: int64
-      repositorySize:
-        type: integer
-        format: int64
-      storageSize:
-        type: integer
-        format: int64
-      wikiSize:
-        type: integer
-        format: int64
-    title: ProjectStatistics
-  Publisher:
-    type: object
-    properties:
-      id:
-        type: string
-      name:
-        type: string
-    title: Publisher
-  RatePlans:
-    type: object
-    properties:
-      architectures:
-        type: array
-        items:
-          $ref: '#/definitions/Architecture'
-      id:
-        type: string
-      operating_systems:
-        type: array
-        items:
-          $ref: '#/definitions/OperatingSystem'
-      repositories:
-        type: array
-        items:
-          $ref: '#/definitions/Repository'
-    title: RatePlans
-  Repository:
-    type: object
-    properties:
-      display_name:
-        type: string
-      name:
-        type: string
-      official:
-        type: boolean
-      organization_display_name:
-        type: string
-      url:
-        type: string
-    title: Repository
-  ResponseWrapper«ArtifactHubPackageResponse»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/ArtifactHubPackageResponse'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«ArtifactHubPackageResponse»
-  ResponseWrapper«CatalogDeploy»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/CatalogDeploy'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«CatalogDeploy»
-  ResponseWrapper«Deploy»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/Deploy'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Deploy»
-  ResponseWrapper«DockerHubCatalogResponse»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/DockerHubCatalogResponse'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«DockerHubCatalogResponse»
-  ResponseWrapper«DockerHubNamespaceResponse»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/DockerHubNamespaceResponse'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«DockerHubNamespaceResponse»
-  ResponseWrapper«K8SConfig»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/K8SConfig'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«K8SConfig»
-  ResponseWrapper«List«ArtifactHubRespositoryResponse»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/ArtifactHubRespositoryResponse'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«ArtifactHubRespositoryResponse»»
-  ResponseWrapper«List«CatalogDeploy»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/CatalogDeploy'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«CatalogDeploy»»
-  ResponseWrapper«List«Catalog»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Catalog'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Catalog»»
-  ResponseWrapper«List«CommonCode»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/CommonCode'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«CommonCode»»
-  ResponseWrapper«List«Deploy»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Deploy'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Deploy»»
-  ResponseWrapper«List«InfraCommon»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/InfraCommon'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«InfraCommon»»
-  ResponseWrapper«List«InfraNameSpace»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/InfraNameSpace'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«InfraNameSpace»»
-  ResponseWrapper«List«K8SConfig»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/K8SConfig'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«K8SConfig»»
-  ResponseWrapper«List«Map«string,object»»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          type: object
-          additionalProperties:
-            type: object
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Map«string,object»»»
-  ResponseWrapper«List«Mcis»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Mcis'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Mcis»»
-  ResponseWrapper«List«Oss»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Oss'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Oss»»
-  ResponseWrapper«List«Pipeline»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Pipeline'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Pipeline»»
-  ResponseWrapper«List«SwCatalog»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/SwCatalog'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«SwCatalog»»
-  ResponseWrapper«List«Workflow»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: array
-        items:
-          $ref: '#/definitions/Workflow'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«List«Workflow»»
-  ResponseWrapper«Map«string,List«Pipeline»»»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: object
-        additionalProperties:
-          type: array
-          items:
-            $ref: '#/definitions/Pipeline'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Map«string,List«Pipeline»»»
-  ResponseWrapper«Oss»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/Oss'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Oss»
-  ResponseWrapper«Pipeline»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/Pipeline'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Pipeline»
-  ResponseWrapper«Project»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/Project'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Project»
-  ResponseWrapper«SwCatalog»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/SwCatalog'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«SwCatalog»
-  ResponseWrapper«Void»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Void»
-  ResponseWrapper«Workflow»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        $ref: '#/definitions/Workflow'
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«Workflow»
-  ResponseWrapper«boolean»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: boolean
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«boolean»
-  ResponseWrapper«int»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: integer
-        format: int32
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«int»
-  ResponseWrapper«object»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: object
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«object»
-  ResponseWrapper«string»:
-    type: object
-    properties:
-      code:
-        type: integer
-        format: int32
-      data:
-        type: string
-      detail:
-        type: string
-      message:
-        type: string
-    title: ResponseWrapper«string»
-  Result:
-    type: object
-    properties:
-      categories:
-        type: array
-        items:
-          $ref: '#/definitions/Category'
-      created_at:
-        type: string
-      id:
-        type: string
-      logo_url:
-        $ref: '#/definitions/LogoUrl'
-      name:
-        type: string
-      publisher:
-        $ref: '#/definitions/Publisher'
-      rate_plans:
-        type: array
-        items:
-          $ref: '#/definitions/RatePlans'
-      short_description:
-        type: string
-      slug:
-        type: string
-      source:
-        type: string
-      type:
-        type: string
-      updated_at:
-        type: string
-    title: Result
-  StatusCount:
-    type: object
-    properties:
-      countCreating:
-        type: integer
-        format: int32
-      countFailed:
-        type: integer
-        format: int32
-      countRebooting:
-        type: integer
-        format: int32
-      countResuming:
-        type: integer
-        format: int32
-      countRunning:
-        type: integer
-        format: int32
-      countSuspended:
-        type: integer
-        format: int32
-      countSuspending:
-        type: integer
-        format: int32
-      countTerminated:
-        type: integer
-        format: int32
-      countTerminating:
-        type: integer
-        format: int32
-      countTotal:
-        type: integer
-        format: int32
-      countUndefined:
-        type: integer
-        format: int32
-    title: StatusCount
-  SwCatalog:
-    type: object
-    properties:
-      scIcon:
-        type: string
-      scIdx:
-        type: integer
-        format: int32
-      scLocation:
-        type: string
-      scSummary:
-        type: string
-      scTitle:
-        type: string
-      scVersion:
-        type: string
-    title: SwCatalog
-  SwCatalogDetail:
-    type: object
-    properties:
-      relationSwCatalog:
-        type: array
-        items:
-          $ref: '#/definitions/SwCatalog'
-      scCategory:
-        type: string
-      scDescription:
-        type: string
-      scIcon:
-        type: string
-      scIdx:
-        type: integer
-        format: int32
-      scLocation:
-        type: string
-      scReference:
-        type: string
-      scSummary:
-        type: string
-      scTitle:
-        type: string
-      scVersion:
-        type: string
-      workflows:
-        type: array
-        items:
-          $ref: '#/definitions/JenkinsWorkflow'
-    title: SwCatalogDetail
-  VM:
-    type: object
-    properties:
-      commonImage:
-        type: string
-      commonSpec:
-        type: string
-      description:
-        type: string
-      label:
-        type: string
-      name:
-        type: string
-      rootDiskSize:
-        type: string
-      rootDiskType:
-        type: string
-      subGroupSize:
-        type: integer
-        format: int32
-    title: VM
-  View:
-    type: object
-    properties:
-      contentType:
-        type: string
-    title: View
-  Workflow:
-    type: object
-    properties:
-      jenkinsId:
-        type: integer
-        format: int32
-      jenkinsJobName:
-        type: string
-      jenkinsName:
-        type: string
-      jenkinsUrl:
-        type: string
-      modDate:
-        type: string
-      modId:
-        type: string
-      modName:
-        type: string
-      pipelineParam:
-        type: array
-        items:
-          $ref: '#/definitions/params'
-      pipelineScript:
-        type: string
-      pipelines:
-        type: array
-        items:
-          $ref: '#/definitions/Pipeline'
-      regDate:
-        type: string
-      regId:
-        type: string
-      regName:
-        type: string
-      workflowId:
-        type: integer
-        format: int32
-      workflowName:
-        type: string
-      workflowPurpose:
-        type: string
-    title: Workflow
-  params:
-    type: object
-    properties:
-      paramKey:
-        type: string
-      paramValue:
-        type: string
-    title: params
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Api Documentation",
+    "version": "1.0",
+    "title": "Api Documentation",
+    "termsOfService": "urn:tos",
+    "contact": {},
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "host": "localhost:18083",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "workflow-controller",
+      "description": "Workflow Controller"
+    },
+    {
+      "name": "workflow-stage-controller",
+      "description": "Workflow Stage Controller"
+    },
+    {
+      "name": "oss-type-controller",
+      "description": "Oss Type Controller"
+    },
+    {
+      "name": "workflow-param-controller",
+      "description": "Workflow Param Controller"
+    },
+    {
+      "name": "open-api-web-mvc-resource",
+      "description": "Open Api Web Mvc Resource"
+    },
+    {
+      "name": "event-listener-controller",
+      "description": "Event Listener Controller"
+    },
+    {
+      "name": "workflow-history-controller",
+      "description": "Workflow History Controller"
+    },
+    {
+      "name": "workflow-stage-type-controller",
+      "description": "Workflow Stage Type Controller"
+    },
+    {
+      "name": "swagger-config-resource",
+      "description": "Swagger Config Resource"
+    },
+    {
+      "name": "oss-controller",
+      "description": "Oss Controller"
+    },
+    {
+      "name": "swagger-welcome-web-mvc",
+      "description": "Swagger Welcome Web Mvc"
+    },
+    {
+      "name": "basic-error-controller",
+      "description": "Basic Error Controller"
+    }
+  ],
+  "paths": {
+    "/error": {
+      "get": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingHEAD",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPUT",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingOPTIONS",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/eventlistener": {
+      "post": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "registEventListner",
+        "operationId": "registEventListnerUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/list": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "getEventListenerList",
+        "operationId": "getEventListenerListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«ResponseEventListenerDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/run/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "runEventListener",
+        "operationId": "runEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "detailEventListener",
+        "operationId": "detailEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«ResponseEventListenerDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "deleteEventListner",
+        "operationId": "deleteEventListnerUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "updateEventListner",
+        "operationId": "updateEventListnerUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/oss": {
+      "post": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "registOss",
+        "operationId": "registOssUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/connection-check": {
+      "post": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "checkConnection",
+        "operationId": "checkConnectionUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/duplicate": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "isOssInfoDuplicated",
+        "operationId": "isOssInfoDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossName",
+            "in": "query",
+            "description": "ossName",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ossUrl",
+            "in": "query",
+            "description": "ossUrl",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ossUsername",
+            "in": "query",
+            "description": "ossUsername",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/list": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "getOssList",
+        "operationId": "getOssListUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/list/{ossTypeName}": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "getOssList",
+        "operationId": "getOssListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeName",
+            "in": "path",
+            "description": "ossTypeName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/{ossIdx}": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "detailOss",
+        "operationId": "detailOssUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«OssDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "deleteOss",
+        "operationId": "deleteOssUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "updateOss",
+        "operationId": "updateOssUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/ossType": {
+      "post": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "registOssType",
+        "operationId": "registOssTypeUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossTypeDto",
+            "description": "ossTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/ossType/list": {
+      "get": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "getOssTypeList",
+        "operationId": "getOssTypeListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssTypeDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/ossType/{ossTypeIdx}": {
+      "get": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "detailOssType",
+        "operationId": "detailOssTypeUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«OssTypeDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "deleteOssType",
+        "operationId": "deleteOssTypeUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "updateOssType",
+        "operationId": "updateOssTypeUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "ossTypeDto",
+            "description": "ossTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/swagger-ui.html": {
+      "get": {
+        "tags": [
+          "swagger-welcome-web-mvc"
+        ],
+        "summary": "redirectToUi",
+        "operationId": "redirectToUiUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs": {
+      "get": {
+        "tags": [
+          "open-api-web-mvc-resource"
+        ],
+        "summary": "openapiJson",
+        "operationId": "openapiJsonUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "apiDocsUrl",
+            "description": "apiDocsUrl",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs.yaml": {
+      "get": {
+        "tags": [
+          "open-api-web-mvc-resource"
+        ],
+        "summary": "openapiYaml",
+        "operationId": "openapiYamlUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/vnd.oai.openapi"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "apiDocsUrl",
+            "description": "apiDocsUrl",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs/swagger-config": {
+      "get": {
+        "tags": [
+          "swagger-config-resource"
+        ],
+        "summary": "openapiJson",
+        "operationId": "openapiJsonUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow": {
+      "post": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "registWorkflow",
+        "operationId": "registWorkflowUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/history/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-history-controller"
+        ],
+        "summary": "getWorkflowHistoryList",
+        "operationId": "getWorkflowHistoryListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowHistoryDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/list": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowList",
+        "operationId": "getWorkflowListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowListResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/name/duplicate": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "isWorkflowNameDuplicated",
+        "operationId": "isWorkflowNameDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowName",
+            "in": "query",
+            "description": "workflowName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/param/list": {
+      "get": {
+        "tags": [
+          "workflow-param-controller"
+        ],
+        "summary": "getWorkflowParamList",
+        "operationId": "getWorkflowParamListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowParamDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/run": {
+      "post": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "runWorkflowPost",
+        "operationId": "runWorkflowPostUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«object»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/run/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "runWorkflowGet",
+        "operationId": "runWorkflowGetUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/template/{workflowName}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowTemplate",
+        "operationId": "getWorkflowTemplateUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowName",
+            "in": "path",
+            "description": "workflowName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageMappingDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/workflowStageList": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageTypeAndStageNameResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflow",
+        "operationId": "getWorkflowUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowDetailResDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "deleteWorkflow",
+        "operationId": "deleteWorkflowUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "updateWorkflow",
+        "operationId": "updateWorkflowUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/workflowStage": {
+      "post": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "registWorkflowStage",
+        "operationId": "registWorkflowStageUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowStageDto",
+            "description": "workflowStageDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/default/script/{workflowStageTypeName}": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "getDefaultWorkflowStage",
+        "operationId": "getDefaultWorkflowStageUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeName",
+            "in": "path",
+            "description": "workflowStageTypeName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/duplicate": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "isWorkflowStageNameDuplicated",
+        "operationId": "isWorkflowStageNameDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeName",
+            "in": "query",
+            "description": "workflowStageTypeName",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "workflowStageName",
+            "in": "query",
+            "description": "workflowStageName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/list": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/{workflowStageIdx}": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "detailWorkflowStage",
+        "operationId": "detailWorkflowStageUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowStageDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "deleteWorkflowStage",
+        "operationId": "deleteWorkflowStageUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "updateWorkflowStage",
+        "operationId": "updateWorkflowStageUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowStageDto",
+            "description": "workflowStageDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/workflowStageType": {
+      "post": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "registWorkflowStage",
+        "operationId": "registWorkflowStageUsingPOST_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowStageTypeDto",
+            "description": "workflowStageTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStageType/list": {
+      "get": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET_2",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageTypeDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStageType/{workflowStageTypeIdx}": {
+      "get": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "detailWorkflowStageType",
+        "operationId": "detailWorkflowStageTypeUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowStageTypeDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "deleteWorkflowStageType",
+        "operationId": "deleteWorkflowStageTypeUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "updateWorkflowStageType",
+        "operationId": "updateWorkflowStageTypeUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowStageTypeDto",
+            "description": "workflowStageTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ResponseWrapper«OssDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/OssDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowDto": {
+      "type": "object",
+      "properties": {
+        "ossIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "script": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowName": {
+          "type": "string"
+        },
+        "workflowPurpose": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowStageTypeDto": {
+      "type": "object",
+      "properties": {
+        "workflowStageTypeDesc": {
+          "type": "string"
+        },
+        "workflowStageTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowListResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowListResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerCallUrl": {
+          "type": "string"
+        },
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«List«ResponseEventListenerDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResponseEventListenerDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowParamDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerYn": {
+          "type": "string"
+        },
+        "paramIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "paramKey": {
+          "type": "string"
+        },
+        "paramValue": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«object»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "object"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ModelAndView": {
+      "type": "object",
+      "properties": {
+        "empty": {
+          "type": "boolean"
+        },
+        "model": {
+          "type": "object"
+        },
+        "modelMap": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "reference": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "100 CONTINUE",
+            "101 SWITCHING_PROTOCOLS",
+            "102 PROCESSING",
+            "103 CHECKPOINT",
+            "200 OK",
+            "201 CREATED",
+            "202 ACCEPTED",
+            "203 NON_AUTHORITATIVE_INFORMATION",
+            "204 NO_CONTENT",
+            "205 RESET_CONTENT",
+            "206 PARTIAL_CONTENT",
+            "207 MULTI_STATUS",
+            "208 ALREADY_REPORTED",
+            "226 IM_USED",
+            "300 MULTIPLE_CHOICES",
+            "301 MOVED_PERMANENTLY",
+            "302 FOUND",
+            "302 MOVED_TEMPORARILY",
+            "303 SEE_OTHER",
+            "304 NOT_MODIFIED",
+            "305 USE_PROXY",
+            "307 TEMPORARY_REDIRECT",
+            "308 PERMANENT_REDIRECT",
+            "400 BAD_REQUEST",
+            "401 UNAUTHORIZED",
+            "402 PAYMENT_REQUIRED",
+            "403 FORBIDDEN",
+            "404 NOT_FOUND",
+            "405 METHOD_NOT_ALLOWED",
+            "406 NOT_ACCEPTABLE",
+            "407 PROXY_AUTHENTICATION_REQUIRED",
+            "408 REQUEST_TIMEOUT",
+            "409 CONFLICT",
+            "410 GONE",
+            "411 LENGTH_REQUIRED",
+            "412 PRECONDITION_FAILED",
+            "413 PAYLOAD_TOO_LARGE",
+            "413 REQUEST_ENTITY_TOO_LARGE",
+            "414 URI_TOO_LONG",
+            "414 REQUEST_URI_TOO_LONG",
+            "415 UNSUPPORTED_MEDIA_TYPE",
+            "416 REQUESTED_RANGE_NOT_SATISFIABLE",
+            "417 EXPECTATION_FAILED",
+            "418 I_AM_A_TEAPOT",
+            "419 INSUFFICIENT_SPACE_ON_RESOURCE",
+            "420 METHOD_FAILURE",
+            "421 DESTINATION_LOCKED",
+            "422 UNPROCESSABLE_ENTITY",
+            "423 LOCKED",
+            "424 FAILED_DEPENDENCY",
+            "425 TOO_EARLY",
+            "426 UPGRADE_REQUIRED",
+            "428 PRECONDITION_REQUIRED",
+            "429 TOO_MANY_REQUESTS",
+            "431 REQUEST_HEADER_FIELDS_TOO_LARGE",
+            "451 UNAVAILABLE_FOR_LEGAL_REASONS",
+            "500 INTERNAL_SERVER_ERROR",
+            "501 NOT_IMPLEMENTED",
+            "502 BAD_GATEWAY",
+            "503 SERVICE_UNAVAILABLE",
+            "504 GATEWAY_TIMEOUT",
+            "505 HTTP_VERSION_NOT_SUPPORTED",
+            "506 VARIANT_ALSO_NEGOTIATES",
+            "507 INSUFFICIENT_STORAGE",
+            "508 LOOP_DETECTED",
+            "509 BANDWIDTH_LIMIT_EXCEEDED",
+            "510 NOT_EXTENDED",
+            "511 NETWORK_AUTHENTICATION_REQUIRED"
+          ]
+        },
+        "view": {
+          "$ref": "#/definitions/View"
+        },
+        "viewName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageTypeDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageTypeDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«OssDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OssDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowStageTypeAndStageNameResDto": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageDto"
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowHistoryDto": {
+      "type": "object",
+      "properties": {
+        "runDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "runScript": {
+          "type": "string"
+        },
+        "runUserId": {
+          "type": "string"
+        },
+        "workflowHistoryIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "RequestEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        }
+      }
+    },
+    "WorkflowStageMappingDto": {
+      "type": "object",
+      "properties": {
+        "mappingIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stageContent": {
+          "type": "string"
+        },
+        "stageOrder": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "WorkflowStageDto": {
+      "type": "object",
+      "properties": {
+        "workflowStageContent": {
+          "type": "string"
+        },
+        "workflowStageDesc": {
+          "type": "string"
+        },
+        "workflowStageIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageName": {
+          "type": "string"
+        },
+        "workflowStageOrder": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "workflowStageTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«boolean»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "boolean"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowHistoryDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowHistoryDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«long»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«OssTypeDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OssTypeDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageMappingDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OssDto": {
+      "type": "object",
+      "properties": {
+        "ossDesc": {
+          "type": "string"
+        },
+        "ossIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossName": {
+          "type": "string"
+        },
+        "ossPassword": {
+          "type": "string"
+        },
+        "ossTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossUrl": {
+          "type": "string"
+        },
+        "ossUsername": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowDetailResDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowParamDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "View": {
+      "type": "object",
+      "properties": {
+        "contentType": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«OssTypeDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/OssTypeDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageTypeAndStageNameResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageTypeAndStageNameResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowListResDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    },
+    "ResponseWrapper«ResponseEventListenerDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/ResponseEventListenerDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OssTypeDto": {
+      "type": "object",
+      "properties": {
+        "ossTypeDesc": {
+          "type": "string"
+        },
+        "ossTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowStageDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowStageDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowStageTypeDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowStageTypeDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowDetailResDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowDetailResDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowReqDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    }
+  }
+}
