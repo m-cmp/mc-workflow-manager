@@ -87,7 +87,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 		try {
 			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
 
-			if(!ossRepository.existsByOssType(ossTypeEntity)) {
+			if(ossRepository.existsByOssType(ossTypeEntity)) {
 				ossTypeRepository.deleteById(ossTypeIdx);
 				result = true;
 			}
