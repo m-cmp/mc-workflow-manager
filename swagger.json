@@ -1,0 +1,3023 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Api Documentation",
+    "version": "1.0",
+    "title": "Api Documentation",
+    "termsOfService": "urn:tos",
+    "contact": {},
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "host": "localhost:18083",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "workflow-controller",
+      "description": "Workflow Controller"
+    },
+    {
+      "name": "workflow-stage-controller",
+      "description": "Workflow Stage Controller"
+    },
+    {
+      "name": "oss-type-controller",
+      "description": "Oss Type Controller"
+    },
+    {
+      "name": "workflow-param-controller",
+      "description": "Workflow Param Controller"
+    },
+    {
+      "name": "open-api-web-mvc-resource",
+      "description": "Open Api Web Mvc Resource"
+    },
+    {
+      "name": "event-listener-controller",
+      "description": "Event Listener Controller"
+    },
+    {
+      "name": "workflow-history-controller",
+      "description": "Workflow History Controller"
+    },
+    {
+      "name": "workflow-stage-type-controller",
+      "description": "Workflow Stage Type Controller"
+    },
+    {
+      "name": "swagger-config-resource",
+      "description": "Swagger Config Resource"
+    },
+    {
+      "name": "oss-controller",
+      "description": "Oss Controller"
+    },
+    {
+      "name": "swagger-welcome-web-mvc",
+      "description": "Swagger Welcome Web Mvc"
+    },
+    {
+      "name": "basic-error-controller",
+      "description": "Basic Error Controller"
+    }
+  ],
+  "paths": {
+    "/error": {
+      "get": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingHEAD",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPUT",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "options": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingOPTIONS",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "basic-error-controller"
+        ],
+        "summary": "errorHtml",
+        "operationId": "errorHtmlUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ModelAndView"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/eventlistener": {
+      "post": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "registEventListner",
+        "operationId": "registEventListnerUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/list": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "getEventListenerList",
+        "operationId": "getEventListenerListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«ResponseEventListenerDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/run/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "runEventListener",
+        "operationId": "runEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "detailEventListener",
+        "operationId": "detailEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«ResponseEventListenerDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "deleteEventListner",
+        "operationId": "deleteEventListnerUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "updateEventListner",
+        "operationId": "updateEventListnerUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/oss": {
+      "post": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "registOss",
+        "operationId": "registOssUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/connection-check": {
+      "post": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "checkConnection",
+        "operationId": "checkConnectionUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/duplicate": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "isOssInfoDuplicated",
+        "operationId": "isOssInfoDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossName",
+            "in": "query",
+            "description": "ossName",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ossUrl",
+            "in": "query",
+            "description": "ossUrl",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "ossUsername",
+            "in": "query",
+            "description": "ossUsername",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/list": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "getOssList",
+        "operationId": "getOssListUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/list/{ossTypeName}": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "getOssList",
+        "operationId": "getOssListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeName",
+            "in": "path",
+            "description": "ossTypeName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/oss/{ossIdx}": {
+      "get": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "detailOss",
+        "operationId": "detailOssUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«OssDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "deleteOss",
+        "operationId": "deleteOssUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "oss-controller"
+        ],
+        "summary": "updateOss",
+        "operationId": "updateOssUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossIdx",
+            "in": "path",
+            "description": "ossIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "ossDto",
+            "description": "ossDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/ossType": {
+      "post": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "registOssType",
+        "operationId": "registOssTypeUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "ossTypeDto",
+            "description": "ossTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/ossType/list": {
+      "get": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "getOssTypeList",
+        "operationId": "getOssTypeListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssTypeDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/ossType/{ossTypeIdx}": {
+      "get": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "detailOssType",
+        "operationId": "detailOssTypeUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«OssTypeDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "deleteOssType",
+        "operationId": "deleteOssTypeUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "updateOssType",
+        "operationId": "updateOssTypeUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "ossTypeIdx",
+            "in": "path",
+            "description": "ossTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "ossTypeDto",
+            "description": "ossTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OssTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/swagger-ui.html": {
+      "get": {
+        "tags": [
+          "swagger-welcome-web-mvc"
+        ],
+        "summary": "redirectToUi",
+        "operationId": "redirectToUiUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs": {
+      "get": {
+        "tags": [
+          "open-api-web-mvc-resource"
+        ],
+        "summary": "openapiJson",
+        "operationId": "openapiJsonUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "apiDocsUrl",
+            "description": "apiDocsUrl",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs.yaml": {
+      "get": {
+        "tags": [
+          "open-api-web-mvc-resource"
+        ],
+        "summary": "openapiYaml",
+        "operationId": "openapiYamlUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/vnd.oai.openapi"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "apiDocsUrl",
+            "description": "apiDocsUrl",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/v3/api-docs/swagger-config": {
+      "get": {
+        "tags": [
+          "swagger-config-resource"
+        ],
+        "summary": "openapiJson",
+        "operationId": "openapiJsonUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "type": "object"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow": {
+      "post": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "registWorkflow",
+        "operationId": "registWorkflowUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/history/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-history-controller"
+        ],
+        "summary": "getWorkflowHistoryList",
+        "operationId": "getWorkflowHistoryListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowHistoryDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/list": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowList",
+        "operationId": "getWorkflowListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowListResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/name/duplicate": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "isWorkflowNameDuplicated",
+        "operationId": "isWorkflowNameDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowName",
+            "in": "query",
+            "description": "workflowName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/param/list": {
+      "get": {
+        "tags": [
+          "workflow-param-controller"
+        ],
+        "summary": "getWorkflowParamList",
+        "operationId": "getWorkflowParamListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowParamDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/run": {
+      "post": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "runWorkflowPost",
+        "operationId": "runWorkflowPostUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«object»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/run/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "runWorkflowGet",
+        "operationId": "runWorkflowGetUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/template/{workflowName}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowTemplate",
+        "operationId": "getWorkflowTemplateUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowName",
+            "in": "path",
+            "description": "workflowName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageMappingDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/workflowStageList": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageTypeAndStageNameResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflow",
+        "operationId": "getWorkflowUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowDetailResDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "deleteWorkflow",
+        "operationId": "deleteWorkflowUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "updateWorkflow",
+        "operationId": "updateWorkflowUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowReqDto",
+            "description": "workflowReqDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowReqDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/workflowStage": {
+      "post": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "registWorkflowStage",
+        "operationId": "registWorkflowStageUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowStageDto",
+            "description": "workflowStageDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/default/script/{workflowStageTypeName}": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "getDefaultWorkflowStage",
+        "operationId": "getDefaultWorkflowStageUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeName",
+            "in": "path",
+            "description": "workflowStageTypeName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/duplicate": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "isWorkflowStageNameDuplicated",
+        "operationId": "isWorkflowStageNameDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeName",
+            "in": "query",
+            "description": "workflowStageTypeName",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "workflowStageName",
+            "in": "query",
+            "description": "workflowStageName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/list": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStage/{workflowStageIdx}": {
+      "get": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "detailWorkflowStage",
+        "operationId": "detailWorkflowStageUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowStageDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "deleteWorkflowStage",
+        "operationId": "deleteWorkflowStageUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-stage-controller"
+        ],
+        "summary": "updateWorkflowStage",
+        "operationId": "updateWorkflowStageUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageIdx",
+            "in": "path",
+            "description": "workflowStageIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowStageDto",
+            "description": "workflowStageDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/workflowStageType": {
+      "post": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "registWorkflowStage",
+        "operationId": "registWorkflowStageUsingPOST_1",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "workflowStageTypeDto",
+            "description": "workflowStageTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStageType/list": {
+      "get": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "getWorkflowStageList",
+        "operationId": "getWorkflowStageListUsingGET_2",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowStageTypeDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflowStageType/{workflowStageTypeIdx}": {
+      "get": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "detailWorkflowStageType",
+        "operationId": "detailWorkflowStageTypeUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowStageTypeDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "deleteWorkflowStageType",
+        "operationId": "deleteWorkflowStageTypeUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "workflow-stage-type-controller"
+        ],
+        "summary": "updateWorkflowStageType",
+        "operationId": "updateWorkflowStageTypeUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowStageTypeIdx",
+            "in": "path",
+            "description": "workflowStageTypeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "workflowStageTypeDto",
+            "description": "workflowStageTypeDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/WorkflowStageTypeDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ResponseWrapper«OssDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/OssDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowDto": {
+      "type": "object",
+      "properties": {
+        "ossIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "script": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowName": {
+          "type": "string"
+        },
+        "workflowPurpose": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowStageTypeDto": {
+      "type": "object",
+      "properties": {
+        "workflowStageTypeDesc": {
+          "type": "string"
+        },
+        "workflowStageTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowListResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowListResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerCallUrl": {
+          "type": "string"
+        },
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«List«ResponseEventListenerDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResponseEventListenerDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowParamDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerYn": {
+          "type": "string"
+        },
+        "paramIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "paramKey": {
+          "type": "string"
+        },
+        "paramValue": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«object»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "object"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ModelAndView": {
+      "type": "object",
+      "properties": {
+        "empty": {
+          "type": "boolean"
+        },
+        "model": {
+          "type": "object"
+        },
+        "modelMap": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "reference": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "100 CONTINUE",
+            "101 SWITCHING_PROTOCOLS",
+            "102 PROCESSING",
+            "103 CHECKPOINT",
+            "200 OK",
+            "201 CREATED",
+            "202 ACCEPTED",
+            "203 NON_AUTHORITATIVE_INFORMATION",
+            "204 NO_CONTENT",
+            "205 RESET_CONTENT",
+            "206 PARTIAL_CONTENT",
+            "207 MULTI_STATUS",
+            "208 ALREADY_REPORTED",
+            "226 IM_USED",
+            "300 MULTIPLE_CHOICES",
+            "301 MOVED_PERMANENTLY",
+            "302 FOUND",
+            "302 MOVED_TEMPORARILY",
+            "303 SEE_OTHER",
+            "304 NOT_MODIFIED",
+            "305 USE_PROXY",
+            "307 TEMPORARY_REDIRECT",
+            "308 PERMANENT_REDIRECT",
+            "400 BAD_REQUEST",
+            "401 UNAUTHORIZED",
+            "402 PAYMENT_REQUIRED",
+            "403 FORBIDDEN",
+            "404 NOT_FOUND",
+            "405 METHOD_NOT_ALLOWED",
+            "406 NOT_ACCEPTABLE",
+            "407 PROXY_AUTHENTICATION_REQUIRED",
+            "408 REQUEST_TIMEOUT",
+            "409 CONFLICT",
+            "410 GONE",
+            "411 LENGTH_REQUIRED",
+            "412 PRECONDITION_FAILED",
+            "413 PAYLOAD_TOO_LARGE",
+            "413 REQUEST_ENTITY_TOO_LARGE",
+            "414 URI_TOO_LONG",
+            "414 REQUEST_URI_TOO_LONG",
+            "415 UNSUPPORTED_MEDIA_TYPE",
+            "416 REQUESTED_RANGE_NOT_SATISFIABLE",
+            "417 EXPECTATION_FAILED",
+            "418 I_AM_A_TEAPOT",
+            "419 INSUFFICIENT_SPACE_ON_RESOURCE",
+            "420 METHOD_FAILURE",
+            "421 DESTINATION_LOCKED",
+            "422 UNPROCESSABLE_ENTITY",
+            "423 LOCKED",
+            "424 FAILED_DEPENDENCY",
+            "425 TOO_EARLY",
+            "426 UPGRADE_REQUIRED",
+            "428 PRECONDITION_REQUIRED",
+            "429 TOO_MANY_REQUESTS",
+            "431 REQUEST_HEADER_FIELDS_TOO_LARGE",
+            "451 UNAVAILABLE_FOR_LEGAL_REASONS",
+            "500 INTERNAL_SERVER_ERROR",
+            "501 NOT_IMPLEMENTED",
+            "502 BAD_GATEWAY",
+            "503 SERVICE_UNAVAILABLE",
+            "504 GATEWAY_TIMEOUT",
+            "505 HTTP_VERSION_NOT_SUPPORTED",
+            "506 VARIANT_ALSO_NEGOTIATES",
+            "507 INSUFFICIENT_STORAGE",
+            "508 LOOP_DETECTED",
+            "509 BANDWIDTH_LIMIT_EXCEEDED",
+            "510 NOT_EXTENDED",
+            "511 NETWORK_AUTHENTICATION_REQUIRED"
+          ]
+        },
+        "view": {
+          "$ref": "#/definitions/View"
+        },
+        "viewName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageTypeDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageTypeDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«OssDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OssDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowStageTypeAndStageNameResDto": {
+      "type": "object",
+      "properties": {
+        "list": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageDto"
+          }
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowHistoryDto": {
+      "type": "object",
+      "properties": {
+        "runDate": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "runScript": {
+          "type": "string"
+        },
+        "runUserId": {
+          "type": "string"
+        },
+        "workflowHistoryIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "RequestEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        }
+      }
+    },
+    "WorkflowStageMappingDto": {
+      "type": "object",
+      "properties": {
+        "mappingIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stageContent": {
+          "type": "string"
+        },
+        "stageOrder": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "WorkflowStageDto": {
+      "type": "object",
+      "properties": {
+        "workflowStageContent": {
+          "type": "string"
+        },
+        "workflowStageDesc": {
+          "type": "string"
+        },
+        "workflowStageIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageName": {
+          "type": "string"
+        },
+        "workflowStageOrder": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "workflowStageTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowStageTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«boolean»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "boolean"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowHistoryDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowHistoryDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«long»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«OssTypeDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OssTypeDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageMappingDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OssDto": {
+      "type": "object",
+      "properties": {
+        "ossDesc": {
+          "type": "string"
+        },
+        "ossIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossName": {
+          "type": "string"
+        },
+        "ossPassword": {
+          "type": "string"
+        },
+        "ossTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossUrl": {
+          "type": "string"
+        },
+        "ossUsername": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowDetailResDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowParamDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "View": {
+      "type": "object",
+      "properties": {
+        "contentType": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«OssTypeDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/OssTypeDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowStageTypeAndStageNameResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageTypeAndStageNameResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowListResDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    },
+    "ResponseWrapper«ResponseEventListenerDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/ResponseEventListenerDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "OssTypeDto": {
+      "type": "object",
+      "properties": {
+        "ossTypeDesc": {
+          "type": "string"
+        },
+        "ossTypeIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "ossTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowStageDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowStageDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowStageTypeDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowStageTypeDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«WorkflowDetailResDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/WorkflowDetailResDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowReqDto": {
+      "type": "object",
+      "properties": {
+        "workflowInfo": {
+          "$ref": "#/definitions/WorkflowDto"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        },
+        "workflowStageMappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowStageMappingDto"
+          }
+        }
+      }
+    }
+  }
+}
