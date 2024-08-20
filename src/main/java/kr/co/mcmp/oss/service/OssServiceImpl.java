@@ -1,6 +1,9 @@
 package kr.co.mcmp.oss.service;
 
 import kr.co.mcmp.oss.entity.Oss;
+import kr.co.mcmp.oss.entity.OssType;
+import kr.co.mcmp.workflow.repository.WorkflowRepository;
+import kr.co.mcmp.workflow.service.WorkflowService;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import kr.co.mcmp.oss.dto.OssDto;
@@ -31,6 +34,8 @@ public class OssServiceImpl implements OssService {
 
 	private final OssTypeRepository ossTypeRepository;
 
+	private final WorkflowRepository workflowRepository;
+
 	private final JenkinsService jenkinsService;
 
 	private final TumblebugService tumblebugService;
@@ -41,18 +46,23 @@ public class OssServiceImpl implements OssService {
 	 */
 	@Override
 	public List<OssDto> getAllOssList() {
-		List<OssDto> ossList = ossRepository.findAll()
-				.stream()
-				.map(OssDto::from)
-				.collect(Collectors.toList());
-
-		if ( !CollectionUtils.isEmpty(ossList) ) {
-			ossList = ossList.stream()
-					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+		try {
+			List<OssDto> ossList = ossRepository.findAll()
+					.stream()
+					.map(OssDto::from)
 					.collect(Collectors.toList());
-		}
 
-		return ossList;
+			if ( !CollectionUtils.isEmpty(ossList) ) {
+				ossList = ossList.stream()
+						.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+						.collect(Collectors.toList());
+			}
+
+			return ossList;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -62,30 +72,35 @@ public class OssServiceImpl implements OssService {
 	 */
 	@Override
 	public List<OssDto> getOssList(String ossTypeName) {
-		List<OssTypeDto> ossTypeList = ossTypeRepository.findByOssTypeName(ossTypeName)
-				.stream()
-				.map(OssTypeDto::from)
-				.collect(Collectors.toList());
-		log.info(ossTypeList);
-
-		// ossTypeList에서 ossTypeIdx 목록을 추출
-		List<Long> ossTypeIdxList = ossTypeList.stream()
-				.map(OssTypeDto::getOssTypeIdx)
-				.collect(Collectors.toList());
-
-		List<OssDto> ossList = ossRepository.findByOssTypeIdxIn(ossTypeIdxList)
-				.stream()
-				.map(OssDto::from)
-				.collect(Collectors.toList());
-
-		if ( !CollectionUtils.isEmpty(ossList) ) {
-			ossList = ossList
+		try {
+			List<OssTypeDto> ossTypeList = ossTypeRepository.findByOssTypeName(ossTypeName)
 					.stream()
-					.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+					.map(OssTypeDto::from)
 					.collect(Collectors.toList());
+
+			// ossTypeList에서 ossTypeIdx 목록을 추출
+			List<Long> ossTypeIdxList = ossTypeList.stream()
+					.map(OssTypeDto::getOssTypeIdx)
+					.collect(Collectors.toList());
+
+			List<OssDto> ossList = ossRepository.findByOssTypeIdxIn(ossTypeIdxList)
+					.stream()
+					.map(OssDto::from)
+					.collect(Collectors.toList());
+
+			if ( !CollectionUtils.isEmpty(ossList) ) {
+				ossList = ossList
+						.stream()
+						.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+						.collect(Collectors.toList());
+			}
+
+			return ossList;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
 		}
 
-		return ossList;
 	}
 
 	/**
@@ -96,10 +111,19 @@ public class OssServiceImpl implements OssService {
 	@Transactional
 	@Override
 	public Long registOss(OssDto ossDto) {
-		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
-		ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
-		ossDto = OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
-		return ossDto.getOssIdx();
+		try {
+			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
+
+			OssDto result = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			Oss ossEntity = OssDto.toEntity(result, ossTypeDto);
+			ossEntity = ossRepository.save(ossEntity);
+
+			return ossEntity.getOssIdx();
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -108,32 +132,54 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	@Override
-	public Long updateOss(OssDto ossDto) {
-		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
+	public Boolean updateOss(OssDto ossDto) {
+		Boolean result = false;
+		try {
+			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
 
-		ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
-		managedJenkinsCredential(ossDto, "update");
-		ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto));
-		return ossDto.getOssIdx();
+			OssDto encriptOssDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+
+			managedJenkinsCredential(encriptOssDto, "update");
+
+			ossRepository.save(OssDto.toEntity(encriptOssDto, ossTypeDto));
+
+			result = true;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+
+		}
+		return result;
 	}
 
 	/**
 	 * OSS 삭제
 	 * @param ossIdx
+	 * @Desc
+	 * 		false
+	 * 		- Mapping 된 workflow가 존재 할 경우
+	 * 		- Error
 	 */
-	@Transactional
 	@Override
+	@Transactional
 	public Boolean deleteOss(Long ossIdx) {
+		Boolean result = false;
 		try {
-			OssDto deleteOss = OssDto.from(ossRepository.findByOssIdx(ossIdx));
-			managedJenkinsCredential(deleteOss, "delete");
-			ossRepository.deleteByOssIdx(ossIdx);
-			return true;
-		} catch (EmptyResultDataAccessException e) {
-			return false;
+			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
+			OssDto deleteOss = OssDto.from(ossEntity);
+
+			if(deleteOss.getOssPassword() != null)
+				managedJenkinsCredential(deleteOss, "delete");
+
+			else if(!workflowRepository.existsByOss(ossEntity)) {
+				ossRepository.deleteByOssIdx(ossIdx);
+				result = true;
+			}
+
 		} catch (Exception e) {
-			return false;
+			log.error(e.getMessage());
 		}
+		return result;
 	}
 
 	/**
@@ -219,18 +265,14 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	public OssDto detailOss(Long ossIdx) {
-		Oss oss = ossRepository.findByOssIdx(ossIdx);
-		return OssDto.withDetailDecryptPassword(oss, encodingBase64String(decryptAesString(oss.getOssPassword())));
+		try {
+			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
+			return OssDto.withDetailDecryptPassword(ossEntity, encodingBase64String(decryptAesString(ossEntity.getOssPassword())));
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
+		}
 	}
-
-//	/**
-//	 * OSS 정보 상세 조회
-//	 * @param ossCd
-//	 * @return
-//	 */
-//	public OssDto getOssByOssCd(String ossCd) {
-//		return OssDto.from(ossRepository.findByOssType_OssTypeName(ossCd));
-//	}
 
 	/**
 	 * OSS 정보 중복 체크(ossName, ossUrl, ossUsername)
@@ -239,10 +281,16 @@ public class OssServiceImpl implements OssService {
 	 * @return
 	 */
 	public Boolean isOssInfoDuplicated(OssDto ossDto) {
-		return ossRepository.existsByOssNameAndOssUrlAndOssUsername(
-				ossDto.getOssName(),
-				ossDto.getOssUrl(),
-				ossDto.getOssUsername());
+		try {
+			return ossRepository.existsByOssNameAndOssUrlAndOssUsername(
+					ossDto.getOssName(),
+					ossDto.getOssUrl(),
+					ossDto.getOssUsername());
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return false;
+		}
+
 	}
 
 	/**
@@ -252,17 +300,21 @@ public class OssServiceImpl implements OssService {
 	 * TODO : 고도화 (같은 oss 여러개 입력받기)
 	 */
 	private void managedJenkinsCredential(OssDto managedOss, String managedType) {
-		OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx()));
+		try {
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx()));
 
-		if ( !StringUtils.equals("JENKINS", ossTypeDto.getOssTypeName()) ) {
-			OssDto jenkins = OssDto.from(ossRepository.findByOssType_OssTypeName("JENKINS"));
+			if ( !StringUtils.equals("JENKINS", ossTypeDto.getOssTypeName()) ) {
+				OssDto jenkins = OssDto.from(ossRepository.findByOssType_OssTypeName("JENKINS"));
 
-			if ( StringUtils.equals("update", managedType) ) {
-				jenkinsService.updateCredential(jenkins, managedOss, JenkinsCredential.getCredentialTypeByOss(ossTypeDto.getOssTypeName()));
+				if ( StringUtils.equals("update", managedType) ) {
+					jenkinsService.updateCredential(jenkins, managedOss, JenkinsCredential.getCredentialTypeByOss(ossTypeDto.getOssTypeName()));
+				}
+				else {
+					jenkinsService.deleteCredential(jenkins, managedOss, JenkinsCredential.getCredentialTypeByOss(ossTypeDto.getOssTypeName()));
+				}
 			}
-			else {
-				jenkinsService.deleteCredential(jenkins, managedOss, JenkinsCredential.getCredentialTypeByOss(ossTypeDto.getOssTypeName()));
-			}
+		} catch (Exception e) {
+			log.error(e.getMessage());
 		}
 	}
 

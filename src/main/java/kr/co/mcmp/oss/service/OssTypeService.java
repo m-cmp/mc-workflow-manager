@@ -10,7 +10,7 @@ import java.util.List;
 public interface OssTypeService {
     List<OssTypeDto> getAllOssTypeList();
     Long registOssType(OssTypeDto ossTypeDto);
-    Long updateOssType(OssTypeDto ossTypeDto);
+    Boolean updateOssType(OssTypeDto ossTypeDto);
     @Transactional
     Boolean deleteOssType(Long ossIdx);
     OssTypeDto detailOssType(Long ossIdx);

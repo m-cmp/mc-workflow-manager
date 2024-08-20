@@ -1,10 +1,11 @@
 package kr.co.mcmp.oss.service;
 
 import kr.co.mcmp.oss.dto.OssTypeDto;
+import kr.co.mcmp.oss.entity.OssType;
+import kr.co.mcmp.oss.repository.OssRepository;
 import kr.co.mcmp.oss.repository.OssTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,17 +19,24 @@ public class OssTypeServiceImpl implements OssTypeService {
 
 	private final OssTypeRepository ossTypeRepository;
 
+	private final OssRepository ossRepository;
+
 	/**
 	 * OSS Type 목록 조회
 	 * @return List<OssTypeDto> ossTypeDtoList
 	 */
 	@Override
 	public List<OssTypeDto> getAllOssTypeList() {
-		List<OssTypeDto> ossTypeList = ossTypeRepository.findAll()
-				.stream()
-				.map(OssTypeDto::from)
-				.collect(Collectors.toList());
-		return ossTypeList;
+		try {
+			List<OssTypeDto> ossTypeList = ossTypeRepository.findAll()
+					.stream()
+					.map(OssTypeDto::from)
+					.collect(Collectors.toList());
+			return ossTypeList;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -38,8 +46,15 @@ public class OssTypeServiceImpl implements OssTypeService {
 	 */
 	@Override
 	public Long registOssType(OssTypeDto ossTypeDto) {
-		ossTypeRepository.save(OssTypeDto.toEntity(ossTypeDto));
-		return ossTypeDto.getOssTypeIdx();
+		try {
+			OssType ossTypeEntity = OssTypeDto.toEntity(ossTypeDto);
+			ossTypeEntity = ossTypeRepository.save(ossTypeEntity);
+
+			return ossTypeEntity.getOssTypeIdx();
+		} catch (Exception e) {
+			log.error(e.getMessage());
+			return null;
+		}
 	}
 
 	/**
@@ -48,29 +63,38 @@ public class OssTypeServiceImpl implements OssTypeService {
 	 * @return
 	 */
 	@Override
-	public Long updateOssType(OssTypeDto ossTypeDto) {
-		ossTypeRepository.save(OssTypeDto.toEntity(ossTypeDto));
-		return ossTypeDto.getOssTypeIdx();
+	public Boolean updateOssType(OssTypeDto ossTypeDto) {
+		Boolean result = false;
+		try {
+			OssType ossTypeEntity = OssTypeDto.toEntity(ossTypeDto);
+			ossTypeRepository.save(ossTypeEntity);
+
+			result = true;
+		} catch (Exception e) {
+			log.error(e.getMessage());
+		}
+		return result;
 	}
 
 	/**
 	 * OSS Type삭제
 	 * @param ossTypeIdx
 	 */
-	@Transactional
 	@Override
+	@Transactional
 	public Boolean deleteOssType(Long ossTypeIdx) {
+		Boolean result = false;
 		try {
-			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossTypeIdx));
-			if(ossTypeDto.getOssTypeIdx() != 0) {
+			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
+
+			if(!ossRepository.existsByOssType(ossTypeEntity)) {
 				ossTypeRepository.deleteById(ossTypeIdx);
+				result = true;
 			}
-			return true;
-		} catch (EmptyResultDataAccessException e) {
-			return false;
 		} catch (Exception e) {
-			return false;
+			log.error(e.getMessage());
 		}
+		return result;
 	}
 
 	/**
@@ -80,7 +104,12 @@ public class OssTypeServiceImpl implements OssTypeService {
 	@Transactional
 	@Override
 	public OssTypeDto detailOssType(Long ossTypeIdx) {
-		return OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossTypeIdx));
-	}
+		try {
+			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
 
+			return OssTypeDto.from(ossTypeEntity);
+		} catch (Exception e) {
+			return null;
+		}
+	}
 }

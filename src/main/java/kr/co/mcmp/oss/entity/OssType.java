@@ -21,4 +21,7 @@ public class OssType {
 
         @Column(name = "oss_type_desc")
         private String ossTypeDesc;
+
+//        @OneToMany(fetch = FetchType.LAZY, mappedBy = "ossType")
+//        private Oss oss;
 }

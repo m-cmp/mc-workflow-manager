@@ -10,6 +10,9 @@ import java.util.List;
 @Repository
 public interface OssTypeRepository extends JpaRepository<OssType, Long> {
     List<OssType> findByOssTypeName(String ossTypeName);
+    OssType save(OssType ossType);
+
+
     OssType findByOssTypeIdx(Long ossTypeIdx);
     OssType save(OssTypeDto ossTypeDto);
     void deleteById(Long ossTypeIdx);

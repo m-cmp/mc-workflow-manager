@@ -35,7 +35,7 @@ public class OssTypeController {
 
     @Operation(summary = "OSS 타입 수정", description = "oss Type 수정")
     @PatchMapping("/{ossTypeIdx}")
-    public ResponseWrapper<Long> updateOssType(@PathVariable Long ossTypeIdx, @RequestBody OssTypeDto ossTypeDto) {
+    public ResponseWrapper<Boolean> updateOssType(@PathVariable Long ossTypeIdx, @RequestBody OssTypeDto ossTypeDto) {
         if ( ossTypeIdx != 0 || ossTypeDto.getOssTypeIdx() != 0 ) {
             return new ResponseWrapper<>(ossTypeService.updateOssType(ossTypeDto));
         }
