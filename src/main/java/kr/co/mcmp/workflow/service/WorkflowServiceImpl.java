@@ -346,11 +346,11 @@ public class WorkflowServiceImpl implements WorkflowService {
 
             Map<String, List<String>> finalJenkinsJobParams = new HashMap<>();
 
-            workflowReqDto.getWorkflowParams().forEach(param-> {
+            for(WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
                 List<String> valueList = new ArrayList<>();
                 valueList.add(param.getParamValue());
                 finalJenkinsJobParams.put(param.getParamKey(), valueList);
-            });
+            }
 
             jenkinsJobParams = finalJenkinsJobParams;
         }

@@ -72,9 +72,9 @@ public class EventListenerServiceImpl implements EventListenerService {
             EventListener eventListenerEntity = RequestEventListenerDto.toEntity(requestEventListenerDto, workflowDto, ossDto, ossTypeDto);
             eventListenerEntity = eventListenerRepository.save(eventListenerEntity);
 
-            requestEventListenerDto.getWorkflowParams().forEach((paramDto)-> {
-                workflowParamRepository.save(WorkflowParamDto.toEntity(paramDto, workflowDto, ossDto, ossTypeDto));
-            });
+            for(WorkflowParamDto param : requestEventListenerDto.getWorkflowParams()) {
+                workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
+            }
 
             return eventListenerEntity.getEventListenerIdx();
         } catch (Exception e) {
@@ -104,9 +104,9 @@ public class EventListenerServiceImpl implements EventListenerService {
 
             eventListenerRepository.save(RequestEventListenerDto.toUpdate(newRequestEventListenerDto.getEventListenerIdx(), requestEventListenerDto, workflowDto, ossDto, ossTypeDto));
 
-            requestEventListenerDto.getWorkflowParams().forEach((paramDto)-> {
-                workflowParamRepository.save(WorkflowParamDto.toEntity(paramDto, workflowDto, ossDto, ossTypeDto));
-            });
+            for(WorkflowParamDto param : requestEventListenerDto.getWorkflowParams()) {
+                workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
+            }
             result = true;
         } catch (Exception e) {
             log.error(e.getMessage());
