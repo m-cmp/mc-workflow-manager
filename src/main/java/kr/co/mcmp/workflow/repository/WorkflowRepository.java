@@ -13,6 +13,5 @@ public interface WorkflowRepository extends JpaRepository<Workflow, Long> {
     Workflow findByWorkflowIdx(Long workflowIdx);
     Workflow findByWorkflowName(String workflowName);
     void deleteByWorkflowIdx(Long workflowIdx);
-
-    Boolean existsByOss(Oss oss);
+    Boolean existsByOss_OssIdx(Long ossIdx);
 }

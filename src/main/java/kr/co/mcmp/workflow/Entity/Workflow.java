@@ -27,6 +27,7 @@ public class Workflow {
     @JoinColumn(name = "oss_idx", nullable = false)
     private Oss oss;
 
+    @Lob
     @Column(name = "script")
     private String script;
 }

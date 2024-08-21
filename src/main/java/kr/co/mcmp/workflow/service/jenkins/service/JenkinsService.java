@@ -125,13 +125,17 @@ public class JenkinsService {
      * @throws UnsupportedEncodingException
      *
      */
-    public boolean updateJenkinsJobPipeline_v2(OssDto jenkins, String jenkinsJobName, String pipelineScript, List<WorkflowParamDto> params) throws UnsupportedEncodingException {
+    public boolean updateJenkinsJobPipeline_v2(OssDto jenkins, String jenkinsJobName, String pipelineScript, List<WorkflowParamDto> params) throws IOException {
         if ( !isExistJobName(jenkins, jenkinsJobName) ) {
             log.error("Jenkins Job Name {} is not exist.", jenkinsJobName);
             throw new McmpException(ResponseCode.NOT_EXISTS_JENKINS_JOB);
         }
 
-        Document document = this.getJobConfigXml(jenkins, jenkinsJobName);
+        // 새로운 XML 파일 생성
+        Document document = XMLUtil.getDocument(new ClassPathResource(RESOURCE_JENKINS_PATH+"jenkins-k8s-deploy-job-template.xml").getInputStream());
+
+        // Jenkins에서 XML 파일 받아오기
+        // Document document = this.getJobConfigXml(jenkins, jenkinsJobName);
 
         addParameter(document, params);
 

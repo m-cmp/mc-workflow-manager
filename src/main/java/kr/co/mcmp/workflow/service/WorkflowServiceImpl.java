@@ -115,13 +115,15 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Transactional(rollbackFor = { RuntimeException.class })
     public Long registWorkflow(WorkflowReqDto workflowReqDto) {
         Long result = null;
-        try {
-            // jenkins 정보 조회
-            Oss ossEntity = ossRepository.findByOssIdx(workflowReqDto.getWorkflowInfo().getOssIdx());
-            OssDto ossDto = OssDto.from(ossEntity);
+        boolean isCreate = false;
 
+        // jenkins 정보 조회
+        Oss ossEntity = ossRepository.findByOssIdx(workflowReqDto.getWorkflowInfo().getOssIdx());
+        OssDto ossDto = OssDto.from(ossEntity);
+
+        try {
             // jenkins > job 생성
-            boolean isCreate = jenkinsService.createJenkinsJob_v2(
+            isCreate = jenkinsService.createJenkinsJob_v2(
                                 ossDto,
                                 workflowReqDto.getWorkflowInfo().getWorkflowName(),
                                 workflowReqDto.getWorkflowInfo().getScript(),
@@ -154,7 +156,9 @@ public class WorkflowServiceImpl implements WorkflowService {
                 result = workflowEntity.getWorkflowIdx();
             }
         } catch (IOException e) {
+            if(isCreate) jenkinsService.deleteJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName());
             log.error(e.getMessage());
+
         }
         return result;
     }
@@ -185,20 +189,23 @@ public class WorkflowServiceImpl implements WorkflowService {
                 // 1. Workflow
                 Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
                 workflowEntity = workflowRepository.save(workflowEntity);
+                WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
 
                 // 2. Workflow Param (삭제 후 재등록)
                 if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowParams()) ) {
+                    workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+
                     for (WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
-                        workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-                        workflowParamRepository.save(WorkflowParamDto.toEntity(param, WorkflowDto.from(workflowEntity), ossDto, ossTypeDto));
+                        workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
                     }
                 }
 
                 // 3. Workflow Stage Mapping (삭제 후 재등록)
                 if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowStageMappings()) ) {
+                    workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+
                     for(WorkflowStageMappingDto stage : workflowReqDto.getWorkflowStageMappings()) {
-                        workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-                        workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, WorkflowDto.from(workflowEntity), ossDto, ossTypeDto));
+                        workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
                     }
                 }
 
@@ -206,6 +213,8 @@ public class WorkflowServiceImpl implements WorkflowService {
             }
         } catch (UnsupportedEncodingException uee) {
             log.error(uee.getMessage());
+        } catch (IOException ioe) {
+            log.error(ioe.getMessage());
         }
         return result;
     }
@@ -431,5 +440,28 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .stream()
                 .map(WorkflowParamDto::from)
                 .collect(Collectors.toList());
+    }
+
+    public void createJenkinsJob(OssTypeDto ossTypeDto, OssDto ossDto) {
+        try {
+            // OSS 를 등록을 할때 존재하지 않을 경우 Jenkins Job 자동 생성
+            if(ossTypeDto.getOssTypeName().toUpperCase().equals("JENKINS")) {
+                List<WorkflowListResDto> workflowListResDtoList = getWorkflowList();
+                for(WorkflowListResDto workflowResDto : workflowListResDtoList) {
+                    boolean isExistJob = jenkinsService.isExistJobName(ossDto, workflowResDto.getWorkflowInfo().getWorkflowName());
+                    if(!isExistJob) {
+                        jenkinsService.createJenkinsJob_v2(
+                                ossDto,
+                                workflowResDto.getWorkflowInfo().getWorkflowName(),
+                                workflowResDto.getWorkflowInfo().getScript(),
+                                workflowResDto.getWorkflowParams());
+                    }
+                }
+            }
+        } catch (IOException ioe) {
+            log.error(ioe.getMessage());
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
     }
 }
