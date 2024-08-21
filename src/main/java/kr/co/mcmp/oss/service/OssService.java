@@ -11,6 +11,7 @@ public interface OssService {
     List<OssDto> getAllOssList();
     List<OssDto> getOssList(String ossTypeName);
     Boolean isOssInfoDuplicated(OssDto ossDto);
+    @Transactional
     Long registOss(OssDto ossDto);
     Boolean updateOss(OssDto ossDto);
     @Transactional

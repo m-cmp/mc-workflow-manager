@@ -2,8 +2,11 @@ package kr.co.mcmp.oss.service;
 
 import kr.co.mcmp.oss.entity.Oss;
 import kr.co.mcmp.oss.entity.OssType;
+import kr.co.mcmp.workflow.Entity.Workflow;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.service.WorkflowService;
+import kr.co.mcmp.workflow.service.WorkflowServiceImpl;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import kr.co.mcmp.oss.dto.OssDto;
@@ -39,6 +42,10 @@ public class OssServiceImpl implements OssService {
 	private final JenkinsService jenkinsService;
 
 	private final TumblebugService tumblebugService;
+
+	private final WorkflowService workflowService;
+
+	private final WorkflowServiceImpl workflowServiceImpl;
 
 	/**
 	 * OSS 목록 조회
@@ -108,16 +115,19 @@ public class OssServiceImpl implements OssService {
 	 * @param ossDto
 	 * @return
 	 */
-	@Transactional
 	@Override
+	@Transactional
 	public Long registOss(OssDto ossDto) {
 		try {
 			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
 			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
 
-			OssDto result = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
-			Oss ossEntity = OssDto.toEntity(result, ossTypeDto);
+			OssDto encriptOssDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+
+			Oss ossEntity = OssDto.toEntity(encriptOssDto, ossTypeDto);
 			ossEntity = ossRepository.save(ossEntity);
+
+			workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
 
 			return ossEntity.getOssIdx();
 		} catch (Exception e) {
@@ -144,10 +154,11 @@ public class OssServiceImpl implements OssService {
 
 			ossRepository.save(OssDto.toEntity(encriptOssDto, ossTypeDto));
 
+			workflowServiceImpl.createJenkinsJob(ossTypeDto, encriptOssDto);
+
 			result = true;
 		} catch (Exception e) {
 			log.error(e.getMessage());
-
 		}
 		return result;
 	}
@@ -166,16 +177,15 @@ public class OssServiceImpl implements OssService {
 		Boolean result = false;
 		try {
 			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
-			OssDto deleteOss = OssDto.from(ossEntity);
+			OssDto ossDto = OssDto.from(ossEntity);
 
-			if(deleteOss.getOssPassword() != null)
-				managedJenkinsCredential(deleteOss, "delete");
+			if(ossDto.getOssPassword() != null)
+				managedJenkinsCredential(ossDto, "delete");
 
-			else if(!workflowRepository.existsByOss(ossEntity)) {
+			if(!workflowRepository.existsByOss_OssIdx(ossIdx)) {
 				ossRepository.deleteByOssIdx(ossIdx);
 				result = true;
 			}
-
 		} catch (Exception e) {
 			log.error(e.getMessage());
 		}
