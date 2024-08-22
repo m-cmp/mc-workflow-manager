@@ -24,9 +24,9 @@ public class ResponseEventListenerDto {
                 .eventListenerIdx(eventListener.getEventListenerIdx())
                 .eventListenerName(eventListener.getEventListenerName())
                 .eventListenerDesc(eventListener.getEventListenerDesc())
-                .eventListenerUrl(eventListener.getEventListenerUrl())
+//                .eventListenerUrl(eventListener.getEventListenerUrl())
                 .workflowIdx(eventListener.getWorkflow().getWorkflowIdx())
-                .eventListenerCallUrl(eventListener.getEventListenerUrl()+"/"+eventListener.getEventListenerIdx())
+                .eventListenerCallUrl("/"+eventListener.getEventListenerIdx())
                 .build();
     }
 
@@ -36,7 +36,7 @@ public class ResponseEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
+//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflowIdx(eventListenerDto.getWorkflowIdx())
                 .build();
     }
@@ -47,7 +47,7 @@ public class ResponseEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
+//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .build();
     }

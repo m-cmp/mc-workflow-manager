@@ -9,14 +9,59 @@ INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_usernam
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES (1, 'Sample Type', 'Sample Description');
 
 -- Step 4: Insert into workflow_stage
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'init Stage', 'init Data', 'test');
+-- INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'init Stage', 'init Data', 'test');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'init Stage', 'init Data', '    stage(''test'') {
+      steps {
+        echo ''>>>>>STAGE: test''
+        sleep 10s
+        echo ''success''
+        // 스크립트를 작성해주세요.
+      }
+    }
+');
 
 -- Step 5: Insert into workflow
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'Sample Workflow', 'Sample Purpose', 1, 'Sample Script');
--- INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'Sample Workflow', 'Sample Purpose', 1, 'Sample Script');
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'Sample-Workflow', 'test', 1, 'import groovy.json.JsonOutput
+pipeline {
+  agent any
+
+  environment {
+  }
+
+  stages {
+    stage(''test'') {
+      steps {
+        echo ''>>>>>STAGE: test''
+        sleep 10s
+        echo ''success''
+        // 스크립트를 작성해주세요.
+      }
+    }
+
+  }
+}');
 
 -- Step 6: Insert into workflow_param
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'Sample Key', 'Sample Value', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'Sample Key1', 'Sample Value1', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (2, 1, 'Sample Key2', 'Sample Value2', 'N');
 
 -- Step 7: Insert into workflow_stage_mapping
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (1, 1, 1, 1, 'Sample Stage Content');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (1, 1, 1, null, 'import groovy.json.JsonOutput
+pipeline {
+  agent any
+
+  stages {
+');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (2, 1, 2, 1, '    stage(''test'') {
+      steps {
+        echo ''>>>>>STAGE: test''
+        sh ''sleep 10s''
+        echo ''success''
+        // 스크립트를 작성해주세요.
+      }
+    }
+');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (3, 1, 1, null, '  }
+}
+');
+-- INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (1, 1, 1, 1, 'Sample Stage Content');
