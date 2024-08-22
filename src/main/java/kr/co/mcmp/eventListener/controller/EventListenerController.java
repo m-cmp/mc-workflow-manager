@@ -7,6 +7,8 @@ import kr.co.mcmp.api.response.ResponseWrapper;
 import kr.co.mcmp.eventListener.dto.reqDto.RequestEventListenerDto;
 import kr.co.mcmp.eventListener.dto.resDto.ResponseEventListenerDto;
 import kr.co.mcmp.eventListener.service.EventListenerService;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -59,5 +61,17 @@ public class EventListenerController {
     @GetMapping("/run/{eventListenerIdx}")
     public ResponseWrapper<Boolean> runEventListener(@PathVariable Long eventListenerIdx) {
         return new ResponseWrapper<>(eventListenerService.runEventListener(eventListenerIdx));
+    }
+
+    @Operation(summary = "Event Listener Workflow 목록", description = "Event Listener Workflow 목록")
+    @GetMapping("/workflowList/{eventListenerYn}")
+    public ResponseWrapper<List<WorkflowListResDto>> getWorkflowList(@PathVariable String eventListenerYn) {
+        return new ResponseWrapper<>(eventListenerService.getWorkflowList(eventListenerYn));
+    }
+
+    @Operation(summary="워크플로우 상세 조회")
+    @GetMapping("/workflowDetail/{workflowIdx}/{evnetListenerYn}")
+    public ResponseWrapper<WorkflowDetailResDto> getWorkflowDetail(@PathVariable Long workflowIdx, @PathVariable String evnetListenerYn) {
+        return new ResponseWrapper<>(eventListenerService.getWorkflowDetail(workflowIdx, evnetListenerYn));
     }
 }

@@ -15,7 +15,10 @@ import kr.co.mcmp.workflow.Entity.WorkflowParam;
 import kr.co.mcmp.workflow.Entity.WorkflowStageMapping;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
+import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.repository.WorkflowStageMappingRepository;
@@ -25,6 +28,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -132,6 +136,72 @@ public class EventListenerServiceImpl implements EventListenerService {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
             return ResponseEventListenerDto.from(eventListenerEntity);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 배포 조회
+     * @param eventListenerYn
+     * @return
+     */
+    @Override
+    public List<WorkflowListResDto> getWorkflowList(String eventListenerYn) {
+        List<WorkflowDto> workflowList = workflowRepository.findAll()
+                .stream()
+                .map(WorkflowDto::from)
+                .collect(Collectors.toList());
+
+        List<WorkflowListResDto> list = new ArrayList<>();
+        for(WorkflowDto workflow : workflowList) {
+            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflow.getWorkflowIdx());
+            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+
+            List<WorkflowParamDto> paramList =
+                    workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflow.getWorkflowIdx(), eventListenerYn)
+                            .stream()
+                            .map(WorkflowParamDto::from)
+                            .collect(Collectors.toList());
+
+            List<WorkflowStageMappingDto> stageList =
+                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx())
+                            .stream()
+                            .map(WorkflowStageMappingDto::from)
+                            .collect(Collectors.toList());
+
+            WorkflowListResDto workflowListData = WorkflowListResDto.of(workflowDto, paramList, stageList);
+
+            list.add(workflowListData);
+        }
+        return list;
+    }
+
+    /**
+     * 배포 조회
+     * @param workflowIdx
+     * @return
+     */
+    @Override
+    public WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn) {
+        try {
+            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
+            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+
+            List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, eventListenerYn)
+                    .stream()
+                    .map(WorkflowParamDto::from)
+                    .collect(Collectors.toList());
+
+            List<WorkflowStageMappingDto> stageList = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx)
+                    .stream()
+                    .map(WorkflowStageMappingDto::from)
+                    .collect(Collectors.toList());
+
+            WorkflowDetailResDto workflowDetail = WorkflowDetailResDto.of(workflowDto, paramList, stageList);
+
+            return workflowDetail;
         } catch (Exception e) {
             log.error(e.getMessage());
             return null;
