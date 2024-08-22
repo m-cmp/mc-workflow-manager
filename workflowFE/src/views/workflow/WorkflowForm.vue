@@ -51,13 +51,11 @@
           @init-workflow-stage-mappings="initWorkflowStageMappings"
           @on-click-create-script="onClickCreateScript"
           @splice-workflow-stage-mappings-form-data="spliceWorkflowStageMappingsFormData"
-          />
-        <!-- <PipelineGenerator
-          :mode="mode"
-          :workflow-stage-mappings-form-data="workflowStageMappingsFormData"/> -->
+        />
 
         <!-- 파라미터 -->
         <ParamForm 
+          :popup="false"
           :workflow-param-data="workflowParamsFormData"
         />
           
@@ -140,7 +138,7 @@ const setWorkflowFormData = async () => {
     workflowStageMappingsFormData.value = []
   }
   else {
-    const { data } = await getWorkflowDetailInfo(route.params.workflowIdx)
+    const { data } = await getWorkflowDetailInfo(route.params.workflowIdx, 'N')
     workflowInfoFormData = { ...data.workflowInfo }
     workflowParamsFormData.value = [ ...data.workflowParams ]
     workflowStageMappingsFormData.value = [ ...data.workflowStageMappings ]
@@ -246,7 +244,9 @@ const _updateWorkflow = async () => {
     workflowParams: [ ...workflowParamsFormData.value ],
     workflowStageMappings: [ ...workflowStageMappingsFormData.value ]
   }
+
   const { data } = await updateWorkflow(param)
+
   if (data) {
     toast.success('수정 되었습니다.')
     router.push('/workflow/list')

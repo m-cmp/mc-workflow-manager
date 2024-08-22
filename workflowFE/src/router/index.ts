@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('@/views/workflowStage/WorkflowStageList.vue' as any)
     },
     {
+      path: '/eventListener/list',
+      name: 'eventListenerList',
+      component: () => import('@/views/eventListener/EventListenerList.vue' as any)
+    },
+    {
       path: '/workflow/list',
       name: 'workflowList',
       component: () => import('@/views/workflow/WorkflowList.vue' as any)

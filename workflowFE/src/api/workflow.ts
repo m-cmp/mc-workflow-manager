@@ -2,8 +2,11 @@ import request from "@/common/request";
 import type { Workflow } from "@/views/type/type"
 
 // 워크플로우 목록
-export const getWorkflowList = () => {
-  return request.get('/workflow/list')
+// export const getWorkflowList = () => {
+//   return request.get('/workflow/list')
+// }
+export const getWorkflowList = (eventlistenerYn:String) => {
+  return request.get(`/eventlistener/workflowList/${eventlistenerYn}`)
 }
 
 // 중복확인
@@ -27,8 +30,11 @@ export function getPipelineCdList() {
 }
 
 // 워크플로우 상세
-export function getWorkflowDetailInfo(workflowIdx:number | string | string[]) {
-  return request.get("/workflow/" + workflowIdx);
+// export function getWorkflowDetailInfo(workflowIdx:number | string | string[]) {
+//   return request.get("/workflow/" + workflowIdx + "/N");
+// }
+export function getWorkflowDetailInfo(workflowIdx:number | string | string[], eventlistenerYn:String) {
+  return request.get(`/eventlistener/workflowDetail/${workflowIdx}/${eventlistenerYn}`);
 }
 
 // 저장
@@ -52,116 +58,6 @@ export function runWorkflow(params: Workflow) {
   return request.post(`/workflow/run`, params);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// export function getWorkflowDeployDetailInfo(workflowIdx) {
-//   return request.get(`/workflow/${workflowIdx}`);
-// }
-
-// export function putWorkflowDeploy(params) {
-//   return request.put(`/workflow/${params.workflowIdx}`, params);
-// }
-
-// export function workflowHistoryList(workflowIdx) {
-//   return request.get(`/jenkins/logs/${workflowIdx}`)
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// export function getPipelineLog(params) {
-//   return request.post('/getPipelineLog', params)
-// }
-
-// export function getPipelineLogDetail(link) {
-//     return request({
-//         headers:{'Content-Type': 'application/json' },
-//         url: '/getPipelineLogDetail',
-//         method: 'post',
-//         data:link
-//     })
-//   }
-
-// export function getConsoleLog(params) {
-//     return request.post('/deploy/getConsoleLog', params)
-// }
-
-
-// export function getProfiles(params) {
-//     return request.post('/projects/profiles', params)
-// }
-
-// // 수정 완료
-// export function getStageList(){
-//     return request.get('/common/group/stage')
-// }
-
-// export function getDeployCdList(){
-//     return request.get('/common/group/deploy')
-// }
-
-
-// // 수정 완료
-// export function getProviderList(){
-//     return request.get('/common/group/provider')
-// }
-
-// export function getStageListByRemoteHostId(remoteHostId){
-//     return request.get('/deploy/getStageListByRemoteHostId/'+remoteHostId)
-// }
-
-// // 수정 완료
-// export function getDeployConfigCount(providerCd){
-//     return request.get(`/config/k8s/count?providerCd=${providerCd}`);    
-//     // return request.get(`/config/k8s/count?serviceGroupId=${serviceGroupId}`);
-
-//     // return request.get(`/config/k8s/count?stageCd=`);
-// }
-
-// export function gitlabCloneUrlCheck(params){
-//     return request.get(`/deploy/gitlab/connection/check?gitlabId=${params.gitlabId}&gitlabProjectPath=${params.gitlabProjectPath}`)
-// }
-
-
-
-
-
-
+export function existEventListener(workflowIdx: number) {
+  return request.get(`/workflow/existEventListener/${workflowIdx}`);
+}

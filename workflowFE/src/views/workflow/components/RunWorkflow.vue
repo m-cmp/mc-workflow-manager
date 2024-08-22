@@ -14,6 +14,7 @@
           <!-- 파라미터 -->
           <ParamForm 
             v-if="workflowFormData.workflowParams"
+            :popup="true"
             :workflow-param-data="workflowFormData.workflowParams"
           />
         </div>
@@ -52,7 +53,7 @@ const workflowIdx = computed(() => props.workflowIdx)
 const workflowFormData = ref({} as Workflow)
 
 watch(() => workflowIdx.value, async () => {
-  const { data } = await getWorkflowDetailInfo(workflowIdx.value)
+  const { data } = await getWorkflowDetailInfo(workflowIdx.value, 'N')
   workflowFormData.value = data
 })
 
