@@ -37,10 +37,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -356,9 +353,10 @@ public class WorkflowServiceImpl implements WorkflowService {
             Map<String, List<String>> finalJenkinsJobParams = new HashMap<>();
 
             for(WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
-                List<String> valueList = new ArrayList<>();
-                valueList.add(param.getParamValue());
-                finalJenkinsJobParams.put(param.getParamKey(), valueList);
+                finalJenkinsJobParams.put(param.getParamKey(), Arrays.asList(param.getParamValue()));
+//                List<String> valueList = new ArrayList<>();
+//                valueList.add(param.getParamValue());
+//                finalJenkinsJobParams.put(param.getParamKey(), valueList);
             }
 
             jenkinsJobParams = finalJenkinsJobParams;
@@ -376,8 +374,8 @@ public class WorkflowServiceImpl implements WorkflowService {
         int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId);
 
         // 배포 이력 정보 등록
-        WorkflowHistory WorkflowHistoryEntity = WorkflowHistoryDto.buildEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto, workflowReqDto.getWorkflowInfo().getScript(), "root", null);
-        workflowHistoryRepository.save(WorkflowHistoryEntity);
+//        WorkflowHistory WorkflowHistoryEntity = WorkflowHistoryDto.buildEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto, workflowReqDto.getWorkflowInfo().getScript(), "root", null);
+//        workflowHistoryRepository.save(WorkflowHistoryEntity);
 
         // Jenkins Job 실행 대기
         BuildInfo buildInfo = jenkinsService.waitJenkinsBuild(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsBuildId, buildNumber);

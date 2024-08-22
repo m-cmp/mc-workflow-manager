@@ -28,6 +28,6 @@ public class Workflow {
     private Oss oss;
 
     @Lob
-    @Column(name = "script")
+    @Column(name = "script", columnDefinition = "CLOB")
     private String script;
 }
