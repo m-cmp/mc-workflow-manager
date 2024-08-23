@@ -23,8 +23,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
-#      ddl-auto: ${DB_INIT_YN:none}
-      ddl-auto: ${DB_INIT_YN:create}
+      ddl-auto: ${DB_INIT_YN:none}
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
