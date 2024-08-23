@@ -63,6 +63,14 @@ export interface WorkflowPurpose {
   value: string
 }
 
+export interface EventListener {
+  eventListenerIdx: number
+  eventListenerName: string
+  eventListenerDesc: string
+  eventListenerUrl: string
+  workflowIdx: number
+  eventListenerCallUrl: string
+}
 
 
 

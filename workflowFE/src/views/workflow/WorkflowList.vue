@@ -25,14 +25,16 @@
 <script setup lang="ts">
 import TableHeander from '@/components/Table/TableHeader.vue'
 import Tabulator from '@/components/Table/Tabulator.vue'
-import { getWorkflowList } from '@/api/workflow'
+import { getWorkflowList, existEventListener } from '@/api/workflow'
 import { onMounted, ref } from 'vue';
 import type { Workflow } from '@/views/type/type'
 import type { ColumnDefinition } from 'tabulator-tables';
 import router from '@/router';
 import DeleteWorkflow from '@/views/workflow/components/DeleteWorkflow.vue'
 import RunWorkflow from '@/views/workflow/components/RunWorkflow.vue'
+import { useToast } from 'vue-toastification';
 
+const toast = useToast()
 const workflowList = ref([] as Array<Workflow>)
 const columns = ref([] as Array<ColumnDefinition>)
 
@@ -43,7 +45,7 @@ onMounted(async () => {
 
 const _getWorkflowList = async () => {
   try {
-    const { data } = await getWorkflowList()
+    const { data } = await getWorkflowList('N')
     workflowList.value = data
   } catch(error) {
     console.log(error)
@@ -80,7 +82,7 @@ const setColumns = () => {
       title: "Action",
       width: 400,
       formatter: editButtonFormatter,
-      cellClick: function (e, cell) {
+      cellClick: async(e, cell) => {
         const target = e.target as HTMLElement;
         const btnFlag = target?.getAttribute('id')
         selectWorkflowIdx.value = cell.getRow().getData().workflowInfo.workflowIdx
@@ -88,7 +90,7 @@ const setColumns = () => {
         if (btnFlag === 'edit-btn') {
           router.push('/workflow/edit/' + selectWorkflowIdx.value)
         }
-        else if(btnFlag === 'delete-btn'){
+        else if (btnFlag === 'delete-btn') {
           selectWorkflowName.value = cell.getRow().getData().workflowInfo.workflowName
         }
       }

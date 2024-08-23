@@ -31,9 +31,6 @@ watch(()=> props.tableData, () => {
 
 const makeTable = () => {
   tabulator.value = new Tabulator(table.value, {
-    title: "This column has a really long title",
-    field: "example",
-    headerWordWrap: true,
     data: props.tableData,
     reactiveData:true,
     columns: props.columns,

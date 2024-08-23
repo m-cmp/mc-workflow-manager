@@ -27,6 +27,7 @@ public class WorkflowStageMapping {
     @Column(name = "workflow_stage_idx")
     private Long workflowStageIdx;
 
-    @Column(name = "stage")
+    @Lob
+    @Column(name = "stage", columnDefinition = "CLOB")
     private String stageContent;
 }

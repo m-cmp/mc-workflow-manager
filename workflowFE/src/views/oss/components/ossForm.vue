@@ -13,6 +13,12 @@
           <div>
           <!-- OSS 타입 -->
             <div class="mb-3">
+              <!-- <div v-if="ossFormData.ossTypeIdx === 1">
+                <input class="d-lb mr-5" type="checkbox" v-model="createJenkinsJobYn">
+                <label class="form-label d-lb">등록된 워크플로우 Job 생성 여부</label>
+              </div> -->
+
+
               <label class="form-label required">OSS 타입</label>
               <div class="grid gap-0 column-gap-3">
                 <select v-model="ossFormData.ossTypeIdx" class="form-select p-2 g-col-12">
@@ -28,7 +34,7 @@
             <div class="row mb-3">
               <label class="form-label required">OSS 명</label>
               <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 명을 입력하세요" v-model="ossFormData.ossName" />
+                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 명을 입력하세요" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
               </div>
             </div>
             
@@ -41,7 +47,7 @@
             <!-- URL -->
             <div class="mb-3">
               <label class="form-label required">URL</label>
-              <input type="text" class="form-control p-2 g-col-11" placeholder="서버 URL을 입력하세요" v-model="ossFormData.ossUrl" />
+              <input type="text" class="form-control p-2 g-col-11" placeholder="서버 URL을 입력하세요" v-model="ossFormData.ossUrl" @focus="initConnectionCheckBtn" />
             </div>
             
             <div class="row">
@@ -49,13 +55,13 @@
               <!-- OSS ID -->
               <div class="col">
                 <label class="form-label required">OSS ID</label>
-                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 아이디를 입력하세요" v-model="ossFormData.ossUsername" />
+                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 아이디를 입력하세요" v-model="ossFormData.ossUsername" @focus="initConnectionCheckBtn"/>
               </div>
 
               <!-- OSS PW -->
               <div class="col">
                 <label class="form-label required">OSS PW</label>
-                <input type="password" class="form-control p-2 g-col-11" placeholder="OSS 비밀번호를 입력하세요" v-model="ossFormData.ossPassword" @click="removePassword"/>
+                <input type="password" class="form-control p-2 g-col-11" placeholder="OSS 비밀번호를 입력하세요" v-model="ossFormData.ossPassword" @click="removePassword" @focus="initConnectionCheckBtn"/>
               </div>
 
               <div class="col mt-4">
@@ -86,7 +92,7 @@
 import type { Oss, OssType } from '@/views/type/type';
 import { ref } from 'vue';
 import { useToast } from 'vue-toastification';
-import { getOssTypeList, duplicateCheck, getOssDetailInfo, registOss, updateOss, ossConnectionChecked } from '@/api/oss';
+import { getOssTypeList, getOssTypeFilteredList, duplicateCheck, getOssDetailInfo, registOss, updateOss, ossConnectionChecked } from '@/api/oss';
 import { onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
@@ -110,11 +116,20 @@ const ossIdx = computed(() => props.ossIdx);
 watch(ossIdx, async () => {
   await setInit();
 });
+watch(() => props.mode, async () => {
+  await _getOssTypeList(props.mode)
+})
 
 onMounted(async () => {
   await setInit();
-  _getOssTypeList()
 })
+
+// /**
+//  * @Title createJenkinsJobYn 
+//  * @Desc Jenkins Job 생성 여부
+//  */
+// const createJenkinsJobYn = ref(false as Boolean)
+
 
 /**
  * @Title formData 
@@ -158,10 +173,16 @@ const setInit = async () => {
  *    _getOssTypeList : ossType 목록 API 호출
  */
 const ossTypeList = ref([] as Array<OssType>)
-const _getOssTypeList = async () => {
+const _getOssTypeList = async (mode:String) => {
   try {
-    const { data } = await getOssTypeList()
-    ossTypeList.value = data
+    if (mode === 'new') {
+      const { data } = await getOssTypeFilteredList()
+      ossTypeList.value = data
+    }
+    else {
+      const { data } = await getOssTypeList()
+      ossTypeList.value = data
+    }
   } catch (error) {
     console.log(error)
   }
@@ -222,6 +243,25 @@ const onClickConnectionCheckOss = async () => {
 }
 
 /**
+ * @Title initDuplicatedCheckBtn
+ * @Desc 
+ *    initDuplicatedCheckBtn : 연결확인 변수 false
+ */
+const initDuplicatedCheckBtn = () => {
+  duplicatedOss.value = false
+}
+
+/**
+ * @Title initConnectionCheckBtn
+ * @Desc 
+ *    initConnectionCheckBtn : 연결확인 변수 false
+ */
+const initConnectionCheckBtn = () => {
+  connectionCheckedOss.value = false
+}
+
+
+/**
  * @Title onClickSubmit
  * @Desc 
  *     1. 생성 / 수정 버튼 클릭시 동작
@@ -229,10 +269,11 @@ const onClickConnectionCheckOss = async () => {
  */
 const onClickSubmit = async () => {
   ossFormData.value.ossPassword = encriptPassword(ossFormData.value.ossPassword)
-  if (props.mode === 'new')
+  if (props.mode === 'new') {
     await _registOss().then(() => {
     emit('get-oss-list')
   })
+  }
   else
     await _updateOss().then(() => {
     emit('get-oss-list')
@@ -283,3 +324,12 @@ const decriptPassword = (password: string) => {
 }
 
 </script>
+
+<!-- <style scoped>
+.d-lb {
+  display: inline-block;
+}
+.mr-5 {
+   margin-right: 5px;
+}
+</style> -->

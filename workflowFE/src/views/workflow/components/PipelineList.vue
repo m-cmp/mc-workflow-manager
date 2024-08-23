@@ -40,7 +40,6 @@ import 'ace-builds/src-noconflict/theme-chrome';
 import { watch } from 'vue';
 import { watchEffect } from 'vue';
 import { ref, onMounted } from 'vue';
-import lodash from 'lodash';
 
 const instance = getCurrentInstance()
 const inputData = () => {

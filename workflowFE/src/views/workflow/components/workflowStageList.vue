@@ -44,7 +44,7 @@ import { getWorkflowPipelineList } from '@/api/workflow';
 import type { WorkflowStage, WorkflowStageMappings } from '@/views/type/type';
 import { onMounted } from 'vue';
 import { ref } from 'vue';
-import lodash from 'lodash';
+import _ from 'lodash';
 
 interface Props {
   workflowStageMappingsFormData: Array<WorkflowStageMappings>
@@ -72,7 +72,7 @@ const onCheckDraggablePalette = (e:any) => {
 
 // Palette 옵션
 const onClonePipeline = (obj:any) => {
-  const newObj = lodash.cloneDeep(obj);
+  const newObj = _.cloneDeep(obj);
   return newObj;
 }
 

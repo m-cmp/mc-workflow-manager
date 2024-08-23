@@ -7,6 +7,12 @@ export const getOssTypeList = () => {
   return request.get('/ossType/list')
 }
 
+// OSS Type 필터링 목록
+// 이미 생성된 OSS는 또 다시 생성할 수 없다
+export const getOssTypeFilteredList = () => {
+  return request.get('/ossType/filter/list')
+}
+
 // OSS 목록
 export const getOssAllList = () => {
   return request.get('/oss/list')

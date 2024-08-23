@@ -27,6 +27,7 @@ public class RequestEventListenerDto {
                 .eventListenerIdx(eventListener.getEventListenerIdx())
                 .eventListenerName(eventListener.getEventListenerName())
                 .eventListenerDesc(eventListener.getEventListenerDesc())
+//                .eventListenerUrl(eventListener.getEventListenerUrl())
                 .workflowIdx(eventListener.getWorkflow().getWorkflowIdx())
                 .build();
     }
@@ -37,7 +38,7 @@ public class RequestEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
+//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflowIdx(eventListenerDto.getWorkflowIdx())
                 .build();
     }
@@ -48,7 +49,7 @@ public class RequestEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
+//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .build();
     }
@@ -59,7 +60,7 @@ public class RequestEventListenerDto {
                 .eventListenerIdx(eventListenerIdx)
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
+//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .build();
     }
