@@ -24,7 +24,7 @@ echo -e "Start ${LGREEN} $APP_NAME ${NC}"
 HOME=$HOME
 sudo docker run -itd \
         -p 8080:8080 \
-        -v $HOME/mcmp/git/mc-workflow-manager/workflowFE/dist:/usr/share/nginx/html/ \
+        -v $HOME/mcmp/git/mc-workflow-manager/src/resources/static/dist:/usr/share/nginx/html/ \
         -v $HOME/mcmp/git/mc-workflow-manager/workflowFE/nginx_conf/:/etc/nginx/conf.d/ \
         --name nginx \
         -u root \
