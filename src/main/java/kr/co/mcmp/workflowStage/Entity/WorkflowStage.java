@@ -29,6 +29,7 @@ public class WorkflowStage {
     @Column(name = "workflow_stage_desc")
     private String workflowStageDesc;
 
-    @Column(name = "workflow_stage_content", nullable = false)
+    @Lob
+    @Column(name = "workflow_stage_content", nullable = false, columnDefinition = "CLOB")
     private String workflowStageContent;
 }
