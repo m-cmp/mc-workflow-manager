@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, toRefs } from 'vue';
 
-import { getPipelineCdList, getWorkflowPipelineList, getDefaultPipeline } from '@/api/workflow'
+import { getPipelineCdList, getWorkflowPipelineList } from '@/api/workflow'
 
 import type { Workflow, WorkflowInfo, WorkflowStageMappings, WorkflowStage } from '@/views/type/type'
 
@@ -62,7 +62,6 @@ import type { Workflow, WorkflowInfo, WorkflowStageMappings, WorkflowStage } fro
 import {VueDraggableNext} from "vue-draggable-next";
 import { useToast } from "vue-toastification";
 import { computed } from 'vue';
-import lodash from 'lodash';
 import PipelineList from '@/views/workflow/components/PipelineList.vue';
 import WorkflowStageList from '@/views/workflow/components/workflowStageList.vue';
 
