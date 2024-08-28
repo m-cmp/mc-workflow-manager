@@ -4,32 +4,37 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
-      path: '/oss/list',
+      path: '/web',
+      name: 'rootOssList',
+      component: () => import('@/views/oss/OssList.vue' as any)
+    },
+    {
+      path: '/web/oss/list',
       name: 'ossList',
       component: () => import('@/views/oss/OssList.vue' as any)
     },
     {
-      path: '/workflowStage/list',
+      path: '/web/workflowStage/list',
       name: 'workflowStageList',
       component: () => import('@/views/workflowStage/WorkflowStageList.vue' as any)
     },
     {
-      path: '/eventListener/list',
+      path: '/web/eventListener/list',
       name: 'eventListenerList',
       component: () => import('@/views/eventListener/EventListenerList.vue' as any)
     },
     {
-      path: '/workflow/list',
+      path: '/web/workflow/list',
       name: 'workflowList',
       component: () => import('@/views/workflow/WorkflowList.vue' as any)
     },
     {
-      path: '/workflow/new',
+      path: '/web/workflow/new',
       name: 'workflowNew',
       component: () => import('@/views/workflow/WorkflowForm.vue' as any)
     },
     {
-      path: `/workflow/edit/:workflowIdx`,
+      path: `/web/workflow/edit/:workflowIdx`,
       name: 'workflowEdit',
       component: () => import('@/views/workflow/WorkflowForm.vue' as any)
     }
