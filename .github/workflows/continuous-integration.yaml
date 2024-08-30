@@ -70,7 +70,7 @@ jobs:
     - name: Build image
       env:
         IMAGE_NAME: ${{ github.event.repository.name }}
-      run: docker build . --file Dockerfile --tag $IMAGE_NAME
+      run: docker build . --file ./script/Dockerfile --tag $IMAGE_NAME
 
 
 
