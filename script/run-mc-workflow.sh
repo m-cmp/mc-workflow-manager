@@ -8,7 +8,7 @@ echo "==========================================================================
 PROJECT_PATH=${PROJECT_ROOT}
 #DB 볼륨 생성
 mkdir ${PROJECT_PATH}/DB
-DB_VOLUME_PATH=${PROJECT_PATH/DB}
+DB_VOLUME_PATH=${PROJECT_PATH}/DB
 
 # Application 명
 APP_NAME=mc-workflow-manager
