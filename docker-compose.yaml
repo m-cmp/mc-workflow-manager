@@ -1,0 +1,57 @@
+# temp docker-compose
+networks:
+  internal_network:
+    internal: true
+  external_network:
+    driver: bridge
+
+  # jenkins - for workflow manager
+  jenkins:
+    image: jenkins/jenkins:jdk17
+    container_name: jenkins
+    platform: linux/amd64
+    networks:
+      - internal_network
+      - external_network
+    ports:
+      - target: 8080
+        published: 9800
+        protocol: tcp
+    volumes:
+      - ./:/var/jenkins_home # -v $HOME/mcmp/oss/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /usr/bin/docker:/usr/bin/docker # -v $(which docker):/usr/bin/docker
+    environment:
+      - PROJECT=mcmp
+    healthcheck: # for workflow-manager
+      test: [ "CMD", "curl", "-f", "http://localhost:1024/catalog/software" ]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # workflow-manager
+  mc-workflow-manager:
+    image: 이미지경로
+    container_name: workflow-manager
+    build:
+      context: ./script
+      dockerfile: Dockerfile
+    networks:
+      - external_network
+      - external_network
+    ports:
+      - target: 18083
+        published: 18083
+        protocol: tcp
+    environment:
+      - DB_INIT_YN=create
+      - DB_ID=workflow
+      - DB_PW=workflow!23
+      - SQL_DATA_INIT=always
+    healthcheck: # for cb-workflow-manager
+      test: ["CMD", "nc", "-vz", "localhost", "1324"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 10s
