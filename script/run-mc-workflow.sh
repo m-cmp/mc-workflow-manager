@@ -13,18 +13,22 @@ DB_VOLUME_PATH=${PROJECT_PATH}/DB
 # Application 명
 APP_NAME=mc-workflow-manager
 # Application 이미지 명
-APP_IMAGE=mc-workflow-manager:v0.0.1
+APP_IMAGE=mc-workflow-manager:v0.2.1
 
 echo -e "Start ${LGREEN} $APP_NAME ${NC}"
 
 DATABASE_URL=$(curl -s ifconfig.me)
+DB_ID=""
+DB_PW=""
 
 echo ${DATABASE_URL}
 while true; do
     read -p "DB INIT?(none/create) : " DB_INIT_YN
     if [[ "$DB_INIT_YN" == "none" ]]; then
-        username: $DB_ID=workflow
-        password: $DB_PW=tjxjfkxh!23
+        DB_ID="workflow"
+        DB_PW="workflow!23"
+        echo username: $DB_ID
+        echo password: $DB_PW
         SQL_DATA_INIT="never"
         break
     elif [[ "$DB_INIT_YN" == "create" ]]; then
@@ -38,15 +42,13 @@ while true; do
     fi
 done
 
-
-
 sudo docker run -itd \
         -p 18083:18083 \
         -e DB_INIT_YN=$DB_INIT_YN \
         -e DB_ID=$DB_ID \
         -e DB_PW=$DB_PW \
         -e SQL_DATA_INIT=$SQL_DATA_INIT \
-        -v $DB_VOLUME_PATH=/document \
+        -v $DB_VOLUME_PATH:/document \
         --name mc-workflow-manager \
 $APP_IMAGE
 
