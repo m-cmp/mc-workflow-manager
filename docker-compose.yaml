@@ -44,11 +44,13 @@ networks:
       - target: 18083
         published: 18083
         protocol: tcp
+    volumes:
+      - ./document:/document # -v ${PROJECT_PATH}/document:/document
     environment:
       - DB_INIT_YN=create
       - DB_ID=workflow
       - DB_PW=workflow!23
-      - SQL_DATA_INIT=always
+      - SQL_DATA_INIT=always # SQL_DATA_INIT=never
     healthcheck: # for cb-workflow-manager
       test: ["CMD", "nc", "-vz", "localhost", "1324"]
       interval: 1m
