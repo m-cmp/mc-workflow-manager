@@ -46,7 +46,7 @@ sudo docker run -itd \
         -e DB_ID=$DB_ID \
         -e DB_PW=$DB_PW \
         -e SQL_DATA_INIT=$SQL_DATA_INIT \
-        -v DB_VOLUME_PATH=$DB_VOLUME_PATH \
+        -v $DB_VOLUME_PATH=/document \
         --name mc-workflow-manager \
 $APP_IMAGE
 
