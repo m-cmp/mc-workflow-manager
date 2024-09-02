@@ -13,7 +13,7 @@ spring:
     url: jdbc:h2:file:./document/workflow # 프로젝트 루트/db/ 안에 h2.db파일(test.mv.db) 생성
     driver-class-name: org.h2.Driver
     username: ${DB_ID:workflow}
-    password: ${DB_PW:tjxjfkxh!23}
+    password: ${DB_PW:workflow!23}
   h2:
     console:
       enabled: true # http://localhost:18083/h2-console/으로 접속가능
