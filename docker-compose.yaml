@@ -1,10 +1,12 @@
-# temp docker-compose
+version: '3.8'
+
 networks:
   internal_network:
     internal: true
   external_network:
     driver: bridge
 
+services:
   # jenkins - for workflow manager
   jenkins:
     image: jenkins/jenkins:jdk17
@@ -17,6 +19,7 @@ networks:
       - target: 8080
         published: 9800
         protocol: tcp
+      - "8080:8080" # or any other required port mapping
     volumes:
       - ./:/var/jenkins_home # -v $HOME/mcmp/oss/jenkins:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
@@ -32,23 +35,24 @@ networks:
 
   # workflow-manager
   mc-workflow-manager:
-    image: 이미지경로
+    image: m-cmp/mc-workflow-manager
     container_name: workflow-manager
     build:
-      context: ./script
+      context: ./
       dockerfile: Dockerfile
     networks:
-      - external_network
       - external_network
     ports:
       - target: 18083
         published: 18083
         protocol: tcp
+    volumes:
+      - ./document:/document # -v ${PROJECT_PATH}/document:/document
     environment:
       - DB_INIT_YN=create
       - DB_ID=workflow
       - DB_PW=workflow!23
-      - SQL_DATA_INIT=always
+      - SQL_DATA_INIT=always # SQL_DATA_INIT=never
     healthcheck: # for cb-workflow-manager
       test: ["CMD", "nc", "-vz", "localhost", "1324"]
       interval: 1m
