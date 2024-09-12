@@ -72,7 +72,10 @@ export interface EventListener {
   eventListenerCallUrl: string
 }
 
-
+export interface WorkflowLog {
+  buildIdx: number
+  buildLog: string
+}
 
 
 

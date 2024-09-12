@@ -1,13 +1,13 @@
 <template>
   <div class="modal" id="ossForm" tabindex="-1">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
       <div class="modal-content">
 
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-body text-left py-4">
           <!-- OSS Title -->
           <h3 class="mb-5">
-            OSS {{ props.mode === 'new' ? '생성' : '수정'}}
+            {{ props.mode === 'new' ? 'New' : 'Edit'}} OSS 
           </h3>
 
           <div>
@@ -19,10 +19,10 @@
               </div> -->
 
 
-              <label class="form-label required">OSS 타입</label>
+              <label class="form-label required">OSS Type</label>
               <div class="grid gap-0 column-gap-3">
                 <select v-model="ossFormData.ossTypeIdx" class="form-select p-2 g-col-12">
-                  <option :value="0">OSS 타입을 선택하세요.</option>
+                  <option :value="0">Select OSS Type</option>
                   <option v-for="(type, idx) in ossTypeList" :value="type.ossTypeIdx" :key="idx">
                     {{ type.ossTypeName }}
                   </option>
@@ -32,43 +32,42 @@
 
             <!-- OSS 명 -->
             <div class="row mb-3">
-              <label class="form-label required">OSS 명</label>
+              <label class="form-label required">OSS Name</label>
               <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 명을 입력하세요" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
+                <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Name" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
               </div>
             </div>
             
             <!-- OSS 설명 -->
             <div class="mb-3">
-              <label class="form-label required">OSS 설명</label>
-              <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 설명을 입력하세요" v-model="ossFormData.ossDesc" />
+              <label class="form-label required">OSS Description</label>
+              <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Description" v-model="ossFormData.ossDesc" />
             </div>
 
             <!-- URL -->
             <div class="mb-3">
               <label class="form-label required">URL</label>
-              <input type="text" class="form-control p-2 g-col-11" placeholder="서버 URL을 입력하세요" v-model="ossFormData.ossUrl" @focus="initConnectionCheckBtn" />
+              <input type="text" class="form-control p-2 g-col-7" placeholder="Enter the Server URL" v-model="ossFormData.ossUrl" @focus="initConnectionCheckBtn" />
             </div>
             
             <div class="row">
-              
               <!-- OSS ID -->
               <div class="col">
                 <label class="form-label required">OSS ID</label>
-                <input type="text" class="form-control p-2 g-col-11" placeholder="OSS 아이디를 입력하세요" v-model="ossFormData.ossUsername" @focus="initConnectionCheckBtn"/>
+                <input type="text" class="form-control p-2 g-col-7" placeholder="Enter the OSS ID" v-model="ossFormData.ossUsername" @focus="initConnectionCheckBtn"/>
               </div>
 
               <!-- OSS PW -->
               <div class="col">
                 <label class="form-label required">OSS PW</label>
-                <input type="password" class="form-control p-2 g-col-11" placeholder="OSS 비밀번호를 입력하세요" v-model="ossFormData.ossPassword" @click="removePassword" @focus="initConnectionCheckBtn"/>
+                <input type="password" class="form-control p-2 g-col-11" placeholder="Enter the OSS Password" v-model="ossFormData.ossPassword" @click="removePassword" @focus="initConnectionCheckBtn"/>
               </div>
 
-              <div class="col mt-4">
-                <button v-if="!duplicatedOss" class="btn btn-primary chk" @click="onClickDuplicatOssName" style="margin: 3px;">중복 체크</button>
-                <button v-else class="btn btn-success" style="margin: 3px;">중복 체크</button>
-                <button v-if="!connectionCheckedOss" class="btn btn-primary" @click="onClickConnectionCheckOss">연결 확인</button>
-                <button v-else class="btn btn-success">연결 확인</button>
+              <div class="col mt-4 row">
+                <button v-if="!duplicatedOss" class="btn btn-primary col" @click="onClickDuplicatOssName" style="margin-right: 3px;">Duplicate Check</button>
+                <button v-else class="btn btn-success col" style="margin-right: 3px;">Duplicate Check</button>
+                <button v-if="!connectionCheckedOss" class="btn btn-primary col" @click="onClickConnectionCheckOss">Connection Check</button>
+                <button v-else class="btn btn-success col">Connection Check</button>
               </div>
             </div>
           </div>
@@ -79,7 +78,7 @@
           Cancel
         </a>
         <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickSubmit()">
-          {{props.mode === 'new' ? '생성' : '수정'}}
+          {{props.mode === 'new' ? 'Regist' : 'Edit'}}
         </a>
       </div>
 

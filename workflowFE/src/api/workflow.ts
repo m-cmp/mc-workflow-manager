@@ -61,3 +61,7 @@ export function runWorkflow(params: Workflow) {
 export function existEventListener(workflowIdx: number) {
   return request.get(`/workflow/existEventListener/${workflowIdx}`);
 }
+
+export function getWorkflowLog(workflowIdx: number) {
+  return request.get(`/workflow/log/${workflowIdx}`)
+}

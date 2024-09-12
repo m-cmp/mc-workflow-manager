@@ -8,7 +8,7 @@
         <div class="modal-body text-left py-4">
           <!-- Workflow Title -->
           <h3 class="mb-5">
-            Workflow 실행
+            Run Workflow
           </h3>
 
           <!-- 파라미터 -->
@@ -24,7 +24,7 @@
             Cancel
           </a>
           <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickRun()">
-            실행
+            Run
           </a>
         </div>
       </div>

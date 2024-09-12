@@ -402,4 +402,8 @@ public class JenkinsService {
         return buildInfo;
     }
 
+    public String getJenkinsLog(String url, String id, String password, String jobName, int buildNumber) {
+        return api.getJenkinsBuildConsoleLog(url,id,password,jobName,buildNumber);
+    }
+
 }

@@ -7,52 +7,52 @@
         <div class="modal-body text-left py-4">
           <!-- Workflow Stage Title -->
           <h3 class="mb-5">
-            Workflow Stage {{ props.mode === 'new' ? '생성' : '수정'}}
+            {{ props.mode === 'new' ? 'New' : 'Edit'}} Workflow Stage
           </h3>
 
           <div>
           <!-- Workflow Stage 타입 -->
             <div class="mb-3">
               <div style="display: flex; justify-content: start;">
-                <label class="form-label required col"> Workflow Stage 타입 </label>
+                <label class="form-label required col"> Workflow Stage Type </label>
                 <div v-if="props.mode === 'new'">
                   <input type="checkBox" @change="onChangeWorkflowStageTypeAdd">
-                  <label>타입 추가</label>
+                  <label>Add Workflow Type</label>
                 </div>
               </div>
               <div class="grid gap-0 column-gap-3">
                   <select  v-if="!addWorkflowStageTypeFlag" v-model="workflowStageFormData.workflowStageTypeIdx" class="form-select p-2 g-col-12" @change="onClickedWorkflowStageType">
-                    <option :value="0">Workflow Stage 타입을 선택하세요.</option>
+                    <option :value="0">Select Workflow Stage Type</option>
                     <option v-for="(type, idx) in workflowStageTypeList" :value="type.workflowStageTypeIdx" :key="idx">
                       {{ type.workflowStageTypeName }}
                     </option>
                   </select>
-                  <input v-else type="text" class="form-control p-2 g-col-12" placeholder="추가하실 Workflow Stage 타입을 입력하세요" v-model="workflowStageFormData.workflowStageTypeName" @focusout="_getWorkflowStageDefaultScript(workflowStageFormData.workflowStageTypeName)"/>
+                  <input v-else type="text" class="form-control p-2 g-col-12" placeholder="Please enter the Workflow Stage type you want to add" v-model="workflowStageFormData.workflowStageTypeName" @focusout="_getWorkflowStageDefaultScript(workflowStageFormData.workflowStageTypeName)"/>
               </div>
             </div>
 
             <!-- Workflow Stage 명 -->
             <div class="mb-3">
-              <label class="form-label required">Workflow Stage 명</label>
+              <label class="form-label required">Workflow Stage Name</label>
               <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="Workflow Stage 명을 입력하세요" v-model="workflowStageFormData.workflowStageName" />
+                <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the Workflow Stage Name" v-model="workflowStageFormData.workflowStageName" />
                 <div class="col">
-                  <button v-if="!duplicatedWorkflowStage" class="btn btn-primary chk" @click="onClickDuplicatWorkflowStageName">중복 체크</button>
-                  <button v-else class="btn btn-success" style="margin: 3px;">중복 체크</button>
+                  <button v-if="!duplicatedWorkflowStage" class="btn btn-primary chk" @click="onClickDuplicatWorkflowStageName">Duplicate Check</button>
+                  <button v-else class="btn btn-success" style="margin: 3px;">Duplicate Check</button>
                 </div>
               </div>
             </div>
             
             <!-- Workflow Stage 설명 -->
             <div class="mb-3">
-              <label class="form-label required">Workflow Stage 설명</label>
-              <input type="text" class="form-control p-2 g-col-11" placeholder="Workflow Stage 설명을 입력하세요" v-model="workflowStageFormData.workflowStageDesc" />
+              <label class="form-label required">Workflow Stage Description</label>
+              <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the Workflow Stage Description" v-model="workflowStageFormData.workflowStageDesc" />
             </div>
 
             <!-- Workflow Stage Contents -->
             <div class="mb-3">
               <label class="form-label required">Script</label>
-              <textarea rows="10" class="form-control p-2 g-col-11" placeholder="스크립트 입력하세요" v-model="workflowStageFormData.workflowStageContent" />
+              <textarea rows="10" class="form-control p-2 g-col-11" placeholder="Enter the Script" v-model="workflowStageFormData.workflowStageContent" />
             </div>
 
           </div>
@@ -63,7 +63,7 @@
           Cancel
         </a>
         <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickSubmit()">
-          {{props.mode === 'new' ? '생성' : '수정'}}
+          {{props.mode === 'new' ? 'Regist' : 'Edit'}}
         </a>
       </div>
 

@@ -1,7 +1,7 @@
 <template>
   <div class="mt-5 mb-5" v-if="paramData">
     <label class="form-label">
-      파라미터
+      Parameter
     </label>
     <div v-for="(paramColum, idx) in paramData" :key="idx">
       <div class="grid gap-0 column-gap-3 mb-2">
@@ -9,14 +9,14 @@
           class="form-control p-2" 
           :class="props.popup ? 'g-col-6' : 'g-col-5'" 
           type="text" 
-          placeholder="Key 입력" 
+          placeholder="Key" 
           v-model="paramColum.paramKey" 
           :disabled="props.popup">
         <input 
           class="form-control p-2" 
           :class="props.popup ? 'g-col-6' : 'g-col-5'" 
           type="text" 
-          placeholder="Value 입력" 
+          placeholder="Value" 
           v-model="paramColum.paramValue">
 
         <button v-if="!props.popup" class="btn btn-primary" @click="addParams" style="text-align: center !important;">

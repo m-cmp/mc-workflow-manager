@@ -13,37 +13,37 @@ const service = axios.create({
 
 // request interceptor
 service.interceptors.request.use(
-    config => {
-        // console.log("##[", "api", "]##", "request", config.url, config);
-        return config;
-    },
-    error => {
-        console.log("error ---------- ", error);
-        return Promise.reject(error);
-    }
+  config => {
+    // console.log("##[", "api", "]##", "request", config.url, config);
+    return config;
+  },
+  error => {
+    console.log("error ---------- ", error);
+    return Promise.reject(error);
+  }
 );
 
 // response interceptor
 service.interceptors.response.use(
-    response => {
-        const res = response.data;
+  response => {
+    const res = response.data;
 
-        if (res.code === 200) {
-            return res;
-        } else {
-            toast.error(res.detail)
-            return Promise.reject(new Error(res.message || "Error"));
-        }
-    },
-    error => {
-        console.log("ApiService.Response -> fail", error);
-
-        if (axios.isCancel(error)) {
-            return Promise.reject(error);
-        }
-        // toast.error(error.message)
-        return Promise.reject(error);
+  if (res.code === 200) {
+        return res;
+  } else {
+      toast.error(res.detail)
+      return Promise.reject(new Error(res.message || "Error"));
     }
+  },
+  error => {
+      console.log("ApiService.Response -> fail", error);
+
+      if (axios.isCancel(error)) {
+          return Promise.reject(error);
+      }
+      // toast.error(error.message)
+      return Promise.reject(error);
+  }
 );
 
 export default service;
