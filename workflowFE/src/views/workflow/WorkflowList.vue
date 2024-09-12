@@ -20,6 +20,9 @@
     <RunWorkflow
       :workflow-idx="selectWorkflowIdx"
       @get-workflow-list="_getWorkflowList"/>
+
+    <WorkflowLog
+      :workflow-idx="selectWorkflowIdx"/>
   </div>
 </template>
 <script setup lang="ts">
@@ -33,6 +36,7 @@ import router from '@/router';
 import DeleteWorkflow from '@/views/workflow/components/DeleteWorkflow.vue'
 import RunWorkflow from '@/views/workflow/components/RunWorkflow.vue'
 import { useToast } from 'vue-toastification';
+import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
 
 const toast = useToast()
 const workflowList = ref([] as Array<Workflow>)
@@ -88,7 +92,7 @@ const setColumns = () => {
         selectWorkflowIdx.value = cell.getRow().getData().workflowInfo.workflowIdx
 
         if (btnFlag === 'edit-btn') {
-          router.push('/workflow/edit/' + selectWorkflowIdx.value)
+          router.push('/web/workflow/edit/' + selectWorkflowIdx.value)
         }
         else if (btnFlag === 'delete-btn') {
           selectWorkflowName.value = cell.getRow().getData().workflowInfo.workflowName
@@ -100,7 +104,7 @@ const setColumns = () => {
 }
 
 const onClickNewBtn = () => {
-  router.push('/workflow/new')
+  router.push('/web/workflow/new')
 }
 const paramsCountFomatter = (cell: any) => {
   const paramsCnt = cell._cell.row.data.workflowParams.length
@@ -113,20 +117,26 @@ const editButtonFormatter = () => {
         class='btn btn-primary d-none d-sm-inline-block'
         id='edit-btn'
         style='margin-right: 5px'>
-          수정
+          EDIT
       </button>
       <button class='btn btn-danger d-none d-sm-inline-block'
         id='delete-btn'
         data-bs-toggle='modal' 
         data-bs-target='#deleteWorkflow'
         style='margin-right: 5px'>
-        삭제
+        DELETE
       </button>
       <button class='btn btn-info d-none d-sm-inline-block'
         id='run-btn'
         data-bs-toggle='modal' 
         data-bs-target='#runWorkflow'>
-        실행
+        RUN
+      </button>
+      <button class='btn btn-primary d-none d-sm-inline-block'
+        id='log-btn'
+        data-bs-toggle='modal' 
+        data-bs-target='#workflowLog'>
+        LOG
       </button>
     </div>`;
 }

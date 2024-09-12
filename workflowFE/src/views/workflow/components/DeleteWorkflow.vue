@@ -8,10 +8,10 @@
         <div class="modal-body text-left py-4">
           <!-- Workflow Title -->
           <h3 class="mb-5">
-            Workflow 삭제
+            Delete Workflow
           </h3>
 
-          <h4>{{ props.workflowName }}을(를) 정말 삭제하시겠습니까?</h4>
+          <h4>Are you sure you want to delete {{ props.workflowName }}?</h4>
 
         </div>
 
@@ -20,7 +20,7 @@
             Cancel
           </a>
           <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickDelete()">
-            삭제
+            Delete
           </a>
         </div>
 

@@ -72,14 +72,14 @@ const onCheckDraggablePalette = (e:any) => {
 
 // Palette 옵션
 const onClonePipeline = (obj:any) => {
-  const newObj = _.cloneDeep(obj);
+  const newObj = obj;
   return newObj;
 }
 
 // 선택된 Palette 아이템
 const onClickPaletteItem = (obj:WorkflowStage) => {
   if (props.workflowStageMappingsFormData.length < 1) return;
-  const clone: WorkflowStage = lodash.cloneDeep(obj);
+  const clone: WorkflowStage = obj;
   const transClone: WorkflowStageMappings = {
     stageOrder: clone.workflowStageOrder,
     workflowStageTypeIdx: clone.workflowStageTypeIdx,

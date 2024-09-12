@@ -2,7 +2,7 @@
   <div class="card w-100" ref="workflowForm">
     <div class="card-header">
       <div class="card-title">
-        <h1>Workflow {{ mode === "new" ? "등록" : "수정" }}</h1>
+        <h1>{{ mode === "new" ? "New" : "Edit" }} Workflow</h1>
       </div>
     </div>
     <div 
@@ -15,21 +15,21 @@
         <!-- 워크플로우 명 -->
         <div class="mb-3">
           <label class="form-label required">
-            워크 플로우 명
+            Workflow Name
           </label>
           <div class="grid gap-0 column-gap-3">
-            <input type="text" ref="workflowName" class="form-control p-2 g-col-11" placeholder="워크플로우 명을 입력하세요" v-model="workflowInfoFormData.workflowName" />
-            <button v-if="!duplicatedWorkflow" class="btn btn-primary" @click="onClickDuplicatWorkflowName(workflowInfoFormData.workflowName)">중복 체크</button>
-            <button v-else class="btn btn-success">중복 체크</button>
+            <input type="text" ref="workflowName" class="form-control p-2 g-col-11" placeholder="Enter the workflow name" v-model="workflowInfoFormData.workflowName" />
+            <button v-if="!duplicatedWorkflow" class="btn btn-primary" @click="onClickDuplicatWorkflowName(workflowInfoFormData.workflowName)">Duplicate Check</button>
+            <button v-else class="btn btn-success">Duplicate Check</button>
           </div>
         </div>
 
         <!-- 목적 -->
         <div class="mb-3">
-          <label class="form-label required">목적</label>
+          <label class="form-label required">Purpose</label>
           <div class="grid gap-0 column-gap-3">
             <select ref="workflowPurpose" v-model="workflowInfoFormData.workflowPurpose" class="form-select p-2 g-col-12">
-              <option value="">워크플로우 목적을 선택하세요.</option>
+              <option value="">Select Workflow Purpose.</option>
               <option v-for="(purpose, idx) in workflowPurposeList" :value="purpose.value" :key="idx">
                 {{ purpose.name }}
               </option>
@@ -41,7 +41,7 @@
         <div class="mb-3">
           <label class="form-label required">OSS URL</label>
           <div class="grid gap-0 column-gap-3">
-            <input type="text" class="form-control p-2 g-col-12" placeholder="OSS URL 을 입력하세요" :value="ossUrl" disabled/>
+            <input type="text" class="form-control p-2 g-col-12" placeholder="Enter the OSS URL" :value="ossUrl" disabled/>
           </div>
         </div>
         <!-- 파이프 라인 -->
@@ -64,13 +64,13 @@
           <div class="col-auto ms-auto">
             <div class="btn-list">
               <button class="btn btn-primary" @click="onClickSubmit">
-                {{ mode === 'new' ? '등록' : '수정' }}
+                {{ mode === 'new' ? 'Regist' : 'Edit' }}
               </button>
-              <button v-show="mode === 'edit'" class="btn btn-info" @click="onClickRun">
+              <!-- <button v-show="mode === 'edit'" class="btn btn-info" @click="onClickRun">
                 실행
-              </button>
+              </button> -->
               <button class="btn btn-right border" @click="onClickList">
-                목록으로
+                To List
               </button>
             </div>
           </div>
@@ -231,7 +231,7 @@ const _registWorkflow = async () => {
   const { data } = await registWorkflow(param)
   if (data) {
     toast.success('등록 되었습니다.')
-    router.push('/workflow/list')
+    router.push('/web/workflow/list')
   }
   else {
     toast.error('등록하지 못했습니다.')
@@ -249,7 +249,7 @@ const _updateWorkflow = async () => {
 
   if (data) {
     toast.success('수정 되었습니다.')
-    router.push('/workflow/list')
+    router.push('/web/workflow/list')
   }
   else {
     toast.error('수정하지 못했습니다.')
@@ -291,7 +291,7 @@ const onClickRun = () => {
 
 // ================================================================================= 목록으로 이동
 const onClickList = () => {
-  router.push('/workflow/list')
+  router.push('/web/workflow/list')
 }
 
 // ================================================================================= PipelineGenerator

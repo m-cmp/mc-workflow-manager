@@ -2,10 +2,10 @@
   <div class="mb-3">
     <div class="grid gap-0 column-gap-3 border-bottom pb-5 pt-5">
       <label class="form-label required p-2 g-col-11">
-        파이프 라인
+        Pipeline
       </label>
       <button class="btn btn-primary" @click="onClickCreateScript">
-        스크립트 생성
+        Create Script
       </button>
     </div>
     <div class="p-1">

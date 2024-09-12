@@ -127,14 +127,14 @@ const editDeleteButtonFormatter = () => {
       id='edit-btn'
       data-bs-toggle='modal' 
       data-bs-target='#workflowStageForm'>
-      수정
+      EDIT
     </button>
     <button
       class='btn btn-danger d-none d-sm-inline-block'
       id='delete-btn'
       data-bs-toggle='modal' 
       data-bs-target='#deleteWorkflowStage'>
-      삭제
+      DELETE
     </button>
   </div>`;
 }
