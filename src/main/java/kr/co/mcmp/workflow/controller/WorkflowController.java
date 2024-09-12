@@ -8,6 +8,7 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
 import kr.co.mcmp.workflow.service.WorkflowService;
 import lombok.RequiredArgsConstructor;
@@ -115,5 +116,11 @@ public class WorkflowController {
     @PostMapping("/run")
     public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowReqDto));
+    }
+
+    @Operation(summary="워크플로우 로그")
+    @GetMapping("/log/{workflowIdx}")
+    public ResponseWrapper<List<WorkflowLogResDto>> getWorkflowLog(@PathVariable Long workflowIdx) {
+        return new ResponseWrapper<>(workflowService.getWorkflowLog(workflowIdx));
     }
 }

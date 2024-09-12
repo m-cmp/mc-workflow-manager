@@ -6,6 +6,7 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
 
 import java.util.List;
@@ -47,4 +48,7 @@ public interface WorkflowService {
 
     // Workflow Param
     List<WorkflowParamDto> getWorkflowParamList();
+
+    // workflow log List
+    List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx);
 }

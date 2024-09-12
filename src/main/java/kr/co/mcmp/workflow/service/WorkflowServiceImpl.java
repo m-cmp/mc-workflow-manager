@@ -16,6 +16,7 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
 import kr.co.mcmp.workflow.repository.WorkflowHistoryRepository;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
@@ -461,5 +462,31 @@ public class WorkflowServiceImpl implements WorkflowService {
         } catch (Exception e) {
             log.error(e.getMessage());
         }
+    }
+
+    public List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx) {
+        WorkflowDto workflowDto = WorkflowDto.from(workflowRepository.findByWorkflowIdx(workflowIdx));
+        OssDto ossDto = OssDto.from(ossRepository.findByOssIdx(workflowDto.getOssIdx()));
+
+        List<WorkflowLogResDto> resList = WorkflowLogResDto.createList();
+
+        int buildNumber = 1;
+        while (true) {
+            try {
+                String log = jenkinsService.getJenkinsLog(
+                        ossDto.getOssUrl(),
+                        ossDto.getOssUsername(),
+                        ossDto.getOssPassword(),
+                        workflowDto.getWorkflowName(),
+                        buildNumber
+                );
+                resList = WorkflowLogResDto.addToList(resList, buildNumber, log);
+
+                buildNumber++;
+            } catch (Exception e) {
+                break; // 더 이상 빌드가 없으면 루프 종료
+            }
+        }
+        return resList;
     }
 }
