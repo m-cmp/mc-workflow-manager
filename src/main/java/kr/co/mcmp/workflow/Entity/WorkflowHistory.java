@@ -21,12 +21,16 @@ public class WorkflowHistory {
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;
 
-    @Column(name = "run_script")
-    private String runScript;
+    @Column(name = "data_type")
+    private String dataType;
 
-    @Column(name = "run_user_id", nullable = false)
-    private String runUserId;
+    @Lob
+    @Column(name = "data", columnDefinition = "CLOB")
+    private String data;
 
-    @Column(name = "run_date")
-    private LocalDateTime runDate;
+    @Column(name = "user_id", nullable = false)
+    private String userId;
+
+    @Column(name = "date")
+    private LocalDateTime date;
 }

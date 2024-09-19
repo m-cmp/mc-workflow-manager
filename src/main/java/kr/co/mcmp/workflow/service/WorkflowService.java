@@ -44,7 +44,7 @@ public interface WorkflowService {
     List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName);
     
     // Workflow History
-    List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx);
+    List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx, String dataType);
 
     // Workflow Param
     List<WorkflowParamDto> getWorkflowParamList();

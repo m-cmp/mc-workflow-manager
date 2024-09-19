@@ -13,18 +13,20 @@ import java.time.LocalDateTime;
 public class WorkflowHistoryDto {
     private Long workflowHistoryIdx;
     private Long workflowIdx;
-    private String runScript;
-    private String runUserId;
-    private LocalDateTime runDate;
+    private String dataType;
+    private String data;
+    private String userId;
+    private LocalDateTime date;
 
     // from : 외부 (entity -> dto)
     public static WorkflowHistoryDto from(WorkflowHistory workflowHistory) {
         return WorkflowHistoryDto.builder()
                 .workflowHistoryIdx(workflowHistory.getWorkflowHistoryIdx())
                 .workflowIdx(workflowHistory.getWorkflow().getWorkflowIdx())
-                .runScript(workflowHistory.getRunScript())
-                .runUserId(workflowHistory.getRunUserId())
-                .runDate(workflowHistory.getRunDate())
+                .dataType(workflowHistory.getDataType())
+                .data(workflowHistory.getData())
+                .userId(workflowHistory.getUserId())
+                .date(workflowHistory.getDate())
                 .build();
     }
 
@@ -33,9 +35,10 @@ public class WorkflowHistoryDto {
         return WorkflowHistoryDto.builder()
                 .workflowHistoryIdx(workflowHistoryDto.getWorkflowHistoryIdx())
                 .workflowIdx(workflowHistoryDto.getWorkflowIdx())
-                .runScript(workflowHistoryDto.getRunScript())
-                .runUserId(workflowHistoryDto.getRunUserId())
-                .runDate(workflowHistoryDto.getRunDate())
+                .dataType(workflowHistoryDto.getDataType())
+                .data(workflowHistoryDto.getData())
+                .userId(workflowHistoryDto.getUserId())
+                .date(workflowHistoryDto.getDate())
                 .build();
     }
 
@@ -44,9 +47,10 @@ public class WorkflowHistoryDto {
         return WorkflowHistory.builder()
                 .workflowHistoryIdx(workflowHistoryDto.getWorkflowHistoryIdx())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
-                .runScript(workflowHistoryDto.getRunScript())
-                .runUserId(workflowHistoryDto.getRunUserId())
-                .runDate(workflowHistoryDto.getRunDate())
+                .dataType(workflowHistoryDto.getDataType())
+                .data(workflowHistoryDto.getData())
+                .userId(workflowHistoryDto.getUserId())
+                .date(workflowHistoryDto.getDate())
                 .build();
     }
 
@@ -55,14 +59,16 @@ public class WorkflowHistoryDto {
                                                 WorkflowDto workflowDto,
                                                 OssDto ossDto,
                                                 OssTypeDto ossTypeDto,
-                                                String runScript,
-                                                String runUserId,
-                                                LocalDateTime runDate) {
+                                                String dataType,
+                                                String data,
+                                                String userId,
+                                                LocalDateTime date) {
         return WorkflowHistory.builder()
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
-                .runScript(runScript)
-                .runUserId(runUserId)
-                .runDate(runDate)
+                .dataType(dataType)
+                .data(data)
+                .userId(userId)
+                .date(date)
                 .build();
     }
 }
