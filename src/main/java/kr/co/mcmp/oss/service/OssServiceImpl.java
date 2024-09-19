@@ -61,7 +61,7 @@ public class OssServiceImpl implements OssService {
 
 			if ( !CollectionUtils.isEmpty(ossList) ) {
 				ossList = ossList.stream()
-						.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+						.map(ossDto -> OssDto.setDecryptPassword(ossDto, decryptAesString(ossDto.getOssPassword())))
 						.collect(Collectors.toList());
 			}
 
@@ -98,7 +98,7 @@ public class OssServiceImpl implements OssService {
 			if ( !CollectionUtils.isEmpty(ossList) ) {
 				ossList = ossList
 						.stream()
-						.map(ossDto -> OssDto.withModifiedEncriptPassword(ossDto, encodingBase64String(decryptAesString(ossDto.getOssPassword()))))
+						.map(ossDto -> OssDto.setEncryptPassword(ossDto, decryptAesString(ossDto.getOssPassword())))
 						.collect(Collectors.toList());
 			}
 
@@ -122,7 +122,7 @@ public class OssServiceImpl implements OssService {
 			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
 			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
 
-			OssDto encriptOssDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			OssDto encriptOssDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 
 			Oss ossEntity = OssDto.toEntity(encriptOssDto, ossTypeDto);
 			ossEntity = ossRepository.save(ossEntity);
@@ -148,7 +148,7 @@ public class OssServiceImpl implements OssService {
 			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
 			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
 
-			OssDto encriptOssDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			OssDto encriptOssDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 
 			managedJenkinsCredential(encriptOssDto, "update");
 
@@ -212,7 +212,7 @@ public class OssServiceImpl implements OssService {
 						return false;
 					}
 					// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
-					ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+					ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 					return jenkinsService.isJenkinsConnect(ossDto);
 
 				case "TUMBLEBUG" :
@@ -225,7 +225,7 @@ public class OssServiceImpl implements OssService {
 
 					try {
 						// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
-						ossDto = ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+						ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 						List<TumblebugDto> list = tumblebugService.getNamespaceList(ossDto);
 
 						if(list.size() >= 0) return true;
@@ -277,7 +277,8 @@ public class OssServiceImpl implements OssService {
 	public OssDto detailOss(Long ossIdx) {
 		try {
 			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
-			return OssDto.withDetailDecryptPassword(ossEntity, encodingBase64String(decryptAesString(ossEntity.getOssPassword())));
+			OssDto ossDto = OssDto.from(ossEntity);
+			return OssDto.setDecryptPassword(ossDto, encodingBase64String(decryptAesString(ossEntity.getOssPassword())));
 		} catch (Exception e) {
 			log.error(e.getMessage());
 			return null;
