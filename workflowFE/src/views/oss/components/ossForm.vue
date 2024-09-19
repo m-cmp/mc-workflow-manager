@@ -120,6 +120,7 @@ watch(() => props.mode, async () => {
 })
 
 onMounted(async () => {
+  await _getOssTypeList('init')
   await setInit();
 })
 
@@ -174,7 +175,7 @@ const setInit = async () => {
 const ossTypeList = ref([] as Array<OssType>)
 const _getOssTypeList = async (mode:String) => {
   try {
-    if (mode === 'new') {
+    if (mode === 'new' || mode === 'init') {
       const { data } = await getOssTypeFilteredList()
       ossTypeList.value = data
     }
