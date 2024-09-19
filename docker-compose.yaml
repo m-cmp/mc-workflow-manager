@@ -35,7 +35,7 @@ services:
 
   # workflow-manager
   mc-workflow-manager:
-    image: m-cmp/mc-workflow-manager
+    image: cloudbaristaorg/mc-workflow-manager
     container_name: workflow-manager
     build:
       context: ./
@@ -49,7 +49,7 @@ services:
     volumes:
       - ./document:/document # -v ${PROJECT_PATH}/document:/document
     environment:
-      - DB_INIT_YN=create
+      - DB_INIT_YN=create # create, update, create-drop, none ....
       - DB_ID=workflow
       - DB_PW=workflow!23
       - SQL_DATA_INIT=always # SQL_DATA_INIT=never
