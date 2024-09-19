@@ -38,8 +38,10 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -80,9 +82,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
         List<WorkflowListResDto> list = new ArrayList<>();
         workflowList.forEach((workflow)-> {
-
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflow.getWorkflowIdx());
-            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflow.getWorkflowIdx());
 
             List<WorkflowParamDto> paramList =
                     workflowParamRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx())
@@ -116,8 +116,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         boolean isCreate = false;
 
         // jenkins 정보 조회
-        Oss ossEntity = ossRepository.findByOssIdx(workflowReqDto.getWorkflowInfo().getOssIdx());
-        OssDto ossDto = OssDto.from(ossEntity);
+        OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
 
         try {
             // jenkins > job 생성
@@ -129,13 +128,12 @@ public class WorkflowServiceImpl implements WorkflowService {
 
             // DB
             if ( isCreate ) {
-                OssType ossType = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-                OssTypeDto ossTypeDto = OssTypeDto.from(ossType);
+                OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
                 // 1. Workflow
                 Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
                 workflowEntity = workflowRepository.save(workflowEntity);
-                WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+                WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
                 // 2. Workflow Param
                 if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowParams()) ) {
@@ -156,7 +154,6 @@ public class WorkflowServiceImpl implements WorkflowService {
         } catch (IOException e) {
             if(isCreate) jenkinsService.deleteJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName());
             log.error(e.getMessage());
-
         }
         return result;
     }
@@ -172,7 +169,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     public Boolean updateWorkflow(WorkflowReqDto workflowReqDto) {
         Boolean result = false;
         try {
-            OssDto ossDto = OssDto.from(ossRepository.findByOssIdx(workflowReqDto.getWorkflowInfo().getOssIdx()));
+            OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
 
             boolean isUpdate = jenkinsService.updateJenkinsJobPipeline_v2(
                     ossDto,
@@ -181,13 +178,12 @@ public class WorkflowServiceImpl implements WorkflowService {
                     workflowReqDto.getWorkflowParams());
 
             if ( isUpdate ) {
-                OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-                OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
+                OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
                 // 1. Workflow
                 Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
                 workflowEntity = workflowRepository.save(workflowEntity);
-                WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+                WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
                 // 2. Workflow Param (삭제 후 재등록)
                 if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowParams()) ) {
@@ -232,8 +228,7 @@ public class WorkflowServiceImpl implements WorkflowService {
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
             WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
 
-            Oss ossEntity = ossRepository.findByOssIdx(workflowDto.getOssIdx());
-            OssDto ossDto = OssDto.from(ossEntity);
+            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
             boolean isDelete = jenkinsService.deleteJenkinsJob(ossDto, workflowDto.getWorkflowName());
 
@@ -264,10 +259,9 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     public WorkflowDetailResDto getWorkflow(Long workflowIdx) {
         try {
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
-            List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
+                    List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
                     .stream()
                     .map(WorkflowParamDto::from)
                     .collect(Collectors.toList());
@@ -316,8 +310,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     public Boolean runWorkflow(Long workflowIdx) {
         // 배포 실행 관련 사용자 이력 정보 수정
-        Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
-        WorkflowDto workflowDto = WorkflowDto.from(workflow);
+        WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
         List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
                                             .stream()
@@ -350,38 +343,66 @@ public class WorkflowServiceImpl implements WorkflowService {
         Map<String, List<String>> jenkinsJobParams = null;
 
         if(!StringUtils.isEmpty(workflowReqDto.getWorkflowParams())) {
-
             Map<String, List<String>> finalJenkinsJobParams = new HashMap<>();
 
             for(WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
                 finalJenkinsJobParams.put(param.getParamKey(), Arrays.asList(param.getParamValue()));
-//                List<String> valueList = new ArrayList<>();
-//                valueList.add(param.getParamValue());
-//                finalJenkinsJobParams.put(param.getParamKey(), valueList);
             }
 
             jenkinsJobParams = finalJenkinsJobParams;
         }
 
         // OSS 접속 정보 조회
-        OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(workflowReqDto.getWorkflowInfo().getOssIdx());
-        OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
-
-        Oss ossEntity = ossRepository.findByOssIdx(workflowReqDto.getWorkflowInfo().getOssIdx());
-        OssDto ossDto = OssDto.from(ossEntity);
+        OssTypeDto ossTypeDto = getOssTypeDto(workflowReqDto.getWorkflowInfo().getOssIdx());
+        OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
 
         // Jenkins Job 실행
         int jenkinsBuildId = jenkinsService.buildJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsJobParams);
         int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId);
 
         // 배포 이력 정보 등록
-//        WorkflowHistory WorkflowHistoryEntity = WorkflowHistoryDto.buildEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto, workflowReqDto.getWorkflowInfo().getScript(), "root", null);
-//        workflowHistoryRepository.save(WorkflowHistoryEntity);
+        saveWorkflowHistory(
+                workflowReqDto,
+                ossDto,
+                ossTypeDto,
+                "script",
+                workflowReqDto.getWorkflowInfo().getScript(),
+                "root",
+                null);
+
+        for(WorkflowParamDto paramDto : workflowReqDto.getWorkflowParams()) {
+            saveWorkflowHistory(
+                workflowReqDto,
+                ossDto,
+                ossTypeDto,
+                "paramKey",
+                paramDto.getParamKey(),
+                "root",
+                null);
+
+            saveWorkflowHistory(
+                workflowReqDto,
+                ossDto,
+                ossTypeDto,
+                "paramValue",
+                paramDto.getParamValue(),
+                "root",
+                null);
+        }
 
         // Jenkins Job 실행 대기
         BuildInfo buildInfo = jenkinsService.waitJenkinsBuild(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsBuildId, buildNumber);
         log.info("BuildInfo ==> {}", buildInfo.toString());
+
         // TODO : 실행후 액션 필요 (기존 : History에 결과값 추가)
+        saveWorkflowHistory(
+            workflowReqDto,
+            ossDto,
+            ossTypeDto,
+            "result",
+            buildInfo.result(),
+            "root",
+            null);
 
         return true;
     }
@@ -425,14 +446,29 @@ public class WorkflowServiceImpl implements WorkflowService {
         return pipelineService.getWorkflowTemplate(workflowName);
     }
 
+    /**
+     * Workflow History 목록
+     * @param workflowIdx
+     * @param dataType
+     * @return
+     */
     @Override
-    public List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx) {
-        return workflowHistoryRepository.findByWorkflow_WorkflowIdx(workflowIdx)
-                .stream()
+    public List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx, String dataType) {
+        Stream<WorkflowHistory> historyStream = workflowHistoryRepository.findByWorkflow_WorkflowIdx(workflowIdx).stream();
+
+        if (dataType != null && !dataType.isEmpty()) {
+            historyStream = historyStream.filter(history -> dataType.equals(history.getDataType()));
+        }
+
+        return historyStream
                 .map(WorkflowHistoryDto::from)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 파라미터 목록
+     * @return
+     */
     @Override
     public List<WorkflowParamDto> getWorkflowParamList() {
         return workflowParamRepository.findAll()
@@ -441,6 +477,11 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Jenkins Job 자동 생성
+     * @param ossTypeDto
+     * @param ossDto
+     */
     public void createJenkinsJob(OssTypeDto ossTypeDto, OssDto ossDto) {
         try {
             // OSS 를 등록을 할때 존재하지 않을 경우 Jenkins Job 자동 생성
@@ -464,9 +505,14 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
     }
 
+    /**
+     * Workflow 로그
+     * @param workflowIdx
+     * @return
+     */
     public List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx) {
-        WorkflowDto workflowDto = WorkflowDto.from(workflowRepository.findByWorkflowIdx(workflowIdx));
-        OssDto ossDto = OssDto.from(ossRepository.findByOssIdx(workflowDto.getOssIdx()));
+        WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
         List<WorkflowLogResDto> resList = WorkflowLogResDto.createList();
 
@@ -488,5 +534,56 @@ public class WorkflowServiceImpl implements WorkflowService {
             }
         }
         return resList;
+    }
+
+
+    /**
+     * OSSTypeDto 정보 조회
+     * @param ossTypeIdx
+     * @return
+     */
+    public OssTypeDto getOssTypeDto(Long ossTypeIdx) {
+        OssType ossType = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
+        return OssTypeDto.from(ossType);
+    }
+    /**
+     * OSSDto 정보 조회
+     * @param ossIdx
+     * @return
+     */
+    public OssDto getOssDto(Long ossIdx) {
+        Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
+        return OssDto.from(ossEntity);
+    }
+
+    /**
+     * WorkflowDto 정보 조회
+     * @param workflowIdx
+     * @return
+     */
+    public WorkflowDto getWorkflowDto(Long workflowIdx) {
+        Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
+        return WorkflowDto.from(workflow);
+    }
+
+    /**
+     * WorkflowHistory 저장
+     * @param workflowReqDto
+     * @param ossDto
+     * @param ossTypeDto
+     * @param dataType
+     * @param data
+     */
+    private void saveWorkflowHistory(WorkflowReqDto workflowReqDto, OssDto ossDto, OssTypeDto ossTypeDto, String dataType, String data, String userId, LocalDateTime date) {
+        WorkflowHistory workflowHistoryEntity = WorkflowHistoryDto.buildEntity(
+                workflowReqDto.getWorkflowInfo(),
+                ossDto,
+                ossTypeDto,
+                dataType,
+                data,
+                userId,
+                date
+        );
+        workflowHistoryRepository.save(workflowHistoryEntity);
     }
 }

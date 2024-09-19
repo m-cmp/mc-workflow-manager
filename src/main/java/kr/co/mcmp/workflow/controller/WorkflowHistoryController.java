@@ -6,10 +6,7 @@ import kr.co.mcmp.api.response.ResponseWrapper;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowHistoryDto;
 import kr.co.mcmp.workflow.service.WorkflowService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -23,7 +20,7 @@ public class WorkflowHistoryController {
 
     @Operation(summary="워크플로우 이력 조회")
     @GetMapping("/{workflowIdx}")
-    public ResponseWrapper<List<WorkflowHistoryDto>> getWorkflowHistoryList(@PathVariable Long workflowIdx) {
-        return new ResponseWrapper<>(workflowService.getWorkflowHistoryList(workflowIdx));
+    public ResponseWrapper<List<WorkflowHistoryDto>> getWorkflowHistoryList(@PathVariable Long workflowIdx, @RequestParam String dataType) {
+        return new ResponseWrapper<>(workflowService.getWorkflowHistoryList(workflowIdx, dataType));
     }
 }
