@@ -10,7 +10,7 @@ services:
   # jenkins - for workflow manager
   jenkins:
     image: jenkins/jenkins:jdk17
-    container_name: jenkins
+    container_name: we-jenkins
     platform: linux/amd64
     networks:
       - internal_network
