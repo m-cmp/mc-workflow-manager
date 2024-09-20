@@ -35,11 +35,11 @@ services:
 
   # workflow-manager
   mc-workflow-manager:
-    image: cloudbaristaorg/mc-workflow-manager
+    image: cloudbaristaorg/mc-workflow-manager:edge
     container_name: workflow-manager
-    build:
-      context: ./
-      dockerfile: Dockerfile
+#    build:
+#      context: ./
+#      dockerfile: Dockerfile
     networks:
       - external_network
     ports:
