@@ -16,6 +16,7 @@
             v-if="workflowFormData.workflowParams"
             :popup="true"
             :workflow-param-data="workflowFormData.workflowParams"
+            event-listener-yn="N"
           />
         </div>
 

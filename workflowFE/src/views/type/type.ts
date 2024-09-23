@@ -46,6 +46,7 @@ export interface WorkflowParams {
   paramIdx?: number
   paramKey: string
   paramValue: string
+  eventListenerYn: string
 }
         
 export interface WorkflowStageMappings {
@@ -70,6 +71,7 @@ export interface EventListener {
   eventListenerUrl: string
   workflowIdx: number
   eventListenerCallUrl: string
+  workflowParams: Array<WorkflowParams>
 }
 
 export interface WorkflowLog {

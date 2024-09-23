@@ -13,8 +13,8 @@ export function getEventListenerDetailInfo(eventlistenerIdx:number) {
 }
 
 // 중복확인
-export function duplicateCheck(param: {eventListenerName:string, eventListenerUrl: string}) {
-  return request.get(`/eventlistener/duplicate?eventlistenerName=${param.eventListenerName}&eventListenerUrl=${param.eventListenerUrl}`)
+export function duplicateCheck(eventListenerName:string) {
+  return request.get(`/eventlistener/duplicate?eventlistenerName=${eventListenerName}`)
 }
 
 // Event Listener 등록

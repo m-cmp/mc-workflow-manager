@@ -47,6 +47,7 @@ const toast = useToast()
 interface Props {
   popup: boolean
   workflowParamData: Array<WorkflowParams>
+  eventListenerYn: string
 }
 const props = defineProps<Props>()
 const paramData = computed(() => props.workflowParamData)
@@ -61,6 +62,7 @@ const setInitParam = () => {
       paramIdx: 0,
       paramKey: '',
       paramValue: '',
+      eventListenerYn: props.eventListenerYn,
     })
 }
 
@@ -69,6 +71,7 @@ const addParams = () => {
     paramIdx: 0,
     paramKey: '',
     paramValue: '',
+    eventListenerYn: props.eventListenerYn,
   })
 }
 

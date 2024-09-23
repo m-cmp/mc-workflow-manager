@@ -61,13 +61,23 @@ onMounted(async () => {
  */
 const _getEventListenerList = async () => {
   try {
-    const { data } = await getEventListenerList()
+    const { data } = await getEventListenerList()    
     eventListenerList.value = data
+
+    eventListenerList.value.forEach((eventListenerInfo) => {
+      eventListenerInfo.eventListenerUrl = setEventListenerUrl(eventListenerInfo.eventListenerCallUrl)
+    })
+
   } catch(error) {
     console.log(error)
     toast.error('데이터를 가져올 수 없습니다.')
   }
 }
+const setEventListenerUrl = (eventListenerCallUrl:string) => {
+  const baseUrl = window.location.origin
+  return baseUrl+eventListenerCallUrl;
+}
+
 
 /**
  * @Title selectEventListenerIdx / selectEventListenerName / setColumns
@@ -83,21 +93,26 @@ const setColumns = () => {
     {
       title: "Event Listener Name",
       field: "eventListenerName",
-      width: 400
+      width: '20%'
+    },
+    {
+      title: "Connect Workflow Name",
+      field: "workflowName",
+      width: '20%'
     },
     {
       title: "Event Listener Desc",
       field: "eventListenerDesc",
-      width: 500
+      width: '20%'
     },
     {
-      title: "URL",
+      title: "Action URL",
       field: "eventListenerUrl",
-      width: 600
+      width: '20%'
     },
     {
       title: "Action",
-      width: 400,
+      width: '20%',
       formatter: editDeleteButtonFormatter,
       cellClick: function (e, cell) {
         const target = e.target as HTMLElement;
