@@ -4,8 +4,11 @@ import kr.co.mcmp.eventListener.entity.EventListener;
 import kr.co.mcmp.oss.dto.OssDto;
 import kr.co.mcmp.oss.dto.OssTypeDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowDto;
+import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 @Getter
 @Builder
@@ -14,19 +17,21 @@ public class ResponseEventListenerDto {
     private Long eventListenerIdx;
     private String eventListenerName;
     private String eventListenerDesc;
-    private String eventListenerUrl;
     private Long workflowIdx;
+    private String workflowName;
     private String eventListenerCallUrl;
+    private List<WorkflowParamDto> workflowParams;
 
     // from : 외부 (entity -> dto)
-    public static ResponseEventListenerDto from(EventListener eventListener) {
+    public static ResponseEventListenerDto from(EventListener eventListener, List<WorkflowParamDto> workflowParams) {
         return ResponseEventListenerDto.builder()
                 .eventListenerIdx(eventListener.getEventListenerIdx())
                 .eventListenerName(eventListener.getEventListenerName())
                 .eventListenerDesc(eventListener.getEventListenerDesc())
-//                .eventListenerUrl(eventListener.getEventListenerUrl())
                 .workflowIdx(eventListener.getWorkflow().getWorkflowIdx())
-                .eventListenerCallUrl("/"+eventListener.getEventListenerIdx())
+                .workflowName(eventListener.getWorkflow().getWorkflowName())
+                .eventListenerCallUrl("/eventlistener/run/"+eventListener.getEventListenerIdx())
+                .workflowParams(workflowParams)
                 .build();
     }
 
@@ -36,7 +41,6 @@ public class ResponseEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflowIdx(eventListenerDto.getWorkflowIdx())
                 .build();
     }
@@ -47,8 +51,19 @@ public class ResponseEventListenerDto {
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
-//                .eventListenerUrl(eventListenerDto.getEventListenerUrl())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
+                .build();
+    }
+
+    // from : 외부 (entity -> dto)
+    public static ResponseEventListenerDto fromGetList(EventListener eventListener) {
+        return ResponseEventListenerDto.builder()
+                .eventListenerIdx(eventListener.getEventListenerIdx())
+                .eventListenerName(eventListener.getEventListenerName())
+                .eventListenerDesc(eventListener.getEventListenerDesc())
+                .workflowIdx(eventListener.getWorkflow().getWorkflowIdx())
+                .workflowName(eventListener.getWorkflow().getWorkflowName())
+                .eventListenerCallUrl("/eventlistener/run/"+eventListener.getEventListenerIdx())
                 .build();
     }
 }

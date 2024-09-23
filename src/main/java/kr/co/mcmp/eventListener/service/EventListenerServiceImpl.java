@@ -48,13 +48,14 @@ public class EventListenerServiceImpl implements EventListenerService {
     private final WorkflowParamRepository workflowParamRepository;
 
     private final WorkflowService workflowService;
+    
     private final WorkflowStageMappingRepository workflowStageMappingRepository;
 
     @Override
     public List<ResponseEventListenerDto> getEventListenerList() {
         return eventListenerRepository.findAll()
                 .stream()
-                .map(ResponseEventListenerDto::from)
+                .map(ResponseEventListenerDto::fromGetList)
                 .collect(Collectors.toList());
     }
 
@@ -64,14 +65,11 @@ public class EventListenerServiceImpl implements EventListenerService {
         try {
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
-            Oss ossEntity = ossRepository.findByOssIdx(workflowDto.getOssIdx());
-            OssDto ossDto = OssDto.from(ossEntity);
+            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
-            OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-            OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
+            OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
             EventListener eventListenerEntity = RequestEventListenerDto.toEntity(requestEventListenerDto, workflowDto, ossDto, ossTypeDto);
             eventListenerEntity = eventListenerRepository.save(eventListenerEntity);
@@ -97,14 +95,11 @@ public class EventListenerServiceImpl implements EventListenerService {
 
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
-            Oss ossEntity = ossRepository.findByOssIdx(workflowDto.getOssIdx());
-            OssDto ossDto = OssDto.from(ossEntity);
+            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
-            OssType ossType = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-            OssTypeDto ossTypeDto = OssTypeDto.from(ossType);
+            OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
             eventListenerRepository.save(RequestEventListenerDto.toUpdate(newRequestEventListenerDto.getEventListenerIdx(), requestEventListenerDto, workflowDto, ossDto, ossTypeDto));
 
@@ -135,7 +130,13 @@ public class EventListenerServiceImpl implements EventListenerService {
     public ResponseEventListenerDto detailEventListener(Long eventListenerIdx) {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
-            return ResponseEventListenerDto.from(eventListenerEntity);
+            List<WorkflowParamDto> paramList =
+                    workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(eventListenerEntity.getWorkflow().getWorkflowIdx(), "Y")
+                            .stream()
+                            .map(WorkflowParamDto::from)
+                            .collect(Collectors.toList());
+
+            return ResponseEventListenerDto.from(eventListenerEntity, paramList);
         } catch (Exception e) {
             log.error(e.getMessage());
             return null;
@@ -209,6 +210,22 @@ public class EventListenerServiceImpl implements EventListenerService {
     }
 
     @Override
+    public Boolean isEventListenerDuplicated(String eventlistenerName) {
+        Boolean result = false;
+        try {
+            result = eventListenerRepository.existsByEventListenerName(eventlistenerName);
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 이벤트 리스너 실행
+     * @param eventListenerIdx
+     * @return
+     */
+    @Override
     public Boolean runEventListener(Long eventListenerIdx) {
         Boolean result = false;
 
@@ -230,4 +247,21 @@ public class EventListenerServiceImpl implements EventListenerService {
         }
         return result;
     }
+
+
+    public WorkflowDto getWorkflowDto(Long workflowIdx) {
+        Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
+        return WorkflowDto.from(workflowEntity);
+    }
+
+    public OssDto getOssDto(Long ossIdx) {
+        Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
+        return OssDto.from(ossEntity);
+    }
+
+    public OssTypeDto getOssTypeDto(Long ossTypeIdx) {
+        OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
+        return OssTypeDto.from(ossTypeEntity);
+    }
+
 }

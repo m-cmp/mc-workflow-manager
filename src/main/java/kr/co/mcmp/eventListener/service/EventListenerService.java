@@ -17,5 +17,6 @@ public interface EventListenerService {
     ResponseEventListenerDto detailEventListener(Long eventListenerIdx);
     List<WorkflowListResDto> getWorkflowList(String eventListenerYn);
     WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn);
+    Boolean isEventListenerDuplicated(String eventlistenerName);
     Boolean runEventListener(Long eventListenerIdx);
 }
