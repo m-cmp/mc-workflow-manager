@@ -84,21 +84,21 @@ const setColumns = () => {
     {
       title: "Stage Type",
       field: "workflowStageTypeName",
-      width: 500
+      width: '27%'
     },
     {
       title: "Stage Name",
       field: "workflowStageName",
-      width: 500
+      width: '27%'
     },
     {
       title: "Stage Desc",
       field: "workflowStageDesc",
-      width: 500
+      width: '26%'
     },
     {
       title: "Action",
-      width: 400,
+      width: '20%',
       formatter: editDeleteButtonFormatter,
       cellClick: function (e, cell) {
           const target = e.target as HTMLElement;
