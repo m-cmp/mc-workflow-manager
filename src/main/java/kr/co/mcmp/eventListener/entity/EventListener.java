@@ -24,7 +24,7 @@ public class EventListener {
     @Column(name = "event_listener_desc", length = 100)
     private String eventListenerDesc;
 
-    @Column(name = "event_listener_url", nullable = false, length = 200)
+    @Column(name = "event_listener_url", length = 200)
     private String eventListenerUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)

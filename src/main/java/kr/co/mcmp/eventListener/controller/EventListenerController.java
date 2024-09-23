@@ -69,9 +69,16 @@ public class EventListenerController {
         return new ResponseWrapper<>(eventListenerService.getWorkflowList(eventListenerYn));
     }
 
+    @Operation(summary="Event Listener 중복체크")
+    @GetMapping("/duplicate")
+    public ResponseWrapper<Boolean> isEventListenerDuplicated(@RequestParam String eventlistenerName) {
+        return new ResponseWrapper<>(eventListenerService.isEventListenerDuplicated(eventlistenerName));
+    }
+
     @Operation(summary="워크플로우 상세 조회")
     @GetMapping("/workflowDetail/{workflowIdx}/{evnetListenerYn}")
     public ResponseWrapper<WorkflowDetailResDto> getWorkflowDetail(@PathVariable Long workflowIdx, @PathVariable String evnetListenerYn) {
         return new ResponseWrapper<>(eventListenerService.getWorkflowDetail(workflowIdx, evnetListenerYn));
     }
+
 }

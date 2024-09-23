@@ -121,7 +121,7 @@ watch(() => props.mode, async () => {
 
 onMounted(async () => {
   await _getOssTypeList('init')
-  await setInit();
+  await setInit()
 })
 
 // /**

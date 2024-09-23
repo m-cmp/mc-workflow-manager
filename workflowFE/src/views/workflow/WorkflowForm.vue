@@ -57,6 +57,7 @@
         <ParamForm 
           :popup="false"
           :workflow-param-data="workflowParamsFormData"
+          event-listener-yn="N"
         />
           
         <div class="row align-items-center">
@@ -127,7 +128,8 @@ const defaultWorkflowInfoFormData = {
 const defaultWorkflowParamsFormData = [
     {
       paramKey: '',
-      paramValue: ''
+      paramValue: '',
+      eventListenerYn: 'N'
     }
   ]
 

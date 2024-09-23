@@ -11,12 +11,11 @@
           </h3>
 
           <div>
-
             <!-- Event Listener 명 -->
             <div class="row mb-3">
               <label class="form-label required">Event Listener 명</label>
               <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="Event Listener 명을 입력하세요" v-model="eventListenerFormData.eventListenerName" />
+                <input type="text" class="form-control p-2 g-col-11" placeholder="Event Listener 명을 입력하세요" v-model="eventListenerFormData.eventListenerName" @focus="onfocusEventListenerName"/>
 
                 <button v-if="!duplicatedEventListener" class="btn btn-primary chk" @click="onClickDuplicatEventListenerName" style="margin: 3px;">중복 체크</button>
                 <button v-else class="btn btn-success" style="margin: 3px;">중복 체크</button>
@@ -29,11 +28,24 @@
               <input type="text" class="form-control p-2 g-col-11" placeholder="Event Listener 설명을 입력하세요" v-model="eventListenerFormData.eventListenerDesc" />
             </div>
 
-            <!-- URL -->
+            <!-- workflow -->
             <div class="mb-3">
-              <label class="form-label required">URL</label>
-              <input type="text" class="form-control p-2 g-col-11" placeholder="서버 URL을 입력하세요" v-model="eventListenerFormData.eventListenerUrl" />
+              <label class="form-label required">Workflow</label>
+              <select class="form-select p-2 g-col-12" v-model="eventListenerFormData.workflowIdx"  @change="onSelectWorkflow(eventListenerFormData.workflowIdx)">
+                <option :value="0">Select Workflow</option>
+                <option v-for="(workflow, idx) in workflowList" :value="workflow.workflowInfo.workflowIdx" :key="idx">
+                  {{ workflow.workflowInfo.workflowName }}
+                </option>
+              </select>
             </div>
+            <!-- Params -->
+            <ParamForm 
+              v-if="setParamFlag"
+              :popup="false"
+              :workflow-param-data="eventListenerFormData.workflowParams"
+              event-listener-yn="Y"
+              style="margin: 0 !important;"
+            />
           </div>
         </div>
 
@@ -52,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { type EventListener } from '@/views/type/type';
+import type { EventListener, Workflow } from '@/views/type/type';
 import { ref } from 'vue';
 import { useToast } from 'vue-toastification';
 import { duplicateCheck, getEventListenerDetailInfo, registEventListener, updateEventListener } from '@/api/eventListener';
@@ -60,6 +72,7 @@ import { getWorkflowList } from '@/api/workflow';
 import { onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
+import ParamForm from '@/views/workflow/components/ParamForm.vue';
 
 const toast = useToast()
 /**
@@ -78,10 +91,12 @@ const emit = defineEmits(['get-event-listener-list'])
  */
 const eventListenerIdx = computed(() => props.eventListenerIdx);
 watch(eventListenerIdx, async () => {
-  await setInit();
+  await setInit()
+  await _getWorkflowList()
 });
 onMounted(async () => {
-  await setInit();
+  await setInit()
+  await _getWorkflowList()
 })
 
 /**
@@ -89,6 +104,7 @@ onMounted(async () => {
  * @Desc Event Listener 생성 / 수정데이터
  */
 const eventListenerFormData = ref({} as EventListener)
+const setParamFlag = ref(false as Boolean)
 
 /**
  * @Title 초기화 Method
@@ -101,32 +117,36 @@ const setInit = async () => {
   if (props.mode === 'new') {
     eventListenerFormData.value.eventListenerName = ''
     eventListenerFormData.value.eventListenerDesc = ''
-    eventListenerFormData.value.eventListenerUrl = ''
     eventListenerFormData.value.workflowIdx = 0
+    eventListenerFormData.value.workflowParams = []
 
     duplicatedEventListener.value = false
+    setParamFlag.value = true
   }
   else {
     const { data } = await getEventListenerDetailInfo(props.eventListenerIdx)
     eventListenerFormData.value = data
 
     duplicatedEventListener.value = true
+    setParamFlag.value = true
   }
+}
+
+const workflowList = ref([] as Array<Workflow>)
+const _getWorkflowList = async () => {
+  const { data } = await getWorkflowList("N")
+  workflowList.value = data;
 }
 
 /**
  * @Title duplicatedEventListener / onClickDuplicatEventListenerName
  * @Desc 
  *    duplicatedEventListener : 중복검사 여부
- *    onClickDuplicatEventListenerName : Event Listener 명 / Event Listener Url 로 중복검사 API 호출
+ *    onClickDuplicatEventListenerName : Event Listener 명으로 중복검사 API 호출
  */
 const duplicatedEventListener = ref(false as boolean)
 const onClickDuplicatEventListenerName = async () => {
-  const param = {
-    eventListenerName: eventListenerFormData.value.eventListenerName,
-    eventListenerUrl: eventListenerFormData.value.eventListenerUrl,
-  }
-  const { data } = await duplicateCheck(param)
+  const { data } = await duplicateCheck(eventListenerFormData.value.eventListenerName)
   if (!data) {
     toast.success('사용 가능한 이름입니다.')
     duplicatedEventListener.value = true
@@ -144,6 +164,10 @@ const onClickDuplicatEventListenerName = async () => {
  */
 const onClickSubmit = async () => {
   if (props.mode === 'new') {
+    eventListenerFormData.value.workflowParams.forEach((eventListenerInfo) => {
+      eventListenerInfo.paramIdx = 0
+      eventListenerInfo.eventListenerYn = 'Y'
+    })
     await _registEventListener().then(() => {
     emit('get-event-listener-list')
   })
@@ -177,6 +201,22 @@ const _updateEventListener = async () => {
     toast.success('등록되었습니다.')
   else
     toast.error('등록 할 수 없습니다.')
+}
+
+
+
+
+
+const onfocusEventListenerName = () => {
+  duplicatedEventListener.value = false
+}
+
+const onSelectWorkflow = (selectedWorkflowIdx:number) => {
+  workflowList.value.forEach((workflow) => {
+    if (workflow.workflowInfo.workflowIdx === selectedWorkflowIdx) {
+      eventListenerFormData.value.workflowParams = workflow.workflowParams
+    }
+  })
 }
 
 </script>

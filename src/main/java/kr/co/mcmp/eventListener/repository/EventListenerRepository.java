@@ -14,4 +14,5 @@ public interface EventListenerRepository extends JpaRepository<EventListener, Lo
     EventListener save(EventListener eventListener);
     void deleteByEventListenerIdx(Long eventListenerIdx);
     EventListener findByEventListenerIdx(Long eventListenerIdx);
+    Boolean existsByEventListenerName(String eventlistenerName);
 }

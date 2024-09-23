@@ -5,7 +5,9 @@
     "version": "1.0",
     "title": "Api Documentation",
     "termsOfService": "urn:tos",
-    "contact": {},
+    "contact": {
+
+    },
     "license": {
       "name": "Apache 2.0",
       "url": "http://www.apache.org/licenses/LICENSE-2.0"
@@ -33,6 +35,10 @@
     {
       "name": "open-api-web-mvc-resource",
       "description": "Open Api Web Mvc Resource"
+    },
+    {
+      "name": "event-listener-controller",
+      "description": "Event Listener Controller"
     },
     {
       "name": "workflow-history-controller",
@@ -65,19 +71,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingGET",
+        "summary": "error",
+        "operationId": "errorUsingGET",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "401": {
@@ -95,19 +104,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingHEAD",
+        "summary": "error",
+        "operationId": "errorUsingHEAD",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "401": {
@@ -125,19 +137,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingPOST",
+        "summary": "error",
+        "operationId": "errorUsingPOST",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "201": {
@@ -158,19 +173,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingPUT",
+        "summary": "error",
+        "operationId": "errorUsingPUT",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "201": {
@@ -191,19 +209,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingDELETE",
+        "summary": "error",
+        "operationId": "errorUsingDELETE",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "401": {
@@ -221,19 +242,22 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingOPTIONS",
+        "summary": "error",
+        "operationId": "errorUsingOPTIONS",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
             }
           },
           "401": {
@@ -251,19 +275,363 @@
         "tags": [
           "basic-error-controller"
         ],
-        "summary": "errorHtml",
-        "operationId": "errorHtmlUsingPATCH",
+        "summary": "error",
+        "operationId": "errorUsingPATCH",
         "consumes": [
           "application/json"
         ],
         "produces": [
-          "text/html"
+          "*/*"
         ],
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ModelAndView"
+              "type": "object",
+              "additionalProperties": {
+                "type": "object"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/eventlistener": {
+      "post": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "registEventListner",
+        "operationId": "registEventListnerUsingPOST",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«long»"
+            }
+          },
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/list": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "getEventListenerList",
+        "operationId": "getEventListenerListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«ResponseEventListenerDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/run/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "runEventListener",
+        "operationId": "runEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/workflowDetail/{workflowIdx}/{evnetListenerYn}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "getWorkflowDetail",
+        "operationId": "getWorkflowDetailUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "evnetListenerYn",
+            "in": "path",
+            "description": "evnetListenerYn",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«WorkflowDetailResDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/workflowList/{eventListenerYn}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "getWorkflowList",
+        "operationId": "getWorkflowListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerYn",
+            "in": "path",
+            "description": "eventListenerYn",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowListResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/{eventListenerIdx}": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "detailEventListener",
+        "operationId": "detailEventListenerUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«ResponseEventListenerDto»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "deleteEventListner",
+        "operationId": "deleteEventListnerUsingDELETE",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "updateEventListner",
+        "operationId": "updateEventListnerUsingPATCH",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventListenerIdx",
+            "in": "path",
+            "description": "eventListenerIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "in": "body",
+            "name": "requestEventListenerDto",
+            "description": "requestEventListenerDto",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/RequestEventListenerDto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -614,7 +982,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ResponseWrapper«long»"
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -662,6 +1030,38 @@
           },
           "201": {
             "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/ossType/filter/list": {
+      "get": {
+        "tags": [
+          "oss-type-controller"
+        ],
+        "summary": "getOssTypeFilteredList",
+        "operationId": "getOssTypeFilteredListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«OssTypeDto»»"
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -823,7 +1223,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ResponseWrapper«long»"
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -1052,6 +1452,13 @@
             "required": true,
             "type": "integer",
             "format": "int64"
+          },
+          {
+            "name": "dataType",
+            "in": "query",
+            "description": "dataType",
+            "required": true,
+            "type": "string"
           }
         ],
         "responses": {
@@ -1079,7 +1486,7 @@
           "workflow-controller"
         ],
         "summary": "getWorkflowList",
-        "operationId": "getWorkflowListUsingGET",
+        "operationId": "getWorkflowListUsingGET_1",
         "consumes": [
           "application/json"
         ],
@@ -1091,6 +1498,48 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/ResponseWrapper«List«WorkflowListResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/log/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowLog",
+        "operationId": "getWorkflowLogUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowLogResDto»»"
             }
           },
           "401": {
@@ -1753,7 +2202,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ResponseWrapper«long»"
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -1913,7 +2362,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ResponseWrapper«Void»"
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -1962,7 +2411,7 @@
           "200": {
             "description": "OK",
             "schema": {
-              "$ref": "#/definitions/ResponseWrapper«long»"
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
             }
           },
           "401": {
@@ -1979,24 +2428,6 @@
     }
   },
   "definitions": {
-    "ResponseWrapper«OssDto»": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "data": {
-          "$ref": "#/definitions/OssDto"
-        },
-        "detail": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
-        }
-      }
-    },
     "WorkflowDto": {
       "type": "object",
       "properties": {
@@ -2015,6 +2446,24 @@
           "type": "string"
         },
         "workflowPurpose": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«OssDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/OssDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
           "type": "string"
         }
       }
@@ -2055,9 +2504,58 @@
         }
       }
     },
+    "ResponseEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerCallUrl": {
+          "type": "string"
+        },
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«List«ResponseEventListenerDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ResponseEventListenerDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "WorkflowParamDto": {
       "type": "object",
       "properties": {
+        "eventListenerYn": {
+          "type": "string"
+        },
         "paramIdx": {
           "type": "integer",
           "format": "int64"
@@ -2071,6 +2569,27 @@
         "workflowIdx": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowLogResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowLogResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -2271,14 +2790,17 @@
     "WorkflowHistoryDto": {
       "type": "object",
       "properties": {
-        "runDate": {
+        "data": {
+          "type": "string"
+        },
+        "dataType": {
+          "type": "string"
+        },
+        "date": {
           "type": "string",
           "format": "date-time"
         },
-        "runScript": {
-          "type": "string"
-        },
-        "runUserId": {
+        "userId": {
           "type": "string"
         },
         "workflowHistoryIdx": {
@@ -2288,6 +2810,34 @@
         "workflowIdx": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "RequestEventListenerDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerDesc": {
+          "type": "string"
+        },
+        "eventListenerIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "eventListenerName": {
+          "type": "string"
+        },
+        "eventListenerUrl": {
+          "type": "string"
+        },
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
         }
       }
     },
@@ -2309,7 +2859,7 @@
           "type": "integer",
           "format": "int64"
         },
-        "workflowStageTypeIdx": {
+        "workflowStageIdx": {
           "type": "integer",
           "format": "int64"
         }
@@ -2580,6 +3130,24 @@
         }
       }
     },
+    "ResponseWrapper«ResponseEventListenerDto»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/ResponseEventListenerDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "OssTypeDto": {
       "type": "object",
       "properties": {
@@ -2591,6 +3159,18 @@
           "format": "int64"
         },
         "ossTypeName": {
+          "type": "string"
+        }
+      }
+    },
+    "WorkflowLogResDto": {
+      "type": "object",
+      "properties": {
+        "buildIdx": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "buildLog": {
           "type": "string"
         }
       }
@@ -2666,21 +3246,6 @@
           "items": {
             "$ref": "#/definitions/WorkflowStageMappingDto"
           }
-        }
-      }
-    },
-    "ResponseWrapper«Void»": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "integer",
-          "format": "int32"
-        },
-        "detail": {
-          "type": "string"
-        },
-        "message": {
-          "type": "string"
         }
       }
     }
