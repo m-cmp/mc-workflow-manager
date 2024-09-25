@@ -9,6 +9,8 @@ import java.util.Optional;
 import javax.xml.xpath.XPathExpressionException;
 
 import com.cdancy.jenkins.rest.domain.job.BuildInfo;
+import kr.co.mcmp.util.AES256Util;
+import kr.co.mcmp.util.Base64Util;
 import kr.co.mcmp.workflow.service.jenkins.api.JenkinsRestApi;
 import kr.co.mcmp.oss.dto.OssDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
@@ -55,6 +57,7 @@ public class JenkinsService {
     public boolean isExistJobName(OssDto jenkins, String jobName) {
         return Optional.ofNullable(api.getJenkinsJob(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName)).isPresent();
     }
+
     /*****
      * jenkins job 생성
      */

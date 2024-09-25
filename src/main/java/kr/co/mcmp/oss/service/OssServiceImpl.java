@@ -86,7 +86,8 @@ public class OssServiceImpl implements OssService {
 					.collect(Collectors.toList());
 
 			// ossTypeList에서 ossTypeIdx 목록을 추출
-			List<Long> ossTypeIdxList = ossTypeList.stream()
+			List<Long> ossTypeIdxList = ossTypeList
+					.stream()
 					.map(OssTypeDto::getOssTypeIdx)
 					.collect(Collectors.toList());
 
@@ -98,7 +99,7 @@ public class OssServiceImpl implements OssService {
 			if ( !CollectionUtils.isEmpty(ossList) ) {
 				ossList = ossList
 						.stream()
-						.map(ossDto -> OssDto.setEncryptPassword(ossDto, decryptAesString(ossDto.getOssPassword())))
+						.map(ossDto -> OssDto.setDecryptPassword(ossDto, decryptAesString(ossDto.getOssPassword())))
 						.collect(Collectors.toList());
 			}
 
@@ -119,17 +120,15 @@ public class OssServiceImpl implements OssService {
 	@Transactional
 	public Long registOss(OssDto ossDto) {
 		try {
-			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
 
-			OssDto encriptOssDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			ossDto = OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
 
-			Oss ossEntity = OssDto.toEntity(encriptOssDto, ossTypeDto);
-			ossEntity = ossRepository.save(ossEntity);
+			if("JENKINS".equals(ossTypeDto.getOssTypeName().toUpperCase()))
+				workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
 
-			workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
-
-			return ossEntity.getOssIdx();
+			return ossDto.getOssIdx();
 		} catch (Exception e) {
 			log.error(e.getMessage());
 			return null;
@@ -145,16 +144,15 @@ public class OssServiceImpl implements OssService {
 	public Boolean updateOss(OssDto ossDto) {
 		Boolean result = false;
 		try {
-			OssType ossTypeEntity = ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx());
-			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeEntity);
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
+			ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 
-			OssDto encriptOssDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto));
 
-			managedJenkinsCredential(encriptOssDto, "update");
-
-			ossRepository.save(OssDto.toEntity(encriptOssDto, ossTypeDto));
-
-			workflowServiceImpl.createJenkinsJob(ossTypeDto, encriptOssDto);
+			if("JENKINS".equals(ossTypeDto.getOssTypeName().toUpperCase())) {
+				managedJenkinsCredential(ossDto, "update");
+				workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
+			}
 
 			result = true;
 		} catch (Exception e) {
@@ -179,13 +177,17 @@ public class OssServiceImpl implements OssService {
 			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
 			OssDto ossDto = OssDto.from(ossEntity);
 
-			if(ossDto.getOssPassword() != null)
-				managedJenkinsCredential(ossDto, "delete");
-
 			if(!workflowRepository.existsByOss_OssIdx(ossIdx)) {
 				ossRepository.deleteByOssIdx(ossIdx);
 				result = true;
 			}
+
+			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
+			if("JENKINS".equals(ossTypeDto.getOssTypeName().toUpperCase())) {
+				if(ossDto.getOssPassword() != null)
+					managedJenkinsCredential(ossDto, "delete");
+			}
+
 		} catch (Exception e) {
 			log.error(e.getMessage());
 		}
@@ -203,7 +205,7 @@ public class OssServiceImpl implements OssService {
 		OssTypeDto osstypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(ossDto.getOssTypeIdx()));
 
 		if(!osstypeDto.getOssTypeName().isEmpty()) {
-			switch(osstypeDto.getOssTypeName()) {
+			switch(osstypeDto.getOssTypeName().toUpperCase()) {
 				case "JENKINS" :
 					if (StringUtils.isBlank(ossDto.getOssUrl()) ||
 							StringUtils.isBlank(ossDto.getOssUsername()) ||
@@ -278,7 +280,7 @@ public class OssServiceImpl implements OssService {
 		try {
 			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
 			OssDto ossDto = OssDto.from(ossEntity);
-			return OssDto.setDecryptPassword(ossDto, encodingBase64String(decryptAesString(ossEntity.getOssPassword())));
+			return OssDto.setDecryptPassword(ossDto, decryptAesString(ossEntity.getOssPassword()));
 		} catch (Exception e) {
 			log.error(e.getMessage());
 			return null;
@@ -350,7 +352,7 @@ public class OssServiceImpl implements OssService {
 	 */
 	public String encryptAesString(String str) {
 		if ( StringUtils.isNotBlank(str) ) {
-			return AES256Util.encrypt(Base64Util.base64Decoding(str));
+			return AES256Util.encrypt(str);
 		}
 		else {
 			return null;

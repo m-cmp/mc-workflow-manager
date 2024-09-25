@@ -83,21 +83,21 @@ const setColumns = () => {
     {
       title: "OSS Name",
       field: "ossName",
-      width: 400
+      width: '20%'
     },
     {
       title: "OSS Desc",
       field: "ossDesc",
-      width: 500
+      width: '20%'
     },
     {
       title: "URL",
       field: "ossUrl",
-      width: 600
+      width: '40%'
     },
     {
       title: "Action",
-      width: 400,
+      width: '20%',
       formatter: editDeleteButtonFormatter,
       cellClick: function (e, cell) {
         const target = e.target as HTMLElement;

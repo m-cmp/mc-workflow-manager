@@ -496,6 +496,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                                 workflowResDto.getWorkflowInfo().getScript(),
                                 workflowResDto.getWorkflowParams());
                     }
+                    log.info("Jenkins Job 생성 완료 : {}", isExistJob);
                 }
             }
         } catch (IOException ioe) {

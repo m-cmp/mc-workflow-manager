@@ -63,28 +63,28 @@ const setColumns = () => {
     {
       title: "Workflow Name",
       field: "workflowInfo.workflowName",
-      width: 500
+      width: '35%'
     },
     {
       title: "Workflow Purpose",
       field: "workflowInfo.workflowPurpose",
-      width: 200
+      width: '10%'
     },
     {
       title: "Params Count",
       formatter: paramsCountFomatter,
-      width: 400,
+      width: '10%',
       // widthShrink: 1,
     },
     {
       title: "Created Date",
       field: "regDate",
-      width: 400,
+      width: '20%',
       // widthShrink: 5,
     },
     {
       title: "Action",
-      width: 400,
+      width: '25%',
       formatter: editButtonFormatter,
       cellClick: async(e, cell) => {
         const target = e.target as HTMLElement;
