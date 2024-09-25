@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 
+import kr.co.mcmp.util.Base64Util;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class JenkinsRestApi {
      * JenkinsClient Object 획득
      */
     private JenkinsClient getJenkinsClient(String url, String id, String password) {
-    	String plainTextPassword = AES256Util.decrypt(password);
+    	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
 
         return JenkinsClient.builder().endPoint(url)
 			                .credentials(id + ":" + plainTextPassword)
@@ -57,7 +58,7 @@ public class JenkinsRestApi {
     public boolean isConnect(String url, String id, String password) {
         boolean isRunning = false;
         try {
-        	String plainTextPassword = AES256Util.decrypt(password);
+        	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
         	
             JenkinsClient jenkinsClient = JenkinsClient.builder().endPoint(url)
                     									.credentials(id + ":" + plainTextPassword).build();
