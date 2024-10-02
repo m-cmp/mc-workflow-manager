@@ -55,10 +55,34 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure VM Create''
             script {
-                def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
+
+                def createInfraVmActionMethod = { ->
+                    def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
+                    def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
+                    def response = sh(script: """ ${call} """, returnStdout: true).trim()
+                }
+
+                def get_namespace_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
+                def exist_ns_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${get_namespace_url}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                def exist_ns_flag = "false"
+                echo """''${exist_ns_response}''"""
+
+                if (exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo """Exist ''${NAMESPACE}'' namespace!"""
+                    createInfraVmActionMethod()
+                } else {
+                    // create namespace
+                    def create_ns_response = sh(script: """curl -X ''POST'' ''${TUMBLEBUG}/tumblebug/ns'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''{ "description": "Workflow create namespace", "name": "${NAMESPACE}"}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                    echo """''${create_ns_response}''"""
+                    if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                        createInfraVmActionMethod()
+                    } else {
+                        error "GET API call failed with status code: ${response}"
+                    }
+                }
             }
         }
     }');
@@ -220,10 +244,10 @@ pipeline {
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
-                    string(name: ''USERPASS'', value: USERPASS)
-                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE)
-                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC)
-                    string(name: ''DISK'', value: DISK)
+                    string(name: ''USERPASS'', value: USERPASS),
+                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE),
+                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC),
+                    string(name: ''DISK'', value: DISK),
                 ]
             }
         }
@@ -436,10 +460,34 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: Infrastructure VM Create''
             script {
-                def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
+
+                def createInfraVmActionMethod = { ->
+                    def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
+                    def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
+                    def response = sh(script: """ ${call} """, returnStdout: true).trim()
+                }
+
+                def get_namespace_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
+                def exist_ns_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${get_namespace_url}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                def exist_ns_flag = "false"
+                echo """''${exist_ns_response}''"""
+
+                if (exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo """Exist ''${NAMESPACE}'' namespace!"""
+                    createInfraVmActionMethod()
+                } else {
+                    // create namespace
+                    def create_ns_response = sh(script: """curl -X ''POST'' ''${TUMBLEBUG}/tumblebug/ns'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''{ "description": "Workflow create namespace", "name": "${NAMESPACE}"}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                    echo """''${create_ns_response}''"""
+                    if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                        createInfraVmActionMethod()
+                    } else {
+                        error "GET API call failed with status code: ${response}"
+                    }
+                }
             }
         }
     }
@@ -1811,7 +1859,7 @@ echo "Tomcat installed!"
 -- Step 6: Insert into workflow_param
 -- INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'MCI', '', 'N');
 -- Workflow : vm-mariadb-nginx-all-in-one
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (2, 1, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (3, 1, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (4, 1, 'USER', 'default', 'N');
@@ -1849,7 +1897,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-mci
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (31, 4, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (31, 4, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (32, 4, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (33, 4, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (34, 4, 'USER', 'default', 'N');
@@ -1873,7 +1921,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : wordpress-all-in-one
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (46, 7, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (46, 7, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (47, 7, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (48, 7, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (49, 7, 'USER', 'default', 'N');
@@ -1884,7 +1932,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-nginx
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (54, 8, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (54, 8, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (55, 8, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (56, 8, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (57, 8, 'USER', 'default', 'N');
@@ -1892,7 +1940,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-mariadb
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (59, 9, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (59, 9, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (60, 9, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (61, 9, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (62, 9, 'USER', 'default', 'N');
@@ -1900,7 +1948,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : mariadb-set-password
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (64, 10, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (64, 10, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (65, 10, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (66, 10, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (67, 10, 'USER', 'default', 'N');
@@ -1911,7 +1959,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : php-install
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (72, 11, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (72, 11, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (73, 11, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (74, 11, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (75, 11, 'USER', 'default', 'N');
@@ -1919,7 +1967,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : set-nginx
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (77, 12, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (77, 12, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (78, 12, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (79, 12, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (80, 12, 'USER', 'default', 'N');
@@ -1927,7 +1975,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-grafana
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (82, 13, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (82, 13, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (83, 13, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (84, 13, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (85, 13, 'USER', 'default', 'N');
@@ -1935,7 +1983,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-redis
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (87, 14, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (87, 14, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (88, 14, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (89, 14, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (90, 14, 'USER', 'default', 'N');
@@ -1944,7 +1992,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-prometheus
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (92, 15, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (92, 15, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (93, 15, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (94, 15, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (95, 15, 'USER', 'default', 'N');
@@ -1952,7 +2000,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : install-tomcat
-INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (97, 16, 'MCI', 'mcistest-01', 'N');
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (97, 16, 'MCI', 'mcitest-01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (98, 16, 'NAMESPACE', 'ns01', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (99, 16, 'TUMBLEBUG', 'http://tb-url:1323', 'N');
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (100, 16, 'USER', 'default', 'N');
@@ -1986,9 +2034,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
-                    string(name: ''USERPASS'', value: USERPASS)
-                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE)
-                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC)
+                    string(name: ''USERPASS'', value: USERPASS),
+                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE),
+                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC),
                     string(name: ''DISK'', value: DISK)
                 ]
             }
@@ -2180,10 +2228,34 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: Infrastructure VM Create''
             script {
-                def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
+
+                def createInfraVmActionMethod = { ->
+                    def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
+                    def call = """curl -X ''POST'' --user ''${USER}:${USERPASS}'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}''"""
+                    def response = sh(script: """ ${call} """, returnStdout: true).trim()
+                }
+
+                def get_namespace_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
+                def exist_ns_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${get_namespace_url}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                def exist_ns_flag = "false"
+                echo """''${exist_ns_response}''"""
+
+                if (exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo """Exist ''${NAMESPACE}'' namespace!"""
+                    createInfraVmActionMethod()
+                } else {
+                    // create namespace
+                    def create_ns_response = sh(script: """curl -X ''POST'' ''${TUMBLEBUG}/tumblebug/ns'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''{ "description": "Workflow create namespace", "name": "${NAMESPACE}"}'' --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
+
+                    echo """''${create_ns_response}''"""
+                    if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                        createInfraVmActionMethod()
+                    } else {
+                        error "GET API call failed with status code: ${response}"
+                    }
+                }
             }
         }
     }');
