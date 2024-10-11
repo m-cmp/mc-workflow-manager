@@ -26,7 +26,6 @@ services:
       - /usr/bin/docker:/usr/bin/docker # -v $(which docker):/usr/bin/docker
     environment:
       - PROJECT=mcmp
-    command: ["/bin/bash", "./script/setup-docker-no-sudo.sh"] # 스크립트를 사용하여 초기화
     healthcheck: # for workflow-manager
       test: [ "CMD", "curl", "-f", "http://localhost:1024/catalog/software" ]
       interval: 1m
@@ -54,7 +53,6 @@ services:
       - DB_ID=workflow
       - DB_PW=workflow!23
       - SQL_DATA_INIT=always # SQL_DATA_INIT=never
-    command: [ "/bin/bash", "./script/setup-docker-no-sudo.sh" ] # 스크립트를 사용하여 초기화
     healthcheck: # for cb-workflow-manager
       test: ["CMD", "nc", "-vz", "localhost", "1324"]
       interval: 1m
