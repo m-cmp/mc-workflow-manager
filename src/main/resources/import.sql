@@ -19,7 +19,8 @@ INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_usernam
 -- 12, 'ACCESS VM AND SH(MCI VM)', 'ACCESS VM AND SH(MCI VM)'
 -- 13, 'WAIT FOR VM TO BE READY', 'WAIT FOR VM TO BE READY'
 -- 14, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS'
--- 15, 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)', 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)'
+-- 15, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO'
+-- 16, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)'
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
 (1, 'SPIDER INFO CHECK', 'SPIDER INFO CHECK'),
 (2, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS CREATE'),
@@ -40,7 +41,8 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 (13, 'WAIT FOR VM TO BE READY', 'WAIT FOR VM TO BE READY'),
 
 (14, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS'),
-(15, 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)', 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)');
+(15, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO'),
+(16, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -59,28 +61,29 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 -- 12. ACCESS VM AND SH(MCI VM)
 -- 13. WAIT FOR VM TO BE READY
 -- 14. PMK PRE-INSTALLATION TASKS
--- 15. K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)
+-- 15. K8S ACCESS GET CONFIG INFO
+-- 16. K8S ACCESS AND SH(PMK K8S)
 -- INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Spider Info Check', 'Spider Info Check', '');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Spider Info Check', 'Spider Info Check', '
     stage(''Spider Info Check'') {
-      steps {
-        echo ''>>>>> STAGE: Spider Info Check''
-        echo TUMBLEBUG
-        echo MCI
+        steps {
+            echo ''>>>>> STAGE: Spider Info Check''
+            echo TUMBLEBUG
+            echo MCI
 
-        script {
-            // Calling a GET API using curl
-            def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
+            script {
+                // Calling a GET API using curl
+                def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
 
-            if (response.indexOf(''Http_Status_code:200'') > 0 ) {
-                echo "GET API call successful."
-                response = response.replace(''- Http_Status_code:200'', '''')
-                echo JsonOutput.prettyPrint(response)
-            } else {
-                error "GET API call failed with status code: ${response}"
+                if (response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo "GET API call successful."
+                    response = response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(response)
+                } else {
+                    error "GET API call failed with status code: ${response}"
+                }
             }
         }
-      }
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (2, 2, 1, 'Infrastructure NS Create', 'Infrastructure NS Create', '
     stage(''Infrastructure NS Create'') {
@@ -171,55 +174,55 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         }
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (7, 7, 1, 'Infrastructure PMK Create', 'Infrastructure PMK Create', '
-        stage(''Infrastructure PMK Create'') {
-            steps {
-                echo ''>>>>> STAGE: Infrastructure PMK Create''
-                script {
-                    def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
-                    def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+    stage(''Infrastructure PMK Create'') {
+        steps {
+            echo ''>>>>> STAGE: Infrastructure PMK Create''
+            script {
+                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+                def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                    if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "Exist cluster!"
-                        tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
+                if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo "Exist cluster!"
+                    tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
+                } else {
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster"""
+                    def call_tumblebug_create_cluster_payload = """{ \
+                        "connectionName": "nhncloud-kr1", \
+                        "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
+                        "name": "${CLUSTER}", \
+                        "securityGroupIds": [ "${sg_id}" ], \
+                        "subnetIds": [ "${subnet_id}" ], \
+                        "vNetId": "${vNet_id}", \
+                        "version": "v1.29.3", \
+                        "k8sNodeGroupList": [ \
+                            { \
+                                "desiredNodeSize": "1", \
+                                "imageId": "default", \
+                                "maxNodeSize": "3", \
+                                "minNodeSize": "1", \
+                                "name": "${ng_id}", \
+                                "onAutoScaling": "true", \
+                                "rootDiskSize": "default", \
+                                "rootDiskType": "default", \
+                                "specId": "${spec_id}", \
+                                "sshKeyId": "${sshkey_id}" \
+                            } \
+                        ] \
+                     }"""
+                    def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+
+                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
                     } else {
-                        def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster"""
-                        def call_tumblebug_create_cluster_payload = """{ \
-                            "connectionName": "nhncloud-kr1", \
-                            "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
-                            "name": "${CLUSTER}", \
-                            "securityGroupIds": [ "${sg_id}" ], \
-                            "subnetIds": [ "${subnet_id}" ], \
-                            "vNetId": "${vNet_id}", \
-                            "version": "v1.29.3", \
-                            "k8sNodeGroupList": [ \
-                                { \
-                                    "desiredNodeSize": "1", \
-                                    "imageId": "default", \
-                                    "maxNodeSize": "3", \
-                                    "minNodeSize": "1", \
-                                    "name": "${ng_id}", \
-                                    "onAutoScaling": "true", \
-                                    "rootDiskSize": "default", \
-                                    "rootDiskType": "default", \
-                                    "specId": "${spec_id}", \
-                                    "sshKeyId": "${sshkey_id}" \
-                                } \
-                            ] \
-                         }"""
-                        def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
-
-                        if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                            echo """Create cluster >> ${CLUSTER}"""
-                            tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
-                            echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
-                        } else {
-                            error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
-                        }
+                        error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
                     }
                 }
             }
-        }');
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (8, 8, 1, 'Infrastructure PMK Delete', 'Infrastructure PMK Delete', '
     stage(''Infrastructure PMK Delete'') {
         steps {
@@ -250,108 +253,109 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         }
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (10, 10, 1, 'Run Jenkins Job', 'Run Jenkins Job', '
-        stage (''run jenkins job'') {
-            steps {
+    stage (''run jenkins job'') {
+        steps {
 
-            }
-        }');
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (11, 11, 1, 'VM GET Access Info', 'VM GET Access Info', '
-        stage(''VM GET Access Info'') {
-            steps {
-                echo ''>>>>>STAGE: VM GET Access Info''
-                script {
-                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
-                    if (response.contains(''Http_Status_code:200'')) {
-                        echo "GET API call successful."
-                        callData = response.replace(''- Http_Status_code:200'', '''')
-                        echo(callData)
-                    } else {
-                        error "GET API call failed with status code: ${response}"
-                    }
+    stage(''VM GET Access Info'') {
+        steps {
+            echo ''>>>>>STAGE: VM GET Access Info''
+            script {
+                def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                if (response.contains(''Http_Status_code:200'')) {
+                    echo "GET API call successful."
+                    callData = response.replace(''- Http_Status_code:200'', '''')
+                    echo(callData)
+                } else {
+                    error "GET API call failed with status code: ${response}"
+                }
 
-                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
-                    def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    def pemkey = getSSHKey(response2)
-                    if (pemkey) {
-                        writeFile(file: "${MCI}.pem", text: pemkey)
-                        sh "chmod 600 ${MCI}.pem"
-                    } else {
-                        error "SSH Key retrieval failed."
-                    }
+                def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
+                def pemkey = getSSHKey(response2)
+                if (pemkey) {
+                    writeFile(file: "${MCI}.pem", text: pemkey)
+                    sh "chmod 600 ${MCI}.pem"
+                } else {
+                    error "SSH Key retrieval failed."
                 }
             }
-        }');
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (12, 12, 1, 'ACCESS VM AND SH(MCI VM)', 'ACCESS VM AND SH(MCI VM)', '
-        stage(''ACCESS VM AND SH(MCI VM)'') {
-            steps {
-                echo ''>>>>>STAGE: ACCESS VM AND SH(MCI VM)''
+    stage(''ACCESS VM AND SH(MCI VM)'') {
+        steps {
+            echo ''>>>>>STAGE: ACCESS VM AND SH(MCI VM)''
 
-            }
-        }');
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (13, 13, 1, 'WAIT FOR VM TO BE READY', 'WAIT FOR VM TO BE READY', '
-        stage(''Wait for VM to be ready'') {
-            steps {
-                echo ''>>>>>STAGE: Wait for VM to be ready''
-                script {
-                    def publicIPs = getPublicInfoList(callData)
-                    publicIPs.each { ip ->
-                        ip.each { inip ->
-                            def cleanIp = inip.toString().replaceAll(/[\[\]]/, '''')
-                            retry(30) { // 최대 30번 재시도
-                                sleep 10 // 10초 대기
-                                timeout(time: 5, unit: ''MINUTES'') { // 5분 타임아웃
-                                    sh """
-                                        ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${MCI}.pem cb-user@${cleanIp} ''echo "VM is ready"''
-                                    """
-                                }
+    stage(''Wait for VM to be ready'') {
+        steps {
+            echo ''>>>>>STAGE: Wait for VM to be ready''
+            script {
+                def publicIPs = getPublicInfoList(callData)
+                publicIPs.each { ip ->
+                    ip.each { inip ->
+                        def cleanIp = inip.toString().replaceAll(/[\[\]]/, '''')
+                        retry(30) { // 최대 30번 재시도
+                            sleep 10 // 10초 대기
+                            timeout(time: 5, unit: ''MINUTES'') { // 5분 타임아웃
+                                sh """
+                                    ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${MCI}.pem cb-user@${cleanIp} ''echo "VM is ready"''
+                                """
                             }
                         }
                     }
                 }
             }
-        }');
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (14, 14, 1, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS', '
-        stage(''PMK PRE-INSTALLATION TASKS'') {
-            steps {
-                echo ''>>>>>STAGE: PMK PRE-INSTALLATION TASKS''
-                script {
-                    def call_tumblebug_exist_ns_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
-                    def tumblebug_exist_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_ns_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+    stage(''PMK PRE-INSTALLATION TASKS'') {
+        steps {
+            echo ''>>>>>STAGE: PMK PRE-INSTALLATION TASKS''
+            script {
+                def call_tumblebug_exist_ns_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
+                def tumblebug_exist_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_ns_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                    if (tumblebug_exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "Exist Namespace!"
-                        tumblebug_exist_ns_response = tumblebug_exist_ns_response.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_exist_ns_response)
+                if (tumblebug_exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    echo "Exist Namespace!"
+                    tumblebug_exist_ns_response = tumblebug_exist_ns_response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(tumblebug_exist_ns_response)
+                } else {
+                    def call_tumblebug_create_ns_url = """${TUMBLEBUG}/tumblebug/ns"""
+                    def call_tumblebug_create_ns_payload = """''{ "name": ${NAMESPACE}, "description": "Workflow Created Namespace" }''"""
+                    def tumblebug_create_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_ns_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_ns_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+
+                    if (tumblebug_create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo """Create Namespace successful >> ${NAMESPACE}"""
+                        tumblebug_create_ns_response = tumblebug_create_ns_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_ns_response)
                     } else {
-                        def call_tumblebug_create_ns_url = """${TUMBLEBUG}/tumblebug/ns"""
-                        def call_tumblebug_create_ns_payload = """''{ "name": ${NAMESPACE}, "description": "Workflow Created Namespace" }''"""
-                        def tumblebug_create_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_ns_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_ns_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
-
-                        if (tumblebug_create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                            echo """Create Namespace successful >> ${NAMESPACE}"""
-                            tumblebug_create_ns_response = tumblebug_create_ns_response.replace(''- Http_Status_code:200'', '''')
-                            echo JsonOutput.prettyPrint(tumblebug_create_ns_response)
-                        } else {
-                            error """GET API call failed with status code: ${tumblebug_create_ns_response}"""
-                        }
+                        error """GET API call failed with status code: ${tumblebug_create_ns_response}"""
                     }
                 }
             }
-        }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (15, 15, 1, 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)', 'K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)', '
-        stage(''K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)'') {
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (15, 15, 1, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO', '
+    stage(''K8S ACCESS GET CONFIG INFO'') {
+        steps {
+            script {
+                echo ''>>>>>STAGE: GET kubeconfig''
+                def json = new JsonSlurper().parseText(kubeinfo)
+                kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (16, 16, 1, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)', '
+    stage(''K8S ACCESS AND SH(PMK K8S)'') {
             steps {
-                echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)''
-                script {
-                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)''
-                    def response = sh(script: """curl -X ''GET'' ''${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    echo "GET API call successful."
-
-                    callData = response.replace(''- Http_Status_code:200'', '''')
-                    def json = new JsonSlurper().parseText(callData)
-                    kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
-
                 sh ''''''
+
 cat > config << EOF
 '''''' + kubeconfig + ''''''
 EOF
@@ -369,40 +373,43 @@ docker cp config k8s-tools:/apps
 
 docker exec -i k8s-tools helm --help
 
+
 #parameter reference: artifacthub
 
 #nginx: https://artifacthub.io/packages/helm/bitnami/nginx
-#docker exec -i k8s-tools helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
+#helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
 
 #grafana: https://artifacthub.io/packages/helm/grafana/grafana
-#docker exec -i k8s-tools helm repo add grafana https://grafana.github.io/helm-charts
-#docker exec -i k8s-tools helm repo update
-#docker exec -i k8s-tools helm install {{RELEASENAME}} grafana/grafana
+#helm repo add grafana https://grafana.github.io/helm-charts
+#helm repo update
+#helm install {{RELEASENAME}} grafana/grafana
 
 #prometheus: https://artifacthub.io/packages/helm/prometheus-community/prometheus
-#docker exec -i k8s-tools helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-#docker exec -i k8s-tools helm repo update
-#docker exec -i k8s-tools helm install {{RELEASENAME}} prometheus-community/prometheus
+#helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#helm repo update
+#helm install {{RELEASENAME}} prometheus-community/prometheus
 
 #mariadb: https://artifacthub.io/packages/helm/bitnami/mariadb
-#docker exec -i k8s-tools helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/mariadb
+#helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/mariadb
 
 #redis: https://artifacthub.io/packages/helm/bitnami/redis
-#docker exec -i k8s-tools helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/redis
+#helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/redis
 
 #tomcat: https://artifacthub.io/packages/helm/bitnami/tomcat
-#docker exec -i k8s-tools helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/tomcat
+#helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/tomcat
+
+
 
 #remove
-#docker exec -i k8s-tools helm remove {{RELEASENAME}}
+#helm remove {{RELEASENAME}}
+
 
 docker stop k8s-tools
 
 ''''''
 
-                }
             }
-        }');
+    }');
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -521,7 +528,7 @@ pipeline {
             steps {
                 build job: ''pmk-nginx-install'',
                 parameters: [
-                    string(name: ''MCI'', value: MCI),
+                    string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
@@ -537,7 +544,7 @@ pipeline {
             steps {
                 build job: ''pmk-mariadb-install'',
                 parameters: [
-                    string(name: ''MCI'', value: MCI),
+                    string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
@@ -832,6 +839,10 @@ pipeline {
                         echo """Create Spec successful >> ${spec_id}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
+                    } else if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create Spec successful >> ${spec_id}"""
+                        tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:201'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_regist_spec_response}"""
                     }
@@ -868,10 +879,15 @@ pipeline {
                     }"""
                     def tumblebug_create_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_vnet_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_vnet_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                    if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                    if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create vNet successful >> ${vNet_id}"""
                         echo """Create subnet successful >> ${subnet_id}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
+                    } else if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create vNet successful >> ${vNet_id}"""
+                        echo """Create subnet successful >> ${subnet_id}"""
+                        tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_vnet_response}"""
@@ -921,6 +937,10 @@ pipeline {
                         echo """Create SecurityGroup successful >> ${sg_id}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
+                    } else if (tumblebug_create_sg_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:201'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_sg_response}"""
                     }
@@ -950,6 +970,10 @@ pipeline {
                     if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create sshkey >> ${sshkey_id}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
+                    } else if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create sshkey >> ${sshkey_id}"""
+                        tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_sshkey_response}"""
@@ -1038,6 +1062,10 @@ pipeline {
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create cluster >> ${CLUSTER}"""
                         tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
@@ -1386,25 +1414,68 @@ pipeline {
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (11, 'pmk-nginx-install', 'test', 1, '
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 def kubeconfig = ""
 
+def checkPMKStatus(int retryCount = 0) {
+    if (retryCount >= 30) {
+        error "PMK failed to become active after 30 attempts"
+    }
+
+    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
+
+    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
+    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+
+    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+        def json = new JsonSlurper().parseText(response)
+        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+
+        if (pmkstatus.contains(''[Active]'')) {
+            echo "PMK is active"
+            return;
+        } else {
+            echo "PMK is not active yet. Waiting for 60 seconds before next check."
+            sleep 60
+            return checkPMKStatus(retryCount + 1)
+        }
+    }
+    else {
+        error "GET API call failed with status code: ${kubeinfo}"
+    }
+}
+
 pipeline {
     agent any
     stages {
-        stage(''K8S Access Info - all'') {
+        stage(''Infrastructure PMK Running Status'') {
             steps {
-                echo ''>>>>>STAGE: Info''
+                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def response = sh(script: """curl -X ''GET'' ''${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    echo "GET API call successful."
-                    callData = response.replace(''- Http_Status_code:200'', '''')
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo "GET API call successful."
+                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(kubeinfo)
+                    } else {
+                        error "GET API call failed with status code: ${kubeinfo}"
+                    }
 
-                    echo ''>>>>>STAGE: GET kubeconfig''
-                    def json = new JsonSlurper().parseText(callData)
-                    kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+                    echo """${pmkstatus}"""
+                    if(!pmkstatus.contains(''[Active]'')) {
+                        checkPMKStatus()
+                    }
+                }
+            }
+        }
 
+        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+            steps {
                 sh ''''''
 
 cat > config << EOF
@@ -1425,7 +1496,6 @@ docker cp config k8s-tools:/apps
 docker exec -i k8s-tools helm --help
 
 docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
-#helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
 
 #parameter reference: artifacthub
 
@@ -1451,16 +1521,13 @@ docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitn
 #tomcat: https://artifacthub.io/packages/helm/bitnami/tomcat
 #helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/tomcat
 
-
-
 #remove
 #helm remove {{RELEASENAME}}
-
 
 docker stop k8s-tools
 
 ''''''
-                }
+
             }
         }
     }
@@ -1468,26 +1535,78 @@ docker stop k8s-tools
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (12, 'pmk-mariadb-install', 'test', 1, '
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 def kubeconfig = ""
 
+def checkPMKStatus(int retryCount = 0) {
+    if (retryCount >= 30) {
+        error "PMK failed to become active after 30 attempts"
+    }
+
+    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
+
+    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
+    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+
+    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+        def json = new JsonSlurper().parseText(response)
+        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+
+        if (pmkstatus.contains(''[Active]'')) {
+            echo "PMK is active"
+            return;
+        } else {
+            echo "PMK is not active yet. Waiting for 60 seconds before next check."
+            sleep 60
+            return checkPMKStatus(retryCount + 1)
+        }
+    }
+    else {
+        error "GET API call failed with status code: ${kubeinfo}"
+    }
+}
+
 pipeline {
     agent any
     stages {
-        stage(''K8S Access Info - all'') {
+        stage(''Infrastructure PMK Running Status'') {
             steps {
-                echo ''>>>>>STAGE: Info''
+                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def response = sh(script: """curl -X ''GET'' ''${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    echo "GET API call successful."
-                    callData = response.replace(''- Http_Status_code:200'', '''')
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo "GET API call successful."
+                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(kubeinfo)
+                    } else {
+                        error "GET API call failed with status code: ${kubeinfo}"
+                    }
 
-                    echo ''>>>>>STAGE: GET kubeconfig''
-                    def json = new JsonSlurper().parseText(callData)
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+                    echo """${pmkstatus}"""
+                    if(!pmkstatus.contains(''[Active]'')) {
+                        checkPMKStatus()
+                    }
+                }
+            }
+        }
+
+        stage(''K8S ACCESS GET CONFIG INFO'') {
+            steps {
+                script {
+                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO''
+                    def json = new JsonSlurper().parseText(kubeinfo)
                     kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
+                }
+            }
+        }
 
-
+        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+            steps {
                 sh ''''''
 
 cat > config << EOF
@@ -1507,8 +1626,7 @@ docker cp config k8s-tools:/apps
 
 docker exec -i k8s-tools helm --help
 
-docker exec -i k8s-tools helm install test-mariadb oci://registry-1.docker.io/bitnamicharts/mariadb --kubeconfig=/apps/config
-#helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
+docker exec -i k8s-tools helm install mariadb-test oci://registry-1.docker.io/bitnamicharts/mariadb --kubeconfig=/apps/config
 
 #parameter reference: artifacthub
 
@@ -1534,16 +1652,13 @@ docker exec -i k8s-tools helm install test-mariadb oci://registry-1.docker.io/bi
 #tomcat: https://artifacthub.io/packages/helm/bitnami/tomcat
 #helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/tomcat
 
-
-
 #remove
 #helm remove {{RELEASENAME}}
-
 
 docker stop k8s-tools
 
 ''''''
-                }
+
             }
         }
     }
@@ -1797,7 +1912,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 build job: ''pmk-nginx-install'',
                 parameters: [
-                    string(name: ''MCI'', value: MCI),
+                    string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
@@ -1813,7 +1928,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 build job: ''pmk-mariadb-install'',
                 parameters: [
-                    string(name: ''MCI'', value: MCI),
+                    string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
@@ -2083,6 +2198,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         echo """Create Namespace successful >> ${NAMESPACE}"""
                         tumblebug_create_ns_response = tumblebug_create_ns_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_ns_response)
+                    } else if (tumblebug_create_ns_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create Namespace successful >> ${NAMESPACE}"""
+                        tumblebug_create_ns_response = tumblebug_create_ns_response.replace(''- Http_Status_code:201'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_ns_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_ns_response}"""
                     }
@@ -2120,6 +2239,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create Spec successful >> ${spec_id}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
+                    } else if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create Spec successful >> ${spec_id}"""
+                        tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_regist_spec_response}"""
@@ -2159,10 +2282,15 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     }"""
                     def tumblebug_create_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_vnet_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_vnet_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                    if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                    if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create vNet successful >> ${vNet_id}"""
                         echo """Create subnet successful >> ${subnet_id}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
+                    } else if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create vNet successful >> ${vNet_id}"""
+                        echo """Create subnet successful >> ${subnet_id}"""
+                        tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_vnet_response}"""
@@ -2214,6 +2342,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         echo """Create SecurityGroup successful >> ${sg_id}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
+                    } else if (tumblebug_create_sg_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:201'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_sg_response}"""
                     }
@@ -2245,6 +2377,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create sshkey >> ${sshkey_id}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
+                    } else if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create sshkey >> ${sshkey_id}"""
+                        tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_sshkey_response}"""
@@ -2336,6 +2472,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create cluster >> ${CLUSTER}"""
                         tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
@@ -2697,25 +2837,79 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : pmk-nginx-install
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (56, 11, 1, null, '
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 def kubeconfig = ""
 
+def checkPMKStatus(int retryCount = 0) {
+    if (retryCount >= 30) {
+        error "PMK failed to become active after 30 attempts"
+    }
+
+    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
+
+    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
+    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+
+    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+        def json = new JsonSlurper().parseText(response)
+        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+
+        if (pmkstatus.contains(''[Active]'')) {
+            echo "PMK is active"
+            return;
+        } else {
+            echo "PMK is not active yet. Waiting for 60 seconds before next check."
+            sleep 60
+            return checkPMKStatus(retryCount + 1)
+        }
+    }
+    else {
+        error "GET API call failed with status code: ${kubeinfo}"
+    }
+}
+
 pipeline {
     agent any
     stages {');
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (57, 11, 2, 15, '
-        stage(''K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)'') {
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (57, 11, 2, 9, '
+        stage(''Infrastructure PMK Running Status'') {
+            steps {
+                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+                script {
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo "GET API call successful."
+                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(kubeinfo)
+                    } else {
+                        error "GET API call failed with status code: ${kubeinfo}"
+                    }
+
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+                    echo """${pmkstatus}"""
+                    if(!pmkstatus.contains(''[Active]'')) {
+                        checkPMKStatus()
+                    }
+                }
+            }
+        }');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (58, 11, 3, 15, '
+        stage(''K8S ACCESS GET CONFIG INFO'') {
             steps {
                 script {
-                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)''
-                    def response = sh(script: """curl -X ''GET'' ''${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    echo "GET API call successful."
-
-                    callData = response.replace(''- Http_Status_code:200'', '''')
-                    def json = new JsonSlurper().parseText(callData)
-                    def kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
-
+                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO''
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
+                }
+            }
+        }');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (59, 11, 4, 16, '
+        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+            steps {
                 sh ''''''
 
 cat > config << EOF
@@ -2736,7 +2930,6 @@ docker cp config k8s-tools:/apps
 docker exec -i k8s-tools helm --help
 
 docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
-#helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
 
 #parameter reference: artifacthub
 
@@ -2765,14 +2958,13 @@ docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitn
 #remove
 #helm remove {{RELEASENAME}}
 
-
 docker stop k8s-tools
 
 ''''''
-                }
+
             }
         }');
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (58, 11, 3, null, '
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (60, 11, 5, null, '
     }
 }
 ');
@@ -2780,27 +2972,80 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : pmk-mariadb-install
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (59, 12, 1, null, '
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (61, 12, 1, null, '
+import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
 def kubeconfig = ""
 
+def checkPMKStatus(int retryCount = 0) {
+    if (retryCount >= 30) {
+        error "PMK failed to become active after 30 attempts"
+    }
+
+    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
+
+    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
+    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+
+    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+        def json = new JsonSlurper().parseText(response)
+        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+
+        if (pmkstatus.contains(''[Active]'')) {
+            echo "PMK is active"
+            return;
+        } else {
+            echo "PMK is not active yet. Waiting for 60 seconds before next check."
+            sleep 60
+            return checkPMKStatus(retryCount + 1)
+        }
+    }
+    else {
+        error "GET API call failed with status code: ${kubeinfo}"
+    }
+}
+
 pipeline {
     agent any
     stages {');
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (60, 12, 2, 15, '
-        stage(''K8S ACCESS GET CONFIG INFO AND SH(PMK K8S)'') {
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (62, 12, 2, 9, '
+        stage(''Infrastructure PMK Running Status'') {
             steps {
-                echo ''>>>>>STAGE: Info''
+                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def response = sh(script: """curl -X ''GET'' ''${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json'' """, returnStdout: true).trim()
-                    echo "GET API call successful."
-                    callData = response.replace(''- Http_Status_code:200'', '''')
+                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                        echo "GET API call successful."
+                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(kubeinfo)
+                    } else {
+                        error "GET API call failed with status code: ${kubeinfo}"
+                    }
 
-                    echo ''>>>>>STAGE: GET kubeconfig''
-                    def json = new JsonSlurper().parseText(callData)
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
+                    echo """${pmkstatus}"""
+                    if(!pmkstatus.contains(''[Active]'')) {
+                        checkPMKStatus()
+                    }
+                }
+            }
+        }');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (63, 12, 3, 15, '
+        stage(''K8S ACCESS GET CONFIG INFO'') {
+            steps {
+                script {
+                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO''
+                    def json = new JsonSlurper().parseText(kubeinfo)
                     kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
-
+                }
+            }
+        }');
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (64, 12, 4, 16, '
+        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+            steps {
                 sh ''''''
 
 cat > config << EOF
@@ -2820,8 +3065,7 @@ docker cp config k8s-tools:/apps
 
 docker exec -i k8s-tools helm --help
 
-docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
-#helm install test-nginx oci://registry-1.docker.io/bitnamicharts/nginx --kubeconfig=/apps/config
+docker exec -i k8s-tools helm install mariadb-test oci://registry-1.docker.io/bitnamicharts/mariadb --kubeconfig=/apps/config
 
 #parameter reference: artifacthub
 
@@ -2847,19 +3091,16 @@ docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitn
 #tomcat: https://artifacthub.io/packages/helm/bitnami/tomcat
 #helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/tomcat
 
-
-
 #remove
 #helm remove {{RELEASENAME}}
-
 
 docker stop k8s-tools
 
 ''''''
-                }
+
             }
         }');
-INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (61, 12, 3, null, '
+INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (65, 12, 5, null, '
     }
 }
 ');

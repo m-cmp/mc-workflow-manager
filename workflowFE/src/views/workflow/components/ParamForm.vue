@@ -11,14 +11,22 @@
           type="text" 
           placeholder="Key" 
           v-model="paramColum.paramKey" 
-          :disabled="props.popup">
+          :disabled="props.popup ||
+                      paramColum.paramKey.toUpperCase() === 'MCI' ||
+                      paramColum.paramKey.toUpperCase() === 'CLUSTER' ||
+                      paramColum.paramKey.toUpperCase() === 'NAMESPACE'"
+          @blur="inputData(idx)">
         <input 
           class="form-control p-2" 
           :class="props.popup ? 'g-col-6' : 'g-col-5'" 
           type="text" 
           placeholder="Value" 
-          v-model="paramColum.paramValue">
-
+          v-model="paramColum.paramValue"
+          :disabled="
+            paramColum.paramKey === 'MCI' ||
+            paramColum.paramKey === 'CLUSTER' ||
+            paramColum.paramKey === 'NAMESPACE'">
+            
         <button v-if="!props.popup" class="btn btn-primary" @click="addParams" style="text-align: center !important;">
           <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-plus" style="margin: 0 !important;">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -39,10 +47,12 @@
 <script setup lang="ts">
 import type { WorkflowParams } from '@/views/type/type';
 import { onMounted } from 'vue';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { useToast } from 'vue-toastification';
+import { useUserStore } from '@/stores/user'
 
 const toast = useToast()
+const userInfo = useUserStore()
 
 interface Props {
   popup: boolean
@@ -51,6 +61,17 @@ interface Props {
 }
 const props = defineProps<Props>()
 const paramData = computed(() => props.workflowParamData)
+
+const inputData = (idx:number) => {
+  if (paramData.value[idx].paramKey.toUpperCase() === 'NAMESPACE')
+    paramData.value[idx].paramValue = userInfo.projectInfo.ns_id
+  else if (paramData.value[idx].paramKey.toUpperCase() === 'MCI')
+    paramData.value[idx].paramValue = userInfo.projectInfo.mci_id
+  else if (paramData.value[idx].paramKey.toUpperCase() === 'CLUSTER')
+    paramData.value[idx].paramValue = userInfo.projectInfo.cluster_id
+}
+watch(() => paramData.value, () => {
+})
 
 onMounted(() => {
   setInitParam()

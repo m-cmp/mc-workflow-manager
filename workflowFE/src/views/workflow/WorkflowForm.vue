@@ -38,12 +38,12 @@
         </div>
 
         <!-- OSS URL -->
-        <div class="mb-3">
+        <!-- <div class="mb-3">
           <label class="form-label required">OSS URL</label>
           <div class="grid gap-0 column-gap-3">
             <input type="text" class="form-control p-2 g-col-12" placeholder="Enter the OSS URL" :value="ossUrl" disabled/>
           </div>
-        </div>
+        </div> -->
         <!-- 파이프 라인 -->
         <PipelineGenerator
           :mode="mode"
@@ -102,8 +102,8 @@ const router = useRouter();
 onMounted(() => {
   setMode()
   setWorkflowFormData()
-  setWorkflowPurposeList()
   setOssInfo()
+  setWorkflowPurposeList()
 })
 
 // ================================================================================= 모드 set

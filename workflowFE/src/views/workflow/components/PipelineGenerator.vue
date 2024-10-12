@@ -22,6 +22,7 @@
               <PipelineList
                 :idx="idx"
                 :pipeline-info="pipeline"
+                :pipeline-script-list="pipelineScriptList"
                 :drag-flag="dragFlag"
                 @onDeletePipeline="onDeletePipeline"
               />
