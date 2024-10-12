@@ -1,12 +1,20 @@
 <template>
 <!-- 스크립트 구역 -->
 <div class="row" :class="{ 'draggable': !pipelineInfo.isDefaultScript }">
-  <span :v-slot="'label'" class="field-label col-10">
-    {{ pipelineInfo.defaultScriptTag && pipelineInfo.defaultScriptTag !== 'null' ? pipelineInfo.defaultScriptTag : "" }}
+  <span :v-slot="'label'" class="col-10" style="margin-top: 10px !important;">
+    <!-- TODO : 추후 반드시 수정 필요 -->
+    <div v-for="(pipelineScript, idx) in pipelineScriptList" :key="idx">
+      <div v-for="(test, index) in pipelineScript.list" :key="index">
+        <p v-if="pipelineInfo.workflowStageIdx > 0 && pipelineInfo.workflowStageIdx === test.workflowStageIdx" style="margin-bottom: 0px !important;">
+          {{ test.workflowStageTypeName }} ({{ test.workflowStageName }})
+        </p>
+      </div>
+    </div>
+    <!-- {{ pipelineInfo.defaultScriptTag && pipelineInfo.defaultScriptTag !== 'null' ? pipelineInfo.defaultScriptTag : "" }} -->
   </span>
   <span class="col-2">
     <button 
-      v-if="!pipelineInfo.isDefaultScript && pipelineInfo.stageOrder !== null" 
+      v-if="pipelineInfo.workflowStageIdx !== null" 
       class="btn btn-danger btn"
       @click="onDeletePipeline(props.idx)">
       delete
@@ -50,6 +58,7 @@ const inputData = () => {
 interface Props {
   idx: number,
   pipelineInfo: WorkflowStageMappings,
+  pipelineScriptList: any,
   dragFlag: boolean
 }
 const props = defineProps<Props>()
