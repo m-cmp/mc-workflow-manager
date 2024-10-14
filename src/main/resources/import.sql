@@ -1417,35 +1417,21 @@ INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, sc
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
-def kubeconfig = ""
-
-def checkPMKStatus(int retryCount = 0) {
-    if (retryCount >= 30) {
-        error "PMK failed to become active after 30 attempts"
-    }
-
-    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
-
-    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
-    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-
-    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-        def json = new JsonSlurper().parseText(response)
-        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-
-        if (pmkstatus.contains(''[Active]'')) {
-            echo "PMK is active"
-            return;
-        } else {
-            echo "PMK is not active yet. Waiting for 60 seconds before next check."
-            sleep 60
-            return checkPMKStatus(retryCount + 1)
-        }
-    }
-    else {
-        error "GET API call failed with status code: ${kubeinfo}"
+// JSON 파싱 함수 정의
+def parseJson(String jsonString) {
+    try {
+        def json = new JsonSlurper().parseText(jsonString)
+        return json.findAll { it.key == ''CspViewK8sClusterDetail'' }
+                .collect { it.value.NodeGroupList.Status }
+        return json
+    } catch (Exception e) {
+        error "Failed to parse JSON: ${e.message}"
     }
 }
+
+def kubeinfo = ""
+def kubeconfig = ""
+
 
 pipeline {
     agent any
@@ -1454,22 +1440,37 @@ pipeline {
             steps {
                 echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
-                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "GET API call successful."
-                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(kubeinfo)
-                    } else {
-                        error "GET API call failed with status code: ${kubeinfo}"
-                    }
+                    for (int attempt = 1; attempt <= 30; attempt++) {
 
-                    def json = new JsonSlurper().parseText(kubeinfo)
-                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-                    echo """${pmkstatus}"""
-                    if(!pmkstatus.contains(''[Active]'')) {
-                        checkPMKStatus()
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                        if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                            echo "GET API call successful."
+                            kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        } else {
+                            error "GET API call failed with status code: ${kubeinfo}"
+                        }
+
+                        def pmkstatus = parseJson(kubeinfo)
+
+                        if(pmkstatus.flatten().contains(''Active'')) {
+                            break
+                        }
+                        else {
+                            echo """${pmkstatus}"""
+                            sh ''sleep 60'' // 1분 대기
+                        }
                     }
+                }
+            }
+        }
+
+        stage(''K8S ACCESS GET CONFIG INFO'') {
+            steps {
+                script {
+                    echo ''>>>>>STAGE: K8S ACCESS GET CONFIG INFO''
+                    def json = new JsonSlurper().parseText(kubeinfo)
+                    kubeconfig = "${json.CspViewK8sClusterDetail.AccessInfo.Kubeconfig}"
                 }
             }
         }
@@ -1527,7 +1528,6 @@ docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitn
 docker stop k8s-tools
 
 ''''''
-
             }
         }
     }
@@ -1538,35 +1538,21 @@ INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, sc
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
-def kubeconfig = ""
-
-def checkPMKStatus(int retryCount = 0) {
-    if (retryCount >= 30) {
-        error "PMK failed to become active after 30 attempts"
-    }
-
-    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
-
-    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
-    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-
-    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-        def json = new JsonSlurper().parseText(response)
-        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-
-        if (pmkstatus.contains(''[Active]'')) {
-            echo "PMK is active"
-            return;
-        } else {
-            echo "PMK is not active yet. Waiting for 60 seconds before next check."
-            sleep 60
-            return checkPMKStatus(retryCount + 1)
-        }
-    }
-    else {
-        error "GET API call failed with status code: ${kubeinfo}"
+// JSON 파싱 함수 정의
+def parseJson(String jsonString) {
+    try {
+        def json = new JsonSlurper().parseText(jsonString)
+        return json.findAll { it.key == ''CspViewK8sClusterDetail'' }
+                .collect { it.value.NodeGroupList.Status }
+        return json
+    } catch (Exception e) {
+        error "Failed to parse JSON: ${e.message}"
     }
 }
+
+def kubeinfo = ""
+def kubeconfig = ""
+
 
 pipeline {
     agent any
@@ -1575,21 +1561,26 @@ pipeline {
             steps {
                 echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
-                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "GET API call successful."
-                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(kubeinfo)
-                    } else {
-                        error "GET API call failed with status code: ${kubeinfo}"
-                    }
+                    for (int attempt = 1; attempt <= 30; attempt++) {
 
-                    def json = new JsonSlurper().parseText(kubeinfo)
-                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-                    echo """${pmkstatus}"""
-                    if(!pmkstatus.contains(''[Active]'')) {
-                        checkPMKStatus()
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                        if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                            echo "GET API call successful."
+                            kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        } else {
+                            error "GET API call failed with status code: ${kubeinfo}"
+                        }
+
+                        def pmkstatus = parseJson(kubeinfo)
+
+                        if(pmkstatus.flatten().contains(''Active'')) {
+                            break
+                        }
+                        else {
+                            echo """${pmkstatus}"""
+                            sh ''sleep 60'' // 1분 대기
+                        }
                     }
                 }
             }
@@ -1658,7 +1649,6 @@ docker exec -i k8s-tools helm install mariadb-test oci://registry-1.docker.io/bi
 docker stop k8s-tools
 
 ''''''
-
             }
         }
     }
@@ -2840,35 +2830,21 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
-def kubeconfig = ""
-
-def checkPMKStatus(int retryCount = 0) {
-    if (retryCount >= 30) {
-        error "PMK failed to become active after 30 attempts"
-    }
-
-    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
-
-    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
-    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-
-    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-        def json = new JsonSlurper().parseText(response)
-        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-
-        if (pmkstatus.contains(''[Active]'')) {
-            echo "PMK is active"
-            return;
-        } else {
-            echo "PMK is not active yet. Waiting for 60 seconds before next check."
-            sleep 60
-            return checkPMKStatus(retryCount + 1)
-        }
-    }
-    else {
-        error "GET API call failed with status code: ${kubeinfo}"
+// JSON 파싱 함수 정의
+def parseJson(String jsonString) {
+    try {
+        def json = new JsonSlurper().parseText(jsonString)
+        return json.findAll { it.key == ''CspViewK8sClusterDetail'' }
+                .collect { it.value.NodeGroupList.Status }
+        return json
+    } catch (Exception e) {
+        error "Failed to parse JSON: ${e.message}"
     }
 }
+
+def kubeinfo = ""
+def kubeconfig = ""
+
 
 pipeline {
     agent any
@@ -2878,21 +2854,26 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
-                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "GET API call successful."
-                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(kubeinfo)
-                    } else {
-                        error "GET API call failed with status code: ${kubeinfo}"
-                    }
+                    for (int attempt = 1; attempt <= 30; attempt++) {
 
-                    def json = new JsonSlurper().parseText(kubeinfo)
-                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-                    echo """${pmkstatus}"""
-                    if(!pmkstatus.contains(''[Active]'')) {
-                        checkPMKStatus()
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                        if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                            echo "GET API call successful."
+                            kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        } else {
+                            error "GET API call failed with status code: ${kubeinfo}"
+                        }
+
+                        def pmkstatus = parseJson(kubeinfo)
+
+                        if(pmkstatus.flatten().contains(''Active'')) {
+                            break
+                        }
+                        else {
+                            echo """${pmkstatus}"""
+                            sh ''sleep 60'' // 1분 대기
+                        }
                     }
                 }
             }
@@ -2961,7 +2942,6 @@ docker exec -i k8s-tools helm install test-nginx oci://registry-1.docker.io/bitn
 docker stop k8s-tools
 
 ''''''
-
             }
         }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (60, 11, 5, null, '
@@ -2976,35 +2956,21 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
-def kubeconfig = ""
-
-def checkPMKStatus(int retryCount = 0) {
-    if (retryCount >= 30) {
-        error "PMK failed to become active after 30 attempts"
-    }
-
-    echo "Checking PMK status (Attempt ${retryCount + 1}/30)"
-
-    def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"
-    def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-
-    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-        def json = new JsonSlurper().parseText(response)
-        def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-
-        if (pmkstatus.contains(''[Active]'')) {
-            echo "PMK is active"
-            return;
-        } else {
-            echo "PMK is not active yet. Waiting for 60 seconds before next check."
-            sleep 60
-            return checkPMKStatus(retryCount + 1)
-        }
-    }
-    else {
-        error "GET API call failed with status code: ${kubeinfo}"
+// JSON 파싱 함수 정의
+def parseJson(String jsonString) {
+    try {
+        def json = new JsonSlurper().parseText(jsonString)
+        return json.findAll { it.key == ''CspViewK8sClusterDetail'' }
+                .collect { it.value.NodeGroupList.Status }
+        return json
+    } catch (Exception e) {
+        error "Failed to parse JSON: ${e.message}"
     }
 }
+
+def kubeinfo = ""
+def kubeconfig = ""
+
 
 pipeline {
     agent any
@@ -3014,21 +2980,26 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 echo ''>>>>> STAGE: Infrastructure PMK Running Status''
                 script {
-                    def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
-                    kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-                    if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo "GET API call successful."
-                        kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(kubeinfo)
-                    } else {
-                        error "GET API call failed with status code: ${kubeinfo}"
-                    }
+                    for (int attempt = 1; attempt <= 30; attempt++) {
 
-                    def json = new JsonSlurper().parseText(kubeinfo)
-                    def pmkstatus = "${json.CspViewK8sClusterDetail.NodeGroupList.Status}"
-                    echo """${pmkstatus}"""
-                    if(!pmkstatus.contains(''[Active]'')) {
-                        checkPMKStatus()
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                        if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
+                            echo "GET API call successful."
+                            kubeinfo = kubeinfo.replace(''- Http_Status_code:200'', '''')
+                        } else {
+                            error "GET API call failed with status code: ${kubeinfo}"
+                        }
+
+                        def pmkstatus = parseJson(kubeinfo)
+
+                        if(pmkstatus.flatten().contains(''Active'')) {
+                            break
+                        }
+                        else {
+                            echo """${pmkstatus}"""
+                            sh ''sleep 60'' // 1분 대기
+                        }
                     }
                 }
             }
@@ -3097,7 +3068,6 @@ docker exec -i k8s-tools helm install mariadb-test oci://registry-1.docker.io/bi
 docker stop k8s-tools
 
 ''''''
-
             }
         }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (65, 12, 5, null, '
