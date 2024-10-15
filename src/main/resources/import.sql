@@ -5,9 +5,9 @@ INSERT INTO oss_type (oss_type_idx, oss_type_name, oss_type_desc) VALUES (1, 'JE
 INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_username, oss_password) VALUES (1, 1, 'SampleOss', 'Sample Description', 'http://sample.com', 'root', null);
 
 -- Step 3: Insert into workflow_stage_type (assuming this table exists and 1 is valid)
--- 1, 'SPIDER INFO CHECK', 'SPIDER INFO CHECK'
+-- 1, 'TUMBLEBUG INFO CHECK', 'TUMBLEBUG INFO CHECK'
 -- 2, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS CREATE'
--- 3, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS RUNNING STATUS'
+-- 3, 'INFRASTRUCTURE NS RUNNING STATUS', 'INFRASTRUCTURE NS RUNNING STATUS'
 -- 4, 'INFRASTRUCTURE MCI CREATE', 'INFRASTRUCTURE MCI CREATE'
 -- 5, 'INFRASTRUCTURE MCI DELETE', 'INFRASTRUCTURE MCI DELETE'
 -- 6, 'INFRASTRUCTURE MCI RUNNING STATUS', 'INFRASTRUCTURE MCI RUNNING STATUS'
@@ -22,9 +22,9 @@ INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_usernam
 -- 15, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO'
 -- 16, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)'
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
-(1, 'SPIDER INFO CHECK', 'SPIDER INFO CHECK'),
+(1, 'TUMBLEBUG INFO CHECK', 'TUMBLEBUG INFO CHECK'),
 (2, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS CREATE'),
-(3, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS RUNNING STATUS'),
+(3, 'INFRASTRUCTURE NS RUNNING STATUS', 'INFRASTRUCTURE NS RUNNING STATUS'),
 
 (4, 'INFRASTRUCTURE MCI CREATE', 'INFRASTRUCTURE MCI CREATE'),
 (5, 'INFRASTRUCTURE MCI DELETE', 'INFRASTRUCTURE MCI DELETE'),
@@ -47,7 +47,7 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- Step 4: Insert into workflow_stage
--- 1. Spider Info Check
+-- 1. Tumblebug Info Check
 -- 2. Infrastructure NS Create
 -- 3. Infrastructure NS Running Status
 -- 4. Infrastructure MCI Create
@@ -63,11 +63,11 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 -- 14. PMK PRE-INSTALLATION TASKS
 -- 15. K8S ACCESS GET CONFIG INFO
 -- 16. K8S ACCESS AND SH(PMK K8S)
--- INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Spider Info Check', 'Spider Info Check', '');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Spider Info Check', 'Spider Info Check', '
-    stage(''Spider Info Check'') {
+-- INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Tumblebug Info Check', 'Tumblebug Info Check', '');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Tumblebug Info Check', 'Tumblebug Info Check', '
+    stage(''Tumblebug Info Check'') {
         steps {
-            echo ''>>>>> STAGE: Spider Info Check''
+            echo ''>>>>> STAGE: Tumblebug Info Check''
             echo TUMBLEBUG
             echo MCI
 
@@ -565,9 +565,9 @@ import groovy.json.JsonSlurperClassic
 pipeline {
   agent any
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
             def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
 
@@ -634,9 +634,9 @@ import groovy.json.JsonSlurperClassic
 pipeline {
   agent any
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         echo TUMBLEBUG
         echo MCI
 
@@ -701,9 +701,9 @@ pipeline {
   agent any
 
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
           def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -766,9 +766,9 @@ def ng_id = """ng01"""
 pipeline {
   agent any
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
         steps {
-            echo ''>>>>> STAGE: Spider Info Check''
+            echo ''>>>>> STAGE: Tumblebug Info Check''
             script {
                 def call_tumblebug_status_url = """${TUMBLEBUG}/tumblebug/readyz"""
                 def tumblebug_status_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${call_tumblebug_status_url} --user "${USER}:${USERPASS}" """, returnStdout: true).trim()
@@ -1004,9 +1004,9 @@ def ng_id = """ng01"""
 pipeline {
   agent any
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
         steps {
-            echo ''>>>>> STAGE: Spider Info Check''
+            echo ''>>>>> STAGE: Tumblebug Info Check''
             script {
                 def call_tumblebug_status_url = """${TUMBLEBUG}/tumblebug/readyz"""
                 def tumblebug_status_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${call_tumblebug_status_url} --user "${USER}:${USERPASS}" """, returnStdout: true).trim()
@@ -1106,9 +1106,9 @@ pipeline {
   agent any
 
   stages {
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
           def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -1941,9 +1941,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (13, 3, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
             def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user ''${USER}:${USERPASS}''""", returnStdout: true).trim()
 
@@ -2015,9 +2015,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (19, 4, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
             // Calling a GET API using curl
             def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
@@ -2082,9 +2082,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (24, 5, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
           def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2150,9 +2150,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (29, 6, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
         steps {
-            echo ''>>>>> STAGE: Spider Info Check''
+            echo ''>>>>> STAGE: Tumblebug Info Check''
             script {
                 def call_tumblebug_status_url = """${TUMBLEBUG}/tumblebug/readyz"""
                 def tumblebug_status_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${call_tumblebug_status_url} --user "${USER}:${USERPASS}" """, returnStdout: true).trim()
@@ -2403,9 +2403,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (37, 7, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
         steps {
-            echo ''>>>>> STAGE: Spider Info Check''
+            echo ''>>>>> STAGE: Tumblebug Info Check''
             script {
                 def call_tumblebug_status_url = """${TUMBLEBUG}/tumblebug/readyz"""
                 def tumblebug_status_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${call_tumblebug_status_url} --user "${USER}:${USERPASS}" """, returnStdout: true).trim()
@@ -2507,9 +2507,9 @@ pipeline {
   agent any
   stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (42, 8, 2, 1, '
-    stage(''Spider Info Check'') {
+    stage(''Tumblebug Info Check'') {
       steps {
-        echo ''>>>>> STAGE: Spider Info Check''
+        echo ''>>>>> STAGE: Tumblebug Info Check''
         script {
           def response = sh(script: ''curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/readyz --user "${USER}:${USERPASS}"'', returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
