@@ -1,25 +1,18 @@
 package kr.co.mcmp.workflow.service.jenkins.api;
 
-import java.nio.charset.Charset;
-
-import kr.co.mcmp.workflow.service.jenkins.exception.JenkinsException;
+import com.cdancy.jenkins.rest.domain.crumb.Crumb;
 import kr.co.mcmp.util.AES256Util;
 import kr.co.mcmp.util.Base64Util;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import kr.co.mcmp.workflow.service.jenkins.exception.JenkinsException;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import com.cdancy.jenkins.rest.domain.crumb.Crumb;
-
-import lombok.extern.slf4j.Slf4j;
+import java.nio.charset.Charset;
 
 @Slf4j
 @Component
@@ -36,7 +29,8 @@ public class JenkinsRestClient {
      * @return
      */
     public <T, U> ResponseEntity<T> requestByBasicAuth(String apiUrl, String username, String password, HttpMethod httpMethod, U body, Class<T> clazz) {
-    	String plainTextPassword = AES256Util.decrypt(password);
+    	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
+
     	
         // header 설정
         HttpHeaders headers = new HttpHeaders();

@@ -16,7 +16,7 @@ public class WorkflowDto {
     private String workflowPurpose;
     private Long ossIdx;
     private String script;
-
+    private String status;
 
     // from : 외부 (entity -> dto)
     public static WorkflowDto from(Workflow workflow) {
@@ -51,6 +51,18 @@ public class WorkflowDto {
                 .build();
     }
 
+    // ofWithStatus : status 포함한 dto 생성
+    public static WorkflowDto ofWithStatus(WorkflowDto workflowDto, String status) {
+        return WorkflowDto.builder()
+                .workflowIdx(workflowDto.getWorkflowIdx())
+                .workflowName(workflowDto.getWorkflowName())
+                .workflowPurpose(workflowDto.getWorkflowPurpose())
+                .ossIdx(workflowDto.getOssIdx())
+                .script(workflowDto.getScript())
+                .status(status) // status 필드 포함
+                .build();
+    }
+
 //    // registWorkflow : Workflow 등록 / 수정
 //    public static Workflow saveWorkflow(WorkflowParamDto.WorkflowParamList workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
 //        return Workflow.builder()
@@ -72,4 +84,5 @@ public class WorkflowDto {
 //                .script(workflowStageMappingList.getScript())
 //                .build();
 //    }
+
 }

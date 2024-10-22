@@ -1,37 +1,36 @@
 package kr.co.mcmp.workflow.service.jenkins.service;
 
+import com.cdancy.jenkins.rest.domain.common.RequestStatus;
+import com.cdancy.jenkins.rest.domain.crumb.Crumb;
+import com.cdancy.jenkins.rest.domain.job.BuildInfo;
+import kr.co.mcmp.api.response.ResponseCode;
+import kr.co.mcmp.exception.McmpException;
+import kr.co.mcmp.oss.dto.OssDto;
+import kr.co.mcmp.util.NamingUtils;
+import kr.co.mcmp.util.XMLUtil;
+import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowRunHistoryResDto;
+import kr.co.mcmp.workflow.service.jenkins.api.JenkinsRestApi;
+import kr.co.mcmp.workflow.service.jenkins.exception.JenkinsException;
+import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
+import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientResponseException;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+
+import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import javax.xml.xpath.XPathExpressionException;
-
-import com.cdancy.jenkins.rest.domain.job.BuildInfo;
-import kr.co.mcmp.util.AES256Util;
-import kr.co.mcmp.util.Base64Util;
-import kr.co.mcmp.workflow.service.jenkins.api.JenkinsRestApi;
-import kr.co.mcmp.oss.dto.OssDto;
-import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
-import lombok.RequiredArgsConstructor;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientResponseException;
-import org.w3c.dom.Document;
-
-import com.cdancy.jenkins.rest.domain.common.RequestStatus;
-import com.cdancy.jenkins.rest.domain.crumb.Crumb;
-
-import kr.co.mcmp.api.response.ResponseCode;
-import kr.co.mcmp.exception.McmpException;
-import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
-import kr.co.mcmp.util.NamingUtils;
-import kr.co.mcmp.util.XMLUtil;
-import lombok.extern.slf4j.Slf4j;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -409,4 +408,46 @@ public class JenkinsService {
         return api.getJenkinsBuildConsoleLog(url,id,password,jobName,buildNumber);
     }
 
+    /**
+     * Build Stage View 조회
+     */
+    public WorkflowRunHistoryResDto getJenkinsBuildStage(OssDto jenkins, String jenkinsJobName, int buildNumber) {
+        if ( !isExistJobName(jenkins, jenkinsJobName) ) {
+            log.error("Jenkins Job Name {} does not exist.", jenkinsJobName);
+            throw new McmpException(ResponseCode.NOT_EXISTS_JENKINS_JOB);
+        }
+
+        try {
+            return api.getWorkflow(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jenkinsJobName, buildNumber).getBody();
+        } catch (JenkinsException e) {
+            if ( e.getCode() == HttpStatus.UNAUTHORIZED.value() ) {
+                throw new McmpException(ResponseCode.INCORRECT_JENKINS_CONNECTION_INFO);
+            }
+            else {
+                throw new McmpException(ResponseCode.INTERNAL_SERVER_ERROR, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Build Stage Logs 조회
+     *
+     */
+    public JenkinsBuildDescribeLog getJenkinsBuildStageLog(OssDto jenkins, String jenkinsJobName, int buildNumber, int nodeId) {
+        if ( !isExistJobName(jenkins, jenkinsJobName) ) {
+            log.error("Jenkins Job Name {} does not exist.", jenkinsJobName);
+            throw new McmpException(ResponseCode.NOT_EXISTS_JENKINS_JOB);
+        }
+
+        try {
+            return api.getPipelineNode(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jenkinsJobName, buildNumber, nodeId).getBody();
+        } catch (JenkinsException e) {
+            if ( e.getCode() == HttpStatus.UNAUTHORIZED.value() ) {
+                throw new McmpException(ResponseCode.INCORRECT_JENKINS_CONNECTION_INFO);
+            }
+            else {
+                throw new McmpException(ResponseCode.INTERNAL_SERVER_ERROR, e.getMessage());
+            }
+        }
+    }
 }

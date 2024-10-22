@@ -14,15 +14,13 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowHistoryDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
+import kr.co.mcmp.workflow.dto.resDto.*;
 import kr.co.mcmp.workflow.repository.WorkflowHistoryRepository;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.repository.WorkflowStageMappingRepository;
 import kr.co.mcmp.workflow.service.jenkins.JenkinsPipelineGeneratorService;
+import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import kr.co.mcmp.workflowStage.dto.WorkflowStageDto;
 import kr.co.mcmp.workflowStage.dto.WorkflowStageTypeDto;
@@ -404,7 +402,12 @@ public class WorkflowServiceImpl implements WorkflowService {
             "root",
             null);
 
-        return true;
+        // 빌드 실행 결과 확인
+        WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), buildInfo.number());
+        if("SUCCESS".equals(jenkinsBuildHistory.getStatus().toUpperCase()))
+            return true;
+        else
+            return false;
     }
 
     /**
@@ -586,5 +589,68 @@ public class WorkflowServiceImpl implements WorkflowService {
                 date
         );
         workflowHistoryRepository.save(workflowHistoryEntity);
+    }
+
+    /**
+     * getWorkflowRunHistoryList 정보 조회
+     * @param workflowIdx
+     * @return
+     */
+    public List<WorkflowRunHistoryResDto> getWorkflowRunHistoryList(Long workflowIdx) {
+
+        // jenkins job Name 조회
+        WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+
+        // oss 조회
+        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+
+
+        List<WorkflowLogResDto> buildList = WorkflowLogResDto.createList();
+
+        int buildNumber = 1;
+        while (true) {
+            try {
+                String log = jenkinsService.getJenkinsLog(
+                        ossDto.getOssUrl(),
+                        ossDto.getOssUsername(),
+                        ossDto.getOssPassword(),
+                        workflowDto.getWorkflowName(),
+                        buildNumber
+                );
+                buildList = WorkflowLogResDto.addToList(buildList, buildNumber, log);
+
+                buildNumber++;
+            } catch (Exception e) {
+                break; // 더 이상 빌드가 없으면 루프 종료
+            }
+        }
+
+        List<WorkflowRunHistoryResDto> buildHistoryList = WorkflowRunHistoryResDto.createList();
+
+        for(WorkflowLogResDto buildInfo : buildList) {
+            WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), buildInfo.getBuildIdx());
+            buildHistoryList = WorkflowRunHistoryResDto.addToList(buildHistoryList, jenkinsBuildHistory);
+        }
+
+        return buildHistoryList;
+    }
+
+    /**
+     * getWorkflowStageHistoryList 정보 조회
+     * @param workflowIdx
+     * @param buildIdx
+     * @param nodeIdx
+     * @return
+ */
+    @Override
+    public JenkinsBuildDescribeLog getWorkflowStageHistoryList(Long workflowIdx, int buildIdx, int nodeIdx) {
+
+        // jenkins job Name 조회
+        WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+
+        // oss 조회
+        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+
+        return jenkinsService.getJenkinsBuildStageLog(ossDto, workflowDto.getWorkflowName(), buildIdx, nodeIdx);
     }
 }
