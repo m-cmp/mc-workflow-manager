@@ -96,6 +96,7 @@ import { onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
 
+  
 const toast = useToast()
 /**
  * @Title Props / Emit
@@ -286,11 +287,12 @@ const onClickSubmit = async () => {
  * @Desc 생성 Callback 함수 / 생성 api 호출
  */
 const _registOss = async () => {
-  const { data } = await registOss(ossFormData.value)
-  if (data)
-    toast.success('등록되었습니다.')
-  else
-    toast.error('등록 할 수 없습니다.')
+  await registOss(ossFormData.value).then(({ data }) => {
+    if (data)
+      toast.success('Regist SUCCESS.')
+    else
+      toast.error('Regist FAIL.')
+  })
 }
 
 /**
@@ -298,11 +300,12 @@ const _registOss = async () => {
  * @Desc 수정 Callback 함수 / 수정 api 호출
  */
 const _updateOss = async () => {
-  const { data } = await updateOss(ossFormData.value)
-  if (data)
-    toast.success('등록되었습니다.')
-  else
-    toast.error('등록 할 수 없습니다.')
+  await updateOss(ossFormData.value).then(({ data }) => {
+    if (data)
+      toast.success('Update SUCCESS.')
+    else
+      toast.error('Update FAIL.')
+  })
 }
 
 /**

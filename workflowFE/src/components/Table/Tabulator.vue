@@ -25,9 +25,9 @@ watch(()=> props.tableData, () => {
   makeTable()
 })
 
-// onMounted(() => {
-//   makeTable()
-// })
+onMounted(() => {
+  makeTable()
+})
 
 const makeTable = () => {
   tabulator.value = new Tabulator(table.value, {
@@ -39,7 +39,7 @@ const makeTable = () => {
     paginationSizeSelector:[3, 6, 8, 10],
     movableColumns:true,
     paginationCounter:"rows",
-});
+  });
 }
 
 </script>

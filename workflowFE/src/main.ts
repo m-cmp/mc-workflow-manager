@@ -7,6 +7,7 @@ import 'tabulator-tables/dist/css/tabulator_bootstrap4.min.css'
 import axios from 'axios'
 import './permission'
 
+
 const app = createApp(App)
 
 // Axios
@@ -25,6 +26,11 @@ app.use(Toast, {});
 
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
+
+import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap-vue-3/dist/bootstrap-vue-3.css';
+import { BootstrapVue3 } from 'bootstrap-vue-3';
+app.use(BootstrapVue3);
 
 app.mount('#app')
 

@@ -79,8 +79,24 @@ export interface WorkflowLog {
   buildLog: string
 }
 
+export interface RunHistory {
+  name: string
+  status: string
+  user: string
+  startTimeMillis: number | Date | string
+  durationTimeMillis: number | Date | string
+  stages: Array<JenkinsStage>
+}
 
-
+export interface JenkinsStage {
+  id: string
+  name: string
+  status: string
+  startTimeMillis: number
+  endTimeMillis: number
+  pauseDurationMillis: number
+  durationMillis: number
+}
 
 
 

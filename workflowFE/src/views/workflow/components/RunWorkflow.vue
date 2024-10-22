@@ -63,11 +63,14 @@ watch(() => workflowIdx.value, async () => {
  * @Desc 실행 버튼 클릭시 동작 / 실행 api 호출
  */
 const onClickRun = async () => {
-  const { data } = await runWorkflow(workflowFormData.value)
-  if (data)
-    toast.success('실행되었습니다.')
-  else
-    toast.error('실행하지 못했습니다.')
-  emit('get-workflow-list')
+  toast.success('워크플로우가 실행 되었습니다.')
+  await runWorkflow(workflowFormData.value).then(({ data }) => {
+    if (data)
+      toast.success('워크플로우가 정상적으로 완료 되었습니다.')
+    else
+      toast.error('워크플로우가 정상적으로 완료 되지 못했습니다.')
+      emit('get-workflow-list')
+    
+  })
 }
 </script>
