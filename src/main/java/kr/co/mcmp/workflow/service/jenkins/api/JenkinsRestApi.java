@@ -1,36 +1,30 @@
 package kr.co.mcmp.workflow.service.jenkins.api;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.List;
-import java.util.Map;
-
-import kr.co.mcmp.util.Base64Util;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-
 import com.cdancy.jenkins.rest.JenkinsApi;
 import com.cdancy.jenkins.rest.JenkinsClient;
 import com.cdancy.jenkins.rest.domain.common.RequestStatus;
 import com.cdancy.jenkins.rest.domain.crumb.Crumb;
-import com.cdancy.jenkins.rest.domain.job.BuildInfo;
-import com.cdancy.jenkins.rest.domain.job.Job;
-import com.cdancy.jenkins.rest.domain.job.JobInfo;
-import com.cdancy.jenkins.rest.domain.job.PipelineNode;
-import com.cdancy.jenkins.rest.domain.job.Workflow;
+import com.cdancy.jenkins.rest.domain.job.*;
 import com.cdancy.jenkins.rest.domain.queue.QueueItem;
 import com.cdancy.jenkins.rest.features.JobsApi;
 import com.cdancy.jenkins.rest.features.QueueApi;
 import com.fasterxml.jackson.databind.JsonNode;
-
+import kr.co.mcmp.util.AES256Util;
+import kr.co.mcmp.util.Base64Util;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowRunHistoryResDto;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDetailLog;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
-import kr.co.mcmp.workflow.service.jenkins.model.JenkinsWorkflow;
-import kr.co.mcmp.util.AES256Util;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -151,7 +145,7 @@ public class JenkinsRestApi {
      * @param url
      * @param id
      * @param password
-     * @param jobName
+//     * @param jobName
      * @param jenkinsBuildId
      * @return
      */
@@ -279,10 +273,10 @@ public class JenkinsRestApi {
     /**
      * Build Stage View 조회
      */
-    public ResponseEntity<JenkinsWorkflow> getWorkflow(String baseUrl, String id, String password, String jobName, int buildNumber) {
+    public ResponseEntity<WorkflowRunHistoryResDto> getWorkflow(String baseUrl, String id, String password, String jobName, int buildNumber) {
         String apiUrl = String.format("%s/job/%s/%d/wfapi/describe", baseUrl, jobName, buildNumber);
 
-        ResponseEntity<JenkinsWorkflow> response = client.requestByBasicAuth(apiUrl, id, password, HttpMethod.GET, null, JenkinsWorkflow.class);
+        ResponseEntity<WorkflowRunHistoryResDto> response = client.requestByBasicAuth(apiUrl, id, password, HttpMethod.GET, null, WorkflowRunHistoryResDto.class);
 
         return response;
     }

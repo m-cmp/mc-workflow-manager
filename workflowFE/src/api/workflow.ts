@@ -65,3 +65,11 @@ export function existEventListener(workflowIdx: number) {
 export function getWorkflowLog(workflowIdx: number) {
   return request.get(`/workflow/log/${workflowIdx}`)
 }
+
+export function getWorkflowRunHistory(workflowIdx?: number | string | string[]) {
+  return request.get(`/workflow/runHistory/${workflowIdx}`)
+}
+
+export function getWorkflowRunHistoryDetail(params: { workflowIdx: string | number | string[] | undefined, buildName: string, stageIdx: string }) {
+  return request.get(`/workflow/stageHistory/${params.workflowIdx}?buildIdx=${params.buildName}&nodeIdx=${params.stageIdx}`)
+}

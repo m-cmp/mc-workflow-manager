@@ -23,6 +23,19 @@
 
     <WorkflowLog
       :workflow-idx="selectWorkflowIdx"/>
+
+      <b-overlay
+        :show="overlayShow"
+        id="overlay-background"
+        variant="transparent"
+        opacity="1"
+        blur="1rem"
+        rounded="lg"
+        style="z-index: 1000;"
+      />
+
+    <!-- <div v-show="overlayShow" class="spinner-border" role="status" style="z-index: 1000;"></div> -->
+
   </div>
 </template>
 <script setup lang="ts">
@@ -38,6 +51,8 @@ import RunWorkflow from '@/views/workflow/components/RunWorkflow.vue'
 import { useToast } from 'vue-toastification';
 import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
 
+const overlayShow = ref(true as Boolean)
+
 const toast = useToast()
 const workflowList = ref([] as Array<Workflow>)
 const columns = ref([] as Array<ColumnDefinition>)
@@ -49,8 +64,11 @@ onMounted(async () => {
 
 const _getWorkflowList = async () => {
   try {
-    const { data } = await getWorkflowList('N')
-    workflowList.value = data
+    overlayShow.value = true
+    await getWorkflowList('N').then(({ data }) => {
+      overlayShow.value = false
+      workflowList.value = data
+    })
   } catch(error) {
     console.log(error)
   }
@@ -63,12 +81,18 @@ const setColumns = () => {
     {
       title: "Workflow Name",
       field: "workflowInfo.workflowName",
-      width: '35%'
+      width: '30%'
     },
     {
       title: "Workflow Purpose",
       field: "workflowInfo.workflowPurpose",
       width: '10%'
+    },
+    {
+      title: "Status",
+      field: "workflowInfo.status",
+      width: '10%',
+      formatter: statusFormatter
     },
     {
       title: "Params Count",
@@ -84,15 +108,15 @@ const setColumns = () => {
     },
     {
       title: "Action",
-      width: '25%',
-      formatter: editButtonFormatter,
+      width: '20%',
+      formatter: buttonFormatter,
       cellClick: async(e, cell) => {
         const target = e.target as HTMLElement;
         const btnFlag = target?.getAttribute('id')
         selectWorkflowIdx.value = cell.getRow().getData().workflowInfo.workflowIdx
 
-        if (btnFlag === 'edit-btn') {
-          router.push('/web/workflow/edit/' + selectWorkflowIdx.value)
+        if (btnFlag === 'detail-btn') {
+          router.push('/web/workflow/detail/' + selectWorkflowIdx.value)
         }
         else if (btnFlag === 'delete-btn') {
           selectWorkflowName.value = cell.getRow().getData().workflowInfo.workflowName
@@ -110,14 +134,33 @@ const paramsCountFomatter = (cell: any) => {
   const paramsCnt = cell._cell.row.data.workflowParams.length
   return `<span>${ paramsCnt }</span>`
 }
-const editButtonFormatter = () => {
+
+const statusFormatter = (cell: any) => {
+  const status = cell.getValue(); 
+  return `
+  <div>
+    <span class="
+      status
+      ${
+        status === 'SUCCESS' ? 'status-green' :
+        status === 'FAILED' ? 'status-red' :
+        status === 'IN_PROGRESS' ? 'status-blue' : ''
+      }" 
+    >
+      <span class="status-dot"></span>
+      ${status}
+    </span>
+  </div>
+  `
+}
+const buttonFormatter = () => {
   return `
     <div>
       <button
         class='btn btn-primary d-none d-sm-inline-block'
-        id='edit-btn'
+        id='detail-btn'
         style='margin-right: 5px'>
-          EDIT
+          Detail
       </button>
       <button class='btn btn-danger d-none d-sm-inline-block'
         id='delete-btn'

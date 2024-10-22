@@ -6,11 +6,9 @@ import kr.co.mcmp.api.response.ResponseCode;
 import kr.co.mcmp.api.response.ResponseWrapper;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
+import kr.co.mcmp.workflow.dto.resDto.*;
 import kr.co.mcmp.workflow.service.WorkflowService;
+import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -122,5 +120,17 @@ public class WorkflowController {
     @GetMapping("/log/{workflowIdx}")
     public ResponseWrapper<List<WorkflowLogResDto>> getWorkflowLog(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.getWorkflowLog(workflowIdx));
+    }
+
+    @Operation(summary="워크플로우 실행 이력 조회")
+    @GetMapping("/runHistory/{workflowIdx}")
+    public ResponseWrapper<List<WorkflowRunHistoryResDto>> getWorkflowRunHistoryList(@PathVariable Long workflowIdx) {
+        return new ResponseWrapper<>(workflowService.getWorkflowRunHistoryList(workflowIdx));
+    }
+
+    @Operation(summary="워크플로우 실행 이력 조회 > Stage별 이력 조회")
+    @GetMapping("/stageHistory/{workflowIdx}")
+    public ResponseWrapper<JenkinsBuildDescribeLog> getWorkflowStageHistoryList(@PathVariable Long workflowIdx, @RequestParam int buildIdx, @RequestParam int nodeIdx) {
+        return new ResponseWrapper<>(workflowService.getWorkflowStageHistoryList(workflowIdx, buildIdx, nodeIdx));
     }
 }

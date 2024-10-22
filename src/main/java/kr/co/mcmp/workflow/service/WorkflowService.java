@@ -4,10 +4,10 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowHistoryDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
-import kr.co.mcmp.workflow.dto.resDto.WorkflowStageTypeAndStageNameResDto;
+import kr.co.mcmp.workflow.dto.resDto.*;
+import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
@@ -51,4 +51,8 @@ public interface WorkflowService {
 
     // workflow log List
     List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx);
+
+    List<WorkflowRunHistoryResDto> getWorkflowRunHistoryList(Long workflowIdx);
+
+    JenkinsBuildDescribeLog getWorkflowStageHistoryList(Long workflowIdx, int buildIdx, int nodeIdx);
 }

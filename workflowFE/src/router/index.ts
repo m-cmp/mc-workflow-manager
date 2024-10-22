@@ -34,8 +34,8 @@ const router = createRouter({
       component: () => import('@/views/workflow/WorkflowForm.vue' as any)
     },
     {
-      path: `/web/workflow/edit/:workflowIdx`,
-      name: 'workflowEdit',
+      path: `/web/workflow/detail/:workflowIdx`,
+      name: 'workflowDetail',
       component: () => import('@/views/workflow/WorkflowForm.vue' as any)
     }
   ]

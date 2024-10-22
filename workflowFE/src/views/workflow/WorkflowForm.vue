@@ -2,7 +2,7 @@
   <div class="card w-100" ref="workflowForm">
     <div class="card-header">
       <div class="card-title">
-        <h1>{{ mode === "new" ? "New" : "Edit" }} Workflow</h1>
+        <h1>{{ mode === "new" ? "New" : "Detail" }} Workflow</h1>
       </div>
     </div>
     <div 
@@ -59,6 +59,11 @@
           :workflow-param-data="workflowParamsFormData"
           event-listener-yn="N"
         />
+
+        <WorkflowHistoryList
+          :workflow-idx="workflowInfoFormData.workflowIdx"
+          :workflow-name="workflowInfoFormData.workflowName"
+        />
           
         <div class="row align-items-center">
           <div id="gap" class="col" />
@@ -87,10 +92,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { getOssList } from '@/api/oss'
 import type { Workflow, WorkflowPurpose, Oss, WorkflowInfo, WorkflowParams, WorkflowStageMappings } from '@/views/type/type'
 import PipelineGenerator from '@/views/workflow/components/PipelineGenerator.vue';
-// import PipelineGenerator from '@/views/workflow/components/PipelineGenerator_back.vue';
 import { duplicateCheck, getWorkflowDetailInfo, registWorkflow, updateWorkflow, getTemplateStage } from '@/api/workflow'
 import { useToast } from 'vue-toastification';
 import ParamForm from './components/ParamForm.vue';
+import WorkflowHistoryList from '@/views/workflow/components/WorkflowHistoryList.vue';
 import { reactive } from 'vue';
 import _ from 'lodash';
 import { watch } from 'vue';
@@ -109,7 +114,7 @@ onMounted(() => {
 // ================================================================================= 모드 set
 const mode = ref('new' as string)
 const setMode = () => {
-  mode.value = route.params.workflowIdx === undefined ? 'new' : 'edit'
+  mode.value = route.params.workflowIdx === undefined ? 'new' : 'detail'
 }
 
 // ================================================================================= 생성 / 수정 데이터 set

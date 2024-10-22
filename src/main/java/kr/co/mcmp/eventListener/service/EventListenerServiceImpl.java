@@ -19,10 +19,12 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
+import kr.co.mcmp.workflow.dto.resDto.WorkflowLogResDto;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.repository.WorkflowStageMappingRepository;
 import kr.co.mcmp.workflow.service.WorkflowService;
+import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -50,6 +52,8 @@ public class EventListenerServiceImpl implements EventListenerService {
     private final WorkflowService workflowService;
     
     private final WorkflowStageMappingRepository workflowStageMappingRepository;
+
+    private final JenkinsService jenkinsService;
 
     @Override
     public List<ResponseEventListenerDto> getEventListenerList() {
@@ -159,6 +163,8 @@ public class EventListenerServiceImpl implements EventListenerService {
         for(WorkflowDto workflow : workflowList) {
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflow.getWorkflowIdx());
             WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            String status = getWorkflowRunHistoryStatus(workflowDto.getWorkflowIdx());
+            workflowDto = WorkflowDto.ofWithStatus(workflowDto, status);
 
             List<WorkflowParamDto> paramList =
                     workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflow.getWorkflowIdx(), eventListenerYn)
@@ -264,4 +270,44 @@ public class EventListenerServiceImpl implements EventListenerService {
         return OssTypeDto.from(ossTypeEntity);
     }
 
+    /**
+     * WorkflowStageMappingDto 정보 조회
+     * @param workflowIdx
+     * @return
+     */
+    public String getWorkflowRunHistoryStatus(Long workflowIdx) {
+
+        // jenkins job Name 조회
+        WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+
+        // oss 조회
+        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+
+        List<WorkflowLogResDto> buildList = WorkflowLogResDto.createList();
+
+        int buildNumber = 1;
+
+        while (true) {
+            try {
+                String log = jenkinsService.getJenkinsLog(
+                        ossDto.getOssUrl(),
+                        ossDto.getOssUsername(),
+                        ossDto.getOssPassword(),
+                        workflowDto.getWorkflowName(),
+                        buildNumber
+                );
+                buildList = WorkflowLogResDto.addToList(buildList, buildNumber, log);
+
+                buildNumber++;
+            } catch (Exception e) {
+                break; // 더 이상 빌드가 없으면 루프 종료
+            }
+        }
+
+        buildNumber -= 1;
+        if (buildNumber > 0)
+            return jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), buildNumber).getStatus();
+        else
+            return "-";
+    }
 }
