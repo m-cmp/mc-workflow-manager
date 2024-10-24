@@ -13,32 +13,20 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0"
     }
   },
-  "host": "localhost:18083",
+  "host": "43.203.254.52:18083",
   "basePath": "/",
   "tags": [
     {
-      "name": "workflow-controller",
-      "description": "Workflow Controller"
-    },
-    {
       "name": "workflow-stage-controller",
       "description": "Workflow Stage Controller"
-    },
-    {
-      "name": "oss-type-controller",
-      "description": "Oss Type Controller"
     },
     {
       "name": "workflow-param-controller",
       "description": "Workflow Param Controller"
     },
     {
-      "name": "open-api-web-mvc-resource",
-      "description": "Open Api Web Mvc Resource"
-    },
-    {
-      "name": "event-listener-controller",
-      "description": "Event Listener Controller"
+      "name": "readyz-controller",
+      "description": "Readyz Controller"
     },
     {
       "name": "workflow-history-controller",
@@ -53,16 +41,32 @@
       "description": "Swagger Config Resource"
     },
     {
-      "name": "oss-controller",
-      "description": "Oss Controller"
-    },
-    {
       "name": "swagger-welcome-web-mvc",
       "description": "Swagger Welcome Web Mvc"
     },
     {
       "name": "basic-error-controller",
       "description": "Basic Error Controller"
+    },
+    {
+      "name": "workflow-controller",
+      "description": "Workflow Controller"
+    },
+    {
+      "name": "oss-type-controller",
+      "description": "Oss Type Controller"
+    },
+    {
+      "name": "open-api-web-mvc-resource",
+      "description": "Open Api Web Mvc Resource"
+    },
+    {
+      "name": "event-listener-controller",
+      "description": "Event Listener Controller"
+    },
+    {
+      "name": "oss-controller",
+      "description": "Oss Controller"
     }
   ],
   "paths": {
@@ -338,6 +342,47 @@
           },
           "201": {
             "description": "Created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/eventlistener/duplicate": {
+      "get": {
+        "tags": [
+          "event-listener-controller"
+        ],
+        "summary": "isEventListenerDuplicated",
+        "operationId": "isEventListenerDuplicatedUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "eventlistenerName",
+            "in": "query",
+            "description": "eventlistenerName",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -1238,6 +1283,38 @@
         }
       }
     },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "readyz-controller"
+        ],
+        "summary": "checkConnection",
+        "operationId": "checkConnectionUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«string»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/swagger-ui.html": {
       "get": {
         "tags": [
@@ -1701,6 +1778,106 @@
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/ResponseWrapper«boolean»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/runHistory/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowRunHistoryList",
+        "operationId": "getWorkflowRunHistoryListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«List«WorkflowRunHistoryResDto»»"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/workflow/stageHistory/{workflowIdx}": {
+      "get": {
+        "tags": [
+          "workflow-controller"
+        ],
+        "summary": "getWorkflowStageHistoryList",
+        "operationId": "getWorkflowStageHistoryListUsingGET",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "*/*"
+        ],
+        "parameters": [
+          {
+            "name": "workflowIdx",
+            "in": "path",
+            "description": "workflowIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int64"
+          },
+          {
+            "name": "buildIdx",
+            "in": "query",
+            "description": "buildIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "nodeIdx",
+            "in": "query",
+            "description": "nodeIdx",
+            "required": true,
+            "type": "integer",
+            "format": "int32"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "$ref": "#/definitions/ResponseWrapper«JenkinsBuildDescribeLog»"
             }
           },
           "401": {
@@ -2438,6 +2615,9 @@
         "script": {
           "type": "string"
         },
+        "status": {
+          "type": "string"
+        },
         "workflowIdx": {
           "type": "integer",
           "format": "int64"
@@ -2483,6 +2663,36 @@
         }
       }
     },
+    "JenkinsStage": {
+      "type": "object",
+      "properties": {
+        "durationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "endTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pauseDurationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "startTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "ResponseWrapper«List«WorkflowListResDto»»": {
       "type": "object",
       "properties": {
@@ -2520,7 +2730,35 @@
         "eventListenerName": {
           "type": "string"
         },
-        "eventListenerUrl": {
+        "workflowIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "workflowName": {
+          "type": "string"
+        },
+        "workflowParams": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowParamDto"
+          }
+        }
+      }
+    },
+    "WorkflowParamDto": {
+      "type": "object",
+      "properties": {
+        "eventListenerYn": {
+          "type": "string"
+        },
+        "paramIdx": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "paramKey": {
+          "type": "string"
+        },
+        "paramValue": {
           "type": "string"
         },
         "workflowIdx": {
@@ -2547,28 +2785,6 @@
         },
         "message": {
           "type": "string"
-        }
-      }
-    },
-    "WorkflowParamDto": {
-      "type": "object",
-      "properties": {
-        "eventListenerYn": {
-          "type": "string"
-        },
-        "paramIdx": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "paramKey": {
-          "type": "string"
-        },
-        "paramValue": {
-          "type": "string"
-        },
-        "workflowIdx": {
-          "type": "integer",
-          "format": "int64"
         }
       }
     },
@@ -2710,6 +2926,51 @@
         }
       }
     },
+    "JenkinsBuildDescribeLog": {
+      "type": "object",
+      "properties": {
+        "durationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "endTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "execNode": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameterDescription": {
+          "type": "string"
+        },
+        "pauseDurationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "stageFlowNodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JenkinsStageFlowNode"
+          }
+        },
+        "startTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "ResponseWrapper«List«WorkflowStageTypeDto»»": {
       "type": "object",
       "properties": {
@@ -2773,6 +3034,31 @@
         }
       }
     },
+    "WorkflowRunHistoryResDto": {
+      "type": "object",
+      "properties": {
+        "durationTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "stages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JenkinsStage"
+          }
+        },
+        "startTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
     "WorkflowStageTypeAndStageNameResDto": {
       "type": "object",
       "properties": {
@@ -2810,6 +3096,51 @@
         "workflowIdx": {
           "type": "integer",
           "format": "int64"
+        }
+      }
+    },
+    "JenkinsStageFlowNode": {
+      "type": "object",
+      "properties": {
+        "durationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "endTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "error": {
+          "$ref": "#/definitions/Error"
+        },
+        "execNode": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parameterDescription": {
+          "type": "string"
+        },
+        "parentNodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pauseDurationMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "startTimeMillis": {
+          "type": "integer",
+          "format": "int64"
+        },
+        "status": {
+          "type": "string"
         }
       }
     },
@@ -2994,6 +3325,45 @@
         }
       }
     },
+    "ResponseWrapper«JenkinsBuildDescribeLog»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "$ref": "#/definitions/JenkinsBuildDescribeLog"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«List«WorkflowRunHistoryResDto»»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WorkflowRunHistoryResDto"
+          }
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
     "OssDto": {
       "type": "object",
       "properties": {
@@ -3039,6 +3409,17 @@
           "items": {
             "$ref": "#/definitions/WorkflowStageMappingDto"
           }
+        }
+      }
+    },
+    "Error": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
         }
       }
     },
@@ -3220,6 +3601,52 @@
         },
         "data": {
           "$ref": "#/definitions/WorkflowDetailResDto"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "ResponseWrapper«string»": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "data": {
+          "type": "string",
+          "enum": [
+            "OK",
+            "BAD_REQUEST",
+            "UNAUTHORIZED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "METHOD_NOT_ALLOWED",
+            "CLIENT_ERROR",
+            "CONFLICT",
+            "INTERNAL_SERVER_ERROR",
+            "COMMON_CODE_EXISTS",
+            "COMMON_CODE_DELETE_NOT_ALLOWED",
+            "UNKNOWN_ERROR",
+            "ALREADY_EXISTS",
+            "CREATE_FAILED_PROJECT_SOURCE",
+            "CREATE_FAILED_JENKINS_JOB",
+            "EXISTS_JENKINS_JOB",
+            "NOT_EXISTS_JENKINS_JOB",
+            "ERROR_JENKINS_API",
+            "RUN_FAILED_DEPLOY",
+            "CREATE_FAILED_APPLICATION",
+            "NOT_EXISTS_APPLICATION",
+            "EXISTS_APPLICATION",
+            "CONNECTION_FAILED_CLUSTER",
+            "IN_USE_OSS",
+            "IS_NOT_MAPPED_OSS",
+            "INCORRECT_JENKINS_CONNECTION_INFO"
+          ]
         },
         "detail": {
           "type": "string"
