@@ -229,7 +229,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ''>>>>> STAGE: Infrastructure PMK Delete''
             script {
                 def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
-                def call = """curl -X DELETE "${tb_vm_url}" -H accept: "application/json" --user ${USER}:${USERPASS} """
+                def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS} """
                 sh(script: """ ${call} """, returnStdout: true)
                 echo "PMK deletion successful."
             }
@@ -1127,7 +1127,7 @@ pipeline {
         echo ''>>>>> STAGE: Infrastructure PMK Delete''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
-          def call = """curl -X DELETE "${tb_vm_url}" -H accept: "application/json" --user ${USER}:${USERPASS}"""
+          def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
           sh(script: """ ${call} """, returnStdout: true)
           echo "VM deletion successful."
         }
@@ -2528,7 +2528,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         echo ''>>>>> STAGE: Infrastructure PMK Delete''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
-          def call = """curl -X DELETE "${tb_vm_url}" -H accept: "application/json" --user ${USER}:${USERPASS}"""
+          def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
           sh(script: """ ${call} """, returnStdout: true)
           echo "VM deletion successful."
         }
