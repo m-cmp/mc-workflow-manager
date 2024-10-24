@@ -48,7 +48,9 @@ services:
         build-timeout,
         timestamper,
         ws-cleanup,
-        ssh-slaves
+        ssh-slaves,
+        ssh-agent,
+        publish-over-ssh
     healthcheck: # for workflow-manager
       test: [ "CMD", "curl", "-f", "http://localhost:8080/login" ]
       interval: 1m
