@@ -64,13 +64,14 @@ watch(() => workflowIdx.value, async () => {
  */
 const onClickRun = async () => {
   toast.success('워크플로우가 실행 되었습니다.')
+  
+  emit('get-workflow-list')
+  
   await runWorkflow(workflowFormData.value).then(({ data }) => {
     if (data)
       toast.success('워크플로우가 정상적으로 완료 되었습니다.')
     else
       toast.error('워크플로우가 정상적으로 완료 되지 못했습니다.')
-      emit('get-workflow-list')
-    
   })
 }
 </script>
