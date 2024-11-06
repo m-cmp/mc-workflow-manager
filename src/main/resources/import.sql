@@ -101,7 +101,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                     echo """${create_ns_response}"""
                     if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """create Namespace ${NAMESPCE}"""
+                        echo """create Namespace ${NAMESPACE}"""
                     } else {
                         error """GET API call failed with status code: ''${response}''"""
                     }
@@ -596,7 +596,7 @@ pipeline {
 
                     echo """${create_ns_response}"""
                     if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """create Namespace ${NAMESPCE}"""
+                        echo """create Namespace ${NAMESPACE}"""
                     } else {
                         error """GET API call failed with status code: ''${response}''"""
                     }
@@ -1973,7 +1973,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 
                     echo """${create_ns_response}"""
                     if (create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """create Namespace ${NAMESPCE}"""
+                        echo """create Namespace ${NAMESPACE}"""
                     } else {
                         error """GET API call failed with status code: ''${response}''"""
                     }
