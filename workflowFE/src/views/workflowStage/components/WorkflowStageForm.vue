@@ -1,23 +1,22 @@
 <template>
-  <div class="modal" id="workflowStageForm" tabindex="-1">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="modal modal-blur fade" id="workflowStageForm" tabindex="-1" aria-hidden="true" ref="modalElement">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
 
+        <div class="modal-header">
+          <h3 class="modal-title">{{ props.mode === 'new' ? 'New' : 'Edit'}} Workflow Stage</h3>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        <div class="modal-body text-left py-4">
-          <!-- Workflow Stage Title -->
-          <h3 class="mb-5">
-            {{ props.mode === 'new' ? 'New' : 'Edit'}} Workflow Stage
-          </h3>
+        </div>
 
+        <div class="modal-body py-4">
           <div>
-          <!-- Workflow Stage 타입 -->
+                      <!-- Workflow Stage Type -->
             <div class="mb-3">
               <div style="display: flex; justify-content: start;">
                 <label class="form-label required col"> Workflow Stage Type </label>
                 <div v-if="props.mode === 'new'">
                   <input type="checkBox" @change="onChangeWorkflowStageTypeAdd">
-                  <label>Add Workflow Type</label>
+                  <label class="ms-2">Add Workflow Type</label>
                 </div>
               </div>
               <div class="grid gap-0 column-gap-3">
@@ -31,7 +30,7 @@
               </div>
             </div>
 
-            <!-- Workflow Stage 명 -->
+            <!-- Workflow Stage Name -->
             <div class="mb-3">
               <label class="form-label required">Workflow Stage Name</label>
               <div class="grid gap-0 column-gap-3">
@@ -43,7 +42,7 @@
               </div>
             </div>
             
-            <!-- Workflow Stage 설명 -->
+            <!-- Workflow Stage Description -->
             <div class="mb-3">
               <label class="form-label required">Workflow Stage Description</label>
               <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the Workflow Stage Description" v-model="workflowStageFormData.workflowStageDesc" />
@@ -59,12 +58,12 @@
         </div>
 
       <div class="modal-footer">
-        <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal" @click="setInit()">
+        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal" @click="setInit()">
           Cancel
-        </a>
-        <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickSubmit()">
+        </button>
+        <button type="button" class="btn btn-primary ms-auto"  @click="onClickSubmit()">
           {{props.mode === 'new' ? 'Regist' : 'Edit'}}
-        </a>
+        </button>
       </div>
 
       </div>
@@ -73,15 +72,25 @@
 </template>
 
 <script setup lang="ts">
+// @ts-ignore
 import type { WorkflowStage, WorkflowStageType } from '@/views/type/type';
 import { ref } from 'vue';
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import { getWorkflowStageTypeList, getWorkflowStageDetailInfo, duplicateCheck, registWorkflowStage, updateWorkflowStage, getWorkflowStageDefaultScript } from '@/api/workflowStage';
 import { onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
+import { Modal } from 'bootstrap'
 
 const toast = useToast()
+
+/**
+ * @Title Modal Management
+ */
+const modalElement = ref<HTMLElement>()
+const modalInstance = ref<Modal>()
+
 /**
  * @Title Props / Emit
  */
@@ -94,7 +103,7 @@ const emit = defineEmits(['get-workflow-stage-list'])
 
 /**
  * @Title Life Cycle
- * @Desc workflowStageIdx 값의 변화에 따라 데이터 set함수 호출  
+ * @Desc Call data set function according to workflowStageIdx value changes
  */
 const workflowStageIdx = computed(() => props.workflowStageIdx);
 watch(workflowStageIdx, async () => {
@@ -103,22 +112,27 @@ watch(workflowStageIdx, async () => {
 });
 
 onMounted(async () => {
+  // Initialize Modal instance
+  if (modalElement.value) {
+    modalInstance.value = new Modal(modalElement.value)
+  }
+  
   _getWorkflowStageTypeList()
   await setInit();
 })
 
 /**
  * @Title formData 
- * @Desc workflowStage 생성 / 수정데이터
+ * @Desc workflowStage creation / update data
  */
 const workflowStageFormData = ref({} as WorkflowStage)
 
 /**
- * @Title 초기화 Method
+ * @Title Initialization Method
  * @Desc 
- *    1. 생성 모드일경우 / workflowStageIdx 가 달라질경우 데이터 초기화
- *    2. 중복검사 버튼 활성화 여부 set
- *    3. 닫기 / 생성 / 수정 버튼 클릭시 데이터 초기화
+ *    1. Initialize data in create mode / when workflowStageIdx changes
+ *    2. Set duplicate check button activation status
+ *    3. Initialize data when close / create / edit button is clicked
  */
 const setInit = async () => {
   if (props.mode === 'new') {
@@ -143,8 +157,8 @@ const setInit = async () => {
 /**
  * @Title workflowStageTypeList / _getWorkflowStageTypeList
  * @Desc 
- *    workflowStageTypeList : workflowStageType 목록 저장
- *    _getWorkflowStageTypeList : workflowStageType 목록 API 호출
+ *    workflowStageTypeList : Store workflowStageType list
+ *    _getWorkflowStageTypeList : Call workflowStageType list API
  */
 const workflowStageTypeList = ref([] as Array<WorkflowStageType>)
 const _getWorkflowStageTypeList = async () => {
@@ -159,10 +173,10 @@ const _getWorkflowStageTypeList = async () => {
 /**
  * @Title addWorkflowStageTypeFlag / onChangeWorkflowStageTypeAdd
  * @Desc 
- *    addWorkflowStageTypeFlag : Workflow Stage 타입 추가 Flag 
+ *    addWorkflowStageTypeFlag : Workflow Stage type addition flag
  *    onChangeWorkflowStageTypeAdd : 
- *                      1. '타입 추가' 체크박스 클릭시 동작
- *                      2. 플래그 값 변경, Workflow Stage Idx, Name 초기화
+ *                      1. Action when 'add type' checkbox is clicked
+ *                      2. Change flag value, initialize Workflow Stage Idx and Name
  */
 const addWorkflowStageTypeFlag = ref(false as boolean)
 const onChangeWorkflowStageTypeAdd = async() => {
@@ -173,9 +187,9 @@ const onChangeWorkflowStageTypeAdd = async() => {
 
 /**
  * @Title onClickedWorkflowStageType
- * @Desc workflow Stage Type Idx 변경시 동작 
- *                      1. workflow Stage Type Name Set
- *                      2. 기본 스크립트 Set
+ * @Desc Action when workflow Stage Type Idx changes
+ *                      1. Set workflow Stage Type Name
+ *                      2. Set default script
  */
 const onClickedWorkflowStageType = async() => {
   workflowStageTypeList.value.forEach((type) => {
@@ -187,8 +201,8 @@ const onClickedWorkflowStageType = async() => {
 
 /**
  * @Title _getWorkflowStageDefaultScript
- * @param workflowStageTypeName : workflow Stage Type 명을 인자값으로 받는다
- * @Desc 기본 스크립트를 생성하는 API 호출 후 workflowStageFormData.workflowStageContent에 저장
+ * @param workflowStageTypeName : receives workflow Stage Type name as parameter
+ * @Desc Call API to generate default script and store in workflowStageFormData.workflowStageContent
  */
 const _getWorkflowStageDefaultScript = async (workflowStageTypeName:string) => {
   const { data } = await getWorkflowStageDefaultScript(workflowStageTypeName)
@@ -198,8 +212,8 @@ const _getWorkflowStageDefaultScript = async (workflowStageTypeName:string) => {
 /**
  * @Title duplicatedWorkflowStage / onClickDuplicatWorkflowStageName
  * @Desc 
- *    duplicatedWorkflowStage : 중복검사 여부
- *    onClickDuplicatWorkflowStageName : workflow Stage명 로 중복검사 API 호출
+ *    duplicatedWorkflowStage : duplicate check status
+ *    onClickDuplicatWorkflowStageName : call duplicate check API with workflow Stage name
  */
 const duplicatedWorkflowStage = ref(false as boolean)
 const onClickDuplicatWorkflowStageName = async () => {
@@ -209,53 +223,110 @@ const onClickDuplicatWorkflowStageName = async () => {
   }
   const { data } = await duplicateCheck(param)
   if (!data) {
-    toast.success('사용 가능한 이름입니다.')
+    toast.success('Name is available.')
     duplicatedWorkflowStage.value = true
   }
   else
-    toast.error('이미 사용중인 이름입니다.')
+    toast.error('Name is already in use.')
 }
 
 /**
  * @Title onClickSubmit
  * @Desc 
- *     1. 생성 / 수정 버튼 클릭시 동작
- *     2. 부모로 부터 받은 mode값에 따라서 생성/수정 Callback 함수 호출후 부모에게 workflowStage목록 api 호출  
+ *     1. Action when create / edit button is clicked
+ *     2. Call create/edit callback function according to mode value from parent, then call workflowStage list API to parent
  */
 const onClickSubmit = async () => {
-  if (props.mode === 'new')
-    await _registWorkflowStage().then(() => {
-    emit('get-workflow-stage-list')
-  })
-  else
-    await _updateWorkflowStage().then(() => {
-    emit('get-workflow-stage-list')
-  })
-  setInit()
+  // ================= Validation =================
+  if (!addWorkflowStageTypeFlag.value && (!workflowStageFormData.value.workflowStageTypeIdx || workflowStageFormData.value.workflowStageTypeIdx === 0)) {
+    toast.error('Please select Workflow Stage Type.');
+    return;
+  }
+  if (addWorkflowStageTypeFlag.value && !workflowStageFormData.value.workflowStageTypeName) {
+    toast.error('Please enter new Workflow Stage Type.');
+    return;
+  }
+  if (!workflowStageFormData.value.workflowStageName) {
+    toast.error('Please enter Workflow Stage Name.');
+    return;
+  }
+  if (!duplicatedWorkflowStage.value) {
+    toast.error('Please perform duplicate check.');
+    return;
+  }
+  if (!workflowStageFormData.value.workflowStageDesc) {
+    toast.error('Please enter Description.');
+    return;
+  }
+  if (!workflowStageFormData.value.workflowStageContent) {
+    toast.error('Please enter Script.');
+    return;
+  }
+
+  let success = false;
+  
+  if (props.mode === 'new') {
+    success = await _registWorkflowStage();
+  } else {
+    success = await _updateWorkflowStage();
+  }
+  
+  // Close modal only when successfully processed
+  if (success) {
+    emit('get-workflow-stage-list');
+    setInit();
+    
+    // Close modal
+    if (modalInstance.value) {
+      modalInstance.value.hide()
+      // Force remove backdrop if it remains
+      setTimeout(() => {
+        document.body.classList.remove('modal-open')
+        const backdrop = document.querySelector('.modal-backdrop')
+        backdrop?.remove()
+      }, 150)
+    }
+  }
 }
 
 /**
  * @Title _registWorkflowStage
- * @Desc 생성 Callback 함수 / 생성 api 호출
+ * @Desc Creation callback function / creation api call
  */
-const _registWorkflowStage = async () => {
-  const { data } = await registWorkflowStage(workflowStageFormData.value)
-  if (data)
-    toast.success('등록되었습니다.')
-  else
-    toast.error('등록 할 수 없습니다.')
+const _registWorkflowStage = async (): Promise<boolean> => {
+  try {
+    const { data } = await registWorkflowStage(workflowStageFormData.value)
+    if (data) {
+      toast.success('Registered successfully.')
+      return true
+    } else {
+      toast.error('Failed to register.')
+      return false
+    }
+  } catch (error) {
+    toast.error('Failed to register.')
+    return false
+  }
 }
 
 /**
  * @Title _updateWorkflowStage
- * @Desc 수정 Callback 함수 / 수정 api 호출
+ * @Desc Update callback function / update api call
  */
-const _updateWorkflowStage = async () => {
-  const { data } = await updateWorkflowStage(workflowStageFormData.value)
-  if (data)
-    toast.success('수정되었습니다.')
-  else
-    toast.error('수정 할 수 없습니다.')
+const _updateWorkflowStage = async (): Promise<boolean> => {
+  try {
+    const { data } = await updateWorkflowStage(workflowStageFormData.value)
+    if (data) {
+      toast.success('Updated successfully.')
+      return true
+    } else {
+      toast.error('Failed to update.')
+      return false
+    }
+  } catch (error) {
+    toast.error('Failed to update.')
+    return false
+  }
 }
 
 </script>
