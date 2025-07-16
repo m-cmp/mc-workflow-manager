@@ -1,16 +1,23 @@
 <template>
-  <div class="card card-flush w-100">
-    <TableHeander 
+  <div>
+    <!-- Page header -->
+    <TableHeader
       :header-title="'Workflow'"
       :new-btn-title="'New Workflow'"
-      :popupFlag="false"
-      :popupTarget="''"
+      :popup-flag="false"
+      :popup-target="''"
       @click-new-btn="onClickNewBtn"
     />
-    <Tabulator 
-      :columns="columns"
-      :table-data="workflowList">
-    </Tabulator>
+
+    <!-- Data card -->
+    <div class="card card-flush w-100">
+      <div class="card-body">
+        <Tabulator
+          :columns="columns"
+          :table-data="workflowList"
+        />
+      </div>
+    </div>
 
     <DeleteWorkflow
       :workflow-name="selectWorkflowName"
@@ -39,16 +46,24 @@
   </div>
 </template>
 <script setup lang="ts">
-import TableHeander from '@/components/Table/TableHeader.vue'
+// @ts-ignore
+import TableHeader from '../../components/Table/TableHeader.vue'
+// @ts-ignore
 import Tabulator from '@/components/Table/Tabulator.vue'
+// @ts-ignore
 import { getWorkflowList, existEventListener } from '@/api/workflow'
 import { onMounted, ref } from 'vue';
+// @ts-ignore
 import type { Workflow } from '@/views/type/type'
 import type { ColumnDefinition } from 'tabulator-tables';
+// @ts-ignore
 import router from '@/router';
+// @ts-ignore
 import DeleteWorkflow from '@/views/workflow/components/DeleteWorkflow.vue'
+// @ts-ignore
 import RunWorkflow from '@/views/workflow/components/RunWorkflow.vue'
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
 
 const overlayShow = ref(true as Boolean)

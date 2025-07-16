@@ -1,9 +1,7 @@
 <template>
   <div class="mt-5 mb-5">
     
-    <label class="form-label">
-      History
-    </label>
+    <h3 class="card-title mb-3">History</h3>
     <b-overlay
       :show="overlayShow"
       id="overlay-background"
@@ -32,13 +30,20 @@
 </template>
 <script setup lang="ts">
 import { onMounted, ref, watch } from 'vue';
+// @ts-ignore
 import { getWorkflowRunHistory } from '@/api/workflow'
 import type { ColumnDefinition } from 'tabulator-tables';
+// @ts-ignore
 import type { JenkinsStage } from '@/views/type/type'
+// @ts-ignore
 import Tabulator from '@/components/Table/Tabulator.vue'
+// @ts-ignore
 import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
+// @ts-ignore
 import type { RunHistory } from '@/views/type/type'
+// @ts-ignore
 import _ from 'lodash'
+// @ts-ignore
 import WorkflowHistoryPopup from '@/views/workflow/components/WorkflowHistoryPopoup.vue'
 
 const overlayShow = ref(true as Boolean)

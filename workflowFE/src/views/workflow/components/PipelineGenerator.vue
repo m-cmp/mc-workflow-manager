@@ -1,6 +1,6 @@
 <template>
   <div class="mb-3">
-    <div class="grid gap-0 column-gap-3 border-bottom pb-5 pt-5">
+    <div class="grid gap-0 column-gap-3 border-bottom pb-2 pt-2">
       <label class="form-label required p-2 g-col-11">
         Pipeline
       </label>

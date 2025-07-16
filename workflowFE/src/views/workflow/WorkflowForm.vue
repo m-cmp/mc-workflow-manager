@@ -1,83 +1,102 @@
 <template>
-  <div class="card w-100" ref="workflowForm">
-    <div class="card-header">
-      <div class="card-title">
-        <h1>{{ mode === "new" ? "New" : "Detail" }} Workflow</h1>
+  <div>
+    <!-- Page header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col">
+          <h2 class="page-title">{{ mode === 'new' ? 'New' : 'Detail' }} Workflow</h2>
+        </div>
       </div>
     </div>
-    <div 
+
+    <!-- Data card -->
+    <div class="card card-flush w-100" ref="workflowForm">
+      <div 
       class="card-body" 
       v-if="
             workflowInfoFormData &&
             workflowParamsFormData &&
             workflowStageMappingsFormData">
-      <div class="card-title">
-        <!-- 워크플로우 명 -->
-        <div class="mb-3">
-          <label class="form-label required">
-            Workflow Name
-          </label>
-          <div class="grid gap-0 column-gap-3">
-            <input type="text" ref="workflowName" class="form-control p-2 g-col-11" placeholder="Enter the workflow name" v-model="workflowInfoFormData.workflowName" />
-            <button v-if="!duplicatedWorkflow" class="btn btn-primary" @click="onClickDuplicatWorkflowName(workflowInfoFormData.workflowName)">Duplicate Check</button>
-            <button v-else class="btn btn-success">Duplicate Check</button>
+        <div class="card-title">
+          <!-- Workflow Name -->
+          <div class="mb-3">
+            <label class="form-label required">
+              Workflow Name
+            </label>
+            <div class="grid gap-0 column-gap-3">
+              <input type="text" ref="workflowName" class="form-control p-2 g-col-11" placeholder="Enter the workflow name" v-model="workflowInfoFormData.workflowName" />
+              <button
+                  v-if="!duplicatedWorkflow"
+                  class="btn btn-primary chk"
+                  @click="onClickDuplicatWorkflowName(workflowInfoFormData.workflowName)"
+                  style="margin:3px; width: 150px;"
+                >Duplicate Check</button>
+                <button
+                  v-else
+                  class="btn btn-success"
+                  style="margin:3px; width: 150px;"
+                >Duplicate Check</button>
+            </div>
           </div>
-        </div>
 
-        <!-- 목적 -->
-        <div class="mb-3">
-          <label class="form-label required">Purpose</label>
-          <div class="grid gap-0 column-gap-3">
-            <select ref="workflowPurpose" v-model="workflowInfoFormData.workflowPurpose" class="form-select p-2 g-col-12">
-              <option value="">Select Workflow Purpose.</option>
-              <option v-for="(purpose, idx) in workflowPurposeList" :value="purpose.value" :key="idx">
-                {{ purpose.name }}
-              </option>
-            </select>
+          <!-- Purpose -->
+          <div class="mb-3">
+            <label class="form-label required">Purpose</label>
+            <div class="grid gap-0 column-gap-3">
+              <select ref="workflowPurpose" v-model="workflowInfoFormData.workflowPurpose" class="form-select p-2 g-col-12">
+                <option value="">Select Workflow Purpose.</option>
+                <option v-for="(purpose, idx) in workflowPurposeList" :value="purpose.value" :key="idx">
+                  {{ purpose.name }}
+                </option>
+              </select>
+            </div>
           </div>
-        </div>
 
-        <!-- OSS URL -->
-        <!-- <div class="mb-3">
-          <label class="form-label required">OSS URL</label>
-          <div class="grid gap-0 column-gap-3">
-            <input type="text" class="form-control p-2 g-col-12" placeholder="Enter the OSS URL" :value="ossUrl" disabled/>
-          </div>
-        </div> -->
-        <!-- 파이프 라인 -->
-        <PipelineGenerator
-          :mode="mode"
-          :workflow-stage-mappings-form-data="workflowStageMappingsFormData"
-          @init-workflow-stage-mappings="initWorkflowStageMappings"
-          @on-click-create-script="onClickCreateScript"
-          @splice-workflow-stage-mappings-form-data="spliceWorkflowStageMappingsFormData"
-        />
+          <!-- OSS URL -->
+          <!-- <div class="mb-3">
+            <label class="form-label required">OSS URL</label>
+            <div class="grid gap-0 column-gap-3">
+              <input type="text" class="form-control p-2 g-col-12" placeholder="Enter the OSS URL" :value="ossUrl" disabled/>
+            </div>
+          </div> -->
+          <!-- Pipeline -->
+          <PipelineGenerator
+            :mode="mode"
+            :workflow-stage-mappings-form-data="workflowStageMappingsFormData"
+            @init-workflow-stage-mappings="initWorkflowStageMappings"
+            @on-click-create-script="onClickCreateScript"
+            @splice-workflow-stage-mappings-form-data="spliceWorkflowStageMappingsFormData"
+          />
 
-        <!-- 파라미터 -->
-        <ParamForm 
-          :popup="false"
-          :workflow-param-data="workflowParamsFormData"
-          event-listener-yn="N"
-        />
+          <!-- Parameters -->
+          <ParamForm 
+            :popup="false"
+            :workflow-param-data="workflowParamsFormData"
+            event-listener-yn="N"
+          />
 
-        <WorkflowHistoryList
-          :workflow-idx="workflowInfoFormData.workflowIdx"
-          :workflow-name="workflowInfoFormData.workflowName"
-        />
-          
-        <div class="row align-items-center">
-          <div id="gap" class="col" />
-          <div class="col-auto ms-auto">
-            <div class="btn-list">
-              <button class="btn btn-primary" @click="onClickSubmit">
-                {{ mode === 'new' ? 'Regist' : 'Edit' }}
-              </button>
-              <!-- <button v-show="mode === 'edit'" class="btn btn-info" @click="onClickRun">
-                실행
-              </button> -->
-              <button class="btn btn-right border" @click="onClickList">
-                To List
-              </button>
+          <WorkflowHistoryList
+            :workflow-idx="workflowInfoFormData.workflowIdx"
+            :workflow-name="workflowInfoFormData.workflowName"
+          />
+            
+          <div class="row align-items-center">
+            <div id="gap" class="col" />
+            <div class="col-auto ms-auto">
+              <div class="btn-list">
+                <button class="btn btn-primary" @click="onClickSubmit">
+                  {{ mode === 'new' ? 'Regist' : 'Edit' }}
+                </button>
+                <!-- <button v-show="mode === 'edit'" class="btn btn-info" @click="onClickRun">
+                  Run
+                </button> -->
+                <button class="btn btn-secondary" @click="onClickGoBack">
+                  Go Back
+                </button>
+                <button class="btn btn-right border" @click="onClickList">
+                  To List
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -89,14 +108,21 @@
 import { ref } from 'vue';
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+// @ts-ignore
 import { getOssList } from '@/api/oss'
+// @ts-ignore
 import type { Workflow, WorkflowPurpose, Oss, WorkflowInfo, WorkflowParams, WorkflowStageMappings } from '@/views/type/type'
+// @ts-ignore
 import PipelineGenerator from '@/views/workflow/components/PipelineGenerator.vue';
+// @ts-ignore
 import { duplicateCheck, getWorkflowDetailInfo, registWorkflow, updateWorkflow, getTemplateStage } from '@/api/workflow'
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import ParamForm from './components/ParamForm.vue';
+// @ts-ignore
 import WorkflowHistoryList from '@/views/workflow/components/WorkflowHistoryList.vue';
 import { reactive } from 'vue';
+// @ts-ignore
 import _ from 'lodash';
 import { watch } from 'vue';
 
@@ -111,14 +137,14 @@ onMounted(() => {
   setWorkflowPurposeList()
 })
 
-// ================================================================================= 모드 set
+// ================================================================================= Set mode
 const mode = ref('new' as string)
 const setMode = () => {
   mode.value = route.params.workflowIdx === undefined ? 'new' : 'detail'
 }
 
-// ================================================================================= 생성 / 수정 데이터 set
-// workflowInfo 데이터 ()
+// ================================================================================= Set create / edit data
+// workflowInfo data
 let workflowInfoFormData = reactive({} as WorkflowInfo)
 const workflowParamsFormData = ref([] as Array<WorkflowParams>)
 const workflowStageMappingsFormData = ref([] as Array<WorkflowStageMappings>)
@@ -156,37 +182,37 @@ const setWorkflowFormData = async () => {
 }
 
 
-// ================================================================================= 중복체크
+// ================================================================================= Duplicate check
 const duplicatedWorkflow = ref(false as boolean)
 const onClickDuplicatWorkflowName = async (workflowName: string) => {
   const { data } = await duplicateCheck(workflowName)
   if (!data) {
-    toast.success('사용 가능한 이름입니다.')
+    toast.success('Name is available.')
     duplicatedWorkflow.value = true
   }
   else
-    toast.error('이미 사용중인 이름입니다.')
+    toast.error('Name is already in use.')
 }
 
-// ================================================================================= 목적 목록
+// ================================================================================= Purpose list
 
 const workflowPurposeList = ref([] as Array<WorkflowPurpose>)
 const setWorkflowPurposeList = () => {
   workflowPurposeList.value = [
     {
-      name: "배포용",
+      name: "For Deployment",
       value: "deploy"
     },
     {
-      name: "실행용",
+      name: "For Execution",
       value: "run"
     },
       {
-      name: "테스트용",
+      name: "For Testing",
       value: "test"
     },
       {
-      name: "웹훅용",
+      name: "For Webhook",
       value: "webhook"
     },
   ]
@@ -200,13 +226,13 @@ const setOssInfo = async () => {
 
     if (data) {
       if (workflowInfoFormData) {
-        // 등록
+        // Create
         if (mode.value === 'new') {
-          workflowInfoFormData.ossIdx = data ? data[0].ossIdx : 'OSS 정보가 없습니다.'
+          workflowInfoFormData.ossIdx = data ? data[0].ossIdx : 'No OSS information'
           ossUrl.value = data ? data[0].ossUrl : 'NULL'  
         }
 
-        // 수정
+        // Edit
         else {
           data.forEach((oss: Oss) => {
               if (oss.ossIdx === workflowInfoFormData.ossIdx) {
@@ -221,8 +247,21 @@ const setOssInfo = async () => {
   }
 }
 
-// ================================================================================= 등록 Action
+// ================================================================================= Registration Action
 const onClickSubmit = async () => {
+  // ================= Validation =================
+  if (!workflowInfoFormData.workflowName) {
+    toast.error('Please enter Workflow Name.');
+    return;
+  }
+  if (!workflowInfoFormData.workflowPurpose) {
+    toast.error('Please select Purpose.');
+    return;
+  }
+  if (!workflowStageMappingsFormData.value || workflowStageMappingsFormData.value.length === 0) {
+    toast.error('Please create Pipeline script.');
+    return;
+  }
   setSubmitParam()
   if(mode.value === 'new')
     await _registWorkflow()
@@ -237,11 +276,11 @@ const _registWorkflow = async () => {
   }
   const { data } = await registWorkflow(param)
   if (data) {
-    toast.success('등록 되었습니다.')
+    toast.success('Registered successfully.')
     router.push('/web/workflow/list')
   }
   else {
-    toast.error('등록하지 못했습니다.')
+    toast.error('Failed to register.')
   }
 }
 
@@ -255,11 +294,11 @@ const _updateWorkflow = async () => {
   const { data } = await updateWorkflow(param)
 
   if (data) {
-    toast.success('수정 되었습니다.')
+    toast.success('Updated successfully.')
     router.push('/web/workflow/list')
   }
   else {
-    toast.error('수정하지 못했습니다.')
+    toast.error('Failed to update.')
   }
 }
 const setSubmitParam = () => {
@@ -291,13 +330,18 @@ const setRemoveWorkflowParamIdx = () => {
     delete param['paramIdx']
   })
 }
-// ================================================================================= 실행 Action
+// ================================================================================= Run Action
 const onClickRun = () => {
-  toast.success('실행!')
+  toast.success('Executed!')
 }
 
-// ================================================================================= 목록으로 이동
+// ================================================================================= Go to list
 const onClickList = () => {
+  router.push('/web/workflow/list')
+}
+
+// ================================================================================= Go back
+const onClickGoBack = () => {
   router.push('/web/workflow/list')
 }
 
@@ -306,24 +350,24 @@ const initWorkflowStageMappings = () => {
   workflowStageMappingsFormData.value = []
 }
 
-// Template 스테이지 목록
+// Template stage list
 const onClickCreateScript = async () => {
 
   if (workflowInfoFormData.workflowName === '') {
-    toast.error('워크플로우 명을 입력해주세요.')
+    toast.error('Please enter workflow name.')
     return
   }
 
   else if (!workflowInfoFormData.workflowPurpose) {
-    toast.error('목적을 선택해주세요.')
+    toast.error('Please select purpose.')
     return
   }
   await _getTemplateStage(workflowInfoFormData.workflowName);
 }
 
-// 기본 스크립트 시작 / 끝 표시를 위한 변수
+// Variable for marking default script start / end
 const defaultScriptTagFlags = ["DEFAULT_START", "DEFAULT_END"]
-// '스크립트 생성' 클릭시 validation 이 끝나고 기본 스크립트 생성
+// Generate default script after validation when 'Create Script' is clicked
 const _getTemplateStage = async (workflowName:string) => {
   try {
     initWorkflowStageMappings()
@@ -331,8 +375,8 @@ const _getTemplateStage = async (workflowName:string) => {
     const { data } = await getTemplateStage(workflowName)
     const list:Array<WorkflowStageMappings> = data || []
 
-    // 기초 스크립트 Flag
-    // 스크립트 시작과 끝 표시를 위한 변수를 생성해줄때 넣어줄 데이터
+    // Default script flag
+    // Data to be included when creating variables to mark script start and end
     list.forEach((item:WorkflowStageMappings, index:number) => {
       item.isDefaultScript = true;
       item.defaultScriptTag = defaultScriptTagFlags[index];

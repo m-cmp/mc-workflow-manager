@@ -1,16 +1,15 @@
 <template>
-  <div class="modal" id="runWorkflow" tabindex="-1">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="modal modal-blur fade" id="runWorkflow" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
+        <div class="modal-status bg-info"></div>
 
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        <div class="modal-status bg-danger"></div>
-        <div class="modal-body text-left py-4">
-          <!-- Workflow Title -->
-          <h3 class="mb-5">
-            Run Workflow
-          </h3>
+        <div class="modal-header">
+          <h3 class="modal-title">Run Workflow</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
+        <div class="modal-body py-4">
           <!-- 파라미터 -->
           <ParamForm 
             v-if="workflowFormData.workflowParams"
@@ -35,10 +34,13 @@
 
 <script setup lang="ts">
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import { getWorkflowDetailInfo, runWorkflow } from '@/api/workflow';
 import { watch, computed } from 'vue';
+// @ts-ignore
 import type { Workflow } from '@/views/type/type'
 import { ref } from 'vue';
+// @ts-ignore
 import ParamForm from '@/views/workflow/components/ParamForm.vue'
 
 const toast = useToast()

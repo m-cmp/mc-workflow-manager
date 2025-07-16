@@ -1,5 +1,5 @@
 <template>
-    <div class="page-header">
+    <div class="page-header w-100">
     <div class="row align-items-center">
       <div class="col">
         <h2 class="page-title">

@@ -1,15 +1,15 @@
 <template>
-  <div class="modal" id="workflowHistoryDetailPopup" tabindex="-1">
-    <div class="modal-dialog modal-xl" role="document">
+  <div class="modal modal-blur fade" id="workflowHistoryDetailPopup" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content">
-
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-info"></div>
-        <div class="modal-body text-left py-4">
-          <h3 class="mb-5">
-            {{props.workflowName}}
-          </h3>
 
+        <div class="modal-header">
+          <h3 class="modal-title">{{ props.workflowName }}</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body py-4">
           <div class="steps steps-counter">
             <span 
               v-for="(stage, index) in workflowStages" 
@@ -57,8 +57,10 @@
 
 <script setup lang="ts">
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import type { JenkinsStage } from '@/views/type/type'
 import { ref, watch } from 'vue'
+// @ts-ignore
 import { getWorkflowRunHistoryDetail } from '@/api/workflow'
 
 const toast = useToast()
@@ -85,7 +87,8 @@ const getRunHistoryDetailList = async (stage: JenkinsStage) => {
     stageIdx: stage.id
   }
   await getWorkflowRunHistoryDetail(params).then(({ data }) => {
-    data.stageFlowNodes.forEach(stageFlowNode => {
+    // @ts-ignore
+    data.stageFlowNodes.forEach((stageFlowNode:any) => {
       stageFlowNode.flag = false
     });
     runHistoryDetailList.value = data
