@@ -1,39 +1,54 @@
 <template>
-  <div class="card card-flush w-100">
-    <TableHeander 
+  <div>
+    <!-- Page header -->
+    <TableHeader
       :header-title="'OSS'"
       :new-btn-title="'New OSS'"
       :popup-flag="true"
       :popup-target="'#ossForm'"
       @click-new-btn="onClickNewBtn"
     />
-    <Tabulator 
-      :columns="columns"
-      :table-data="ossList">
-    </Tabulator>
 
-    <OssForm 
+    <!-- Data card -->
+    <div class="card card-flush w-100">
+      <div class="card-body table-responsive">
+        <Tabulator
+          :columns="columns"
+          :table-data="ossList"
+        />
+      </div>
+    </div>
+
+    <!-- Modals -->
+    <OssForm
       :mode="formMode"
       :oss-idx="selectOssIdx"
-      @get-oss-list="_getOssList"/>
+      @get-oss-list="_getOssList"
+    />
 
-    <DeleteOss 
+    <DeleteOss
       :oss-name="selectOssName"
       :oss-idx="selectOssIdx"
-      @get-oss-list="_getOssList"/>
-
+      @get-oss-list="_getOssList"
+    />
   </div>
 </template>
 <script setup lang="ts">
-import TableHeander from '@/components/Table/TableHeader.vue'
+// @ts-ignore
+import TableHeader from '../../components/Table/TableHeader.vue'
+// @ts-ignore
 import Tabulator from '@/components/Table/Tabulator.vue'
+// @ts-ignore
 import { getOssAllList } from '@/api/oss'
 import { onMounted } from 'vue';
 import { ref } from 'vue';
+// @ts-ignore
 import { type Oss } from '@/views/type/type'
 import { type ColumnDefinition } from 'tabulator-tables';
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import OssForm from './components/ossForm.vue';
+// @ts-ignore
 import DeleteOss from './components/deleteOss.vue';
 
 const toast = useToast()
@@ -83,21 +98,22 @@ const setColumns = () => {
     {
       title: "OSS Name",
       field: "ossName",
-      width: '20%'
+      width: '25%',
     },
     {
       title: "OSS Desc",
       field: "ossDesc",
-      width: '20%'
+      width: '25%',
     },
     {
       title: "URL",
       field: "ossUrl",
-      width: '40%'
+      width: '25%',
     },
     {
       title: "Action",
-      width: '20%',
+      hozAlign: "center",
+      width: '25%',
       formatter: editDeleteButtonFormatter,
       cellClick: function (e, cell) {
         const target = e.target as HTMLElement;

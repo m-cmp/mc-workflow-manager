@@ -1,14 +1,15 @@
 <template>
-  <div class="modal" id="ossForm" tabindex="-1">
-    <div class="modal-dialog modal-xl" role="document">
+  <div class="modal modal-blur fade" id="ossForm" tabindex="-1" aria-hidden="true" ref="modalElement">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content">
 
+        <div class="modal-header">
+          <h3 class="modal-title">{{ props.mode === 'new' ? 'New' : 'Edit' }} OSS</h3>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        <div class="modal-body text-left py-4">
-          <!-- OSS Title -->
-          <h3 class="mb-5">
-            {{ props.mode === 'new' ? 'New' : 'Edit'}} OSS 
-          </h3>
+        </div>
+
+        <div class="modal-body py-4">
+          <!-- OSS Title (header에서 표시하므로 삭제) -->
 
           <div>
           <!-- OSS 타입 -->
@@ -33,9 +34,7 @@
             <!-- OSS 명 -->
             <div class="row mb-3">
               <label class="form-label required">OSS Name</label>
-              <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Name" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
-              </div>
+              <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Name" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
             </div>
             
             <!-- OSS 설명 -->
@@ -74,12 +73,12 @@
         </div>
 
       <div class="modal-footer">
-        <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal" @click="setInit()">
+        <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal" @click="setInit()">
           Cancel
-        </a>
-        <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickSubmit()">
+        </button>
+        <button type="button" ref="submitBtn" class="btn btn-primary ms-auto"  @click="onClickSubmit()">
           {{props.mode === 'new' ? 'Regist' : 'Edit'}}
-        </a>
+        </button>
       </div>
 
       </div>
@@ -88,16 +87,25 @@
 </template>
 
 <script setup lang="ts">
+// @ts-ignore
 import type { Oss, OssType } from '@/views/type/type';
-import { ref } from 'vue';
+import { ref, onMounted as vueOnMounted } from 'vue';
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import { getOssTypeList, getOssTypeFilteredList, duplicateCheck, getOssDetailInfo, registOss, updateOss, ossConnectionChecked } from '@/api/oss';
 import { onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
-
+import { Modal } from 'bootstrap'
   
 const toast = useToast()
+
+/**
+ * @Title Modal 관리
+ */
+const modalElement = ref<HTMLElement>()
+const modalInstance = ref<Modal>()
+
 /**
  * @Title Props / Emit
  */
@@ -121,6 +129,11 @@ watch(() => props.mode, async () => {
 })
 
 onMounted(async () => {
+  // Modal 인스턴스 초기화
+  if (modalElement.value) {
+    modalInstance.value = new Modal(modalElement.value)
+  }
+  
   await _getOssTypeList('init')
   await setInit()
 })
@@ -261,51 +274,109 @@ const initConnectionCheckBtn = () => {
   connectionCheckedOss.value = false
 }
 
-
-/**
- * @Title onClickSubmit
- * @Desc 
- *     1. 생성 / 수정 버튼 클릭시 동작
- *     2. 부모로 부터 받은 mode값에 따라서 생성/수정 Callback 함수 호출후 부모에게 oss목록 api 호출  
- */
 const onClickSubmit = async () => {
-  ossFormData.value.ossPassword = encriptPassword(ossFormData.value.ossPassword)
-  if (props.mode === 'new') {
-    await _registOss().then(() => {
-    emit('get-oss-list')
-  })
+  // ================= Validation ==================
+  if (!ossFormData.value.ossTypeIdx || ossFormData.value.ossTypeIdx === 0) {
+    toast.error('Please select OSS Type.');
+    return;
   }
-  else
-    await _updateOss().then(() => {
-    emit('get-oss-list')
-  })
-  setInit()
+  if (!ossFormData.value.ossName) {
+    toast.error('Please enter OSS Name.');
+    return;
+  }
+  if (!ossFormData.value.ossDesc) {
+    toast.error('Please enter OSS Description.');
+    return;
+  }
+  if (!ossFormData.value.ossUrl) {
+    toast.error('Please enter URL.');
+    return;
+  }
+  if (!ossFormData.value.ossUsername) {
+    toast.error('Please enter OSS ID.');
+    return;
+  }
+  if (!ossFormData.value.ossPassword) {
+    toast.error('Please enter OSS Password.');
+    return;
+  }
+
+  if (!duplicatedOss.value) {
+    toast.error('Please perform duplicate check.');
+    return;
+  }
+
+  if (!connectionCheckedOss.value) {
+    toast.error('Please perform connection check.');
+    return;
+  }
+
+  ossFormData.value.ossPassword = encriptPassword(ossFormData.value.ossPassword)
+  
+  let success = false;
+  
+  if (props.mode === 'new') {
+    success = await _registOss();
+  } else {
+    success = await _updateOss();
+  }
+  
+  // 성공적으로 처리된 경우에만 모달 닫기
+  if (success) {
+    emit('get-oss-list');
+    setInit();
+    
+    // 모달 닫기
+    if (modalInstance.value) {
+      modalInstance.value.hide()
+      // 백드롭이 남아있을 경우 강제 제거
+      setTimeout(() => {
+        document.body.classList.remove('modal-open')
+        const backdrop = document.querySelector('.modal-backdrop')
+        backdrop?.remove()
+      }, 150)
+    }
+  }
 }
 
 /**
  * @Title _registOss
  * @Desc 생성 Callback 함수 / 생성 api 호출
  */
-const _registOss = async () => {
-  await registOss(ossFormData.value).then(({ data }) => {
-    if (data)
+const _registOss = async (): Promise<boolean> => {
+  try {
+    const { data } = await registOss(ossFormData.value)
+    if (data) {
       toast.success('Regist SUCCESS.')
-    else
+      return true
+    } else {
       toast.error('Regist FAIL.')
-  })
+      return false
+    }
+  } catch (error) {
+    toast.error('Regist FAIL.')
+    return false
+  }
 }
 
 /**
  * @Title _updateOss
  * @Desc 수정 Callback 함수 / 수정 api 호출
  */
-const _updateOss = async () => {
-  await updateOss(ossFormData.value).then(({ data }) => {
-    if (data)
+const _updateOss = async (): Promise<boolean> => {
+  try {
+    const { data } = await updateOss(ossFormData.value)
+    if (data) {
       toast.success('Update SUCCESS.')
-    else
+      return true
+    } else {
       toast.error('Update FAIL.')
-  })
+      return false
+    }
+  } catch (error) {
+    toast.error('Update FAIL.')
+    return false
+  }
 }
 
 /**
