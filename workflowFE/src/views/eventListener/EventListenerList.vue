@@ -1,18 +1,26 @@
 <template>
-  <div class="card card-flush w-100">
-    <TableHeander 
+  <div>
+    <!-- Page header -->
+    <TableHeader
       :header-title="'Event Listener'"
       :new-btn-title="'New Event Listener'"
       :popup-flag="true"
       :popup-target="'#eventListenerForm'"
       @click-new-btn="onClickNewBtn"
     />
-    <Tabulator 
-      :columns="columns"
-      :table-data="eventListenerList">
-    </Tabulator>
+
+    <!-- Data card -->
+    <div class="card card-flush w-100">
+      <div class="card-body">
+        <Tabulator
+          :columns="columns"
+          :table-data="eventListenerList"
+        />
+      </div>
+    </div>
 
     <EventListenerForm  
+      style="width: 100%;"
       :mode="formMode"
       :event-listener-idx="selectEventListenerIdx"
       @get-event-listener-list="_getEventListenerList"/>
@@ -25,15 +33,21 @@
   </div>
 </template>
 <script setup lang="ts">
-import TableHeander from '@/components/Table/TableHeader.vue'
+// @ts-ignore
+import TableHeader from '../../components/Table/TableHeader.vue'
+// @ts-ignore
 import Tabulator from '@/components/Table/Tabulator.vue'
+// @ts-ignore
 import { getEventListenerList } from '@/api/eventListener'
 import { onMounted } from 'vue';
 import { ref } from 'vue';
+// @ts-ignore
 import { type EventListener } from '@/views/type/type'
 import { type ColumnDefinition } from 'tabulator-tables';
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import EventListenerForm from './components/eventListenerForm.vue';
+// @ts-ignore
 import DeleteEventListener from './components/deleteEventListener.vue';
 
 const toast = useToast()

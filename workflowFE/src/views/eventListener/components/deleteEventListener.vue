@@ -1,16 +1,15 @@
 <template>
-  <div class="modal" id="deleteEventListener" tabindex="-1">
-    <div class="modal-dialog modal-lg" role="document">
+  <div class="modal modal-blur fade" id="deleteEventListener" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content">
-
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         <div class="modal-status bg-danger"></div>
-        <div class="modal-body text-left py-4">
-          <!-- Event Listener Title -->
-          <h3 class="mb-5">
-            Event Listener 삭제
-          </h3>
 
+        <div class="modal-header">
+          <h3 class="modal-title">Delete Event Listener</h3>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body py-4">
           <h4>{{ props.eventListenerName }}을(를) 정말 삭제하시겠습니까?</h4>
 
         </div>
@@ -31,6 +30,7 @@
 
 <script setup lang="ts">
 import { useToast } from 'vue-toastification';
+// @ts-ignore
 import { deleteEventListener } from '@/api/eventListener';
 
 const toast = useToast()
