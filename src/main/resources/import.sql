@@ -470,7 +470,7 @@ pipeline {
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
-                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE),
+                    string(name: ''COMMON_IMAGE_ID'', value: COMMON_IMAGE_ID),
                     string(name: ''COMMON_SPEC'', value: COMMON_SPEC),
                 ]
             }
@@ -1702,7 +1702,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (3, 1, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
 (4, 1, 'USER', 'default', 'N'),
 (5, 1, 'USERPASS', 'default', 'N'),
-(6, 1, 'COMMON_IMAGE', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(6, 1, 'COMMON_IMAGE', 'ami-03236529070b4a0a5', 'N'),
 (7, 1, 'COMMON_SPEC', 'aws+ap-northeast-2+t2.small', 'N');
 
 -- Workflow : k8s-mariadb-nginx-all-in-one
@@ -1729,7 +1729,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (19, 4, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
 (20, 4, 'USER', 'default', 'N'),
 (21, 4, 'USERPASS', 'default', 'N'),
-(22, 4, 'COMMON_IMAGE', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(22, 4, 'COMMON_IMAGE', 'ami-03236529070b4a0a5', 'N'),
 (23, 4, 'COMMON_SPEC', 'aws+ap-northeast-2+t2.small', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
