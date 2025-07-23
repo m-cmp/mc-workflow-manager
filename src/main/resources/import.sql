@@ -132,14 +132,25 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
-                echo """shtest6-1"""
-                // def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def payload = """{ "name": "${MCI}", "vm": [ { "name":"vm01", "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                def payload = JsonOutput.toJson([
+                    name: "${MCI}",
+                    vm: [
+                        [
+                            commonSpec: "${COMMON_SPEC}",
+                            commonImage: "${COMMON_IMAGE_ID}"
+                        ]
+                    ]
+                ])
 
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}'' --user ''${USER}:${USERPASS}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
-                echo """shtest6-2"""
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def call = """curl -X POST ''${tb_vm_url}'' \
+                  -H ''accept: application/json'' \
+                  -H ''Content-Type: application/json'' \
+                  -d ''${payload}'' \
+                  --user ''${USER}:${USERPASS}''"""
+                def response = sh(script: call, returnStdout: true).trim()
+
+                echo JsonOutput.prettyPrint(response)
             }
         }
     }');
@@ -654,18 +665,29 @@ pipeline {
         }
       }
     }
-    stage(''Infrastructure VM Create'') {
+    stage(''Infrastructure MCI Create'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure VM Create''
+            echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
-                echo """shtest6-1"""
-                // def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def payload = """{ "name": "${MCI}", "vm": [ { "name":"vm01", "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                def payload = JsonOutput.toJson([
+                    name: "${MCI}",
+                    vm: [
+                        [
+                            commonSpec: "${COMMON_SPEC}",
+                            commonImage: "${COMMON_IMAGE_ID}"
+                        ]
+                    ]
+                ])
 
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}'' --user ''${USER}:${USERPASS}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
-                echo """shtest6-2"""
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def call = """curl -X POST ''${tb_vm_url}'' \
+                  -H ''accept: application/json'' \
+                  -H ''Content-Type: application/json'' \
+                  -d ''${payload}'' \
+                  --user ''${USER}:${USERPASS}''"""
+                def response = sh(script: call, returnStdout: true).trim()
+
+                echo JsonOutput.prettyPrint(response)
             }
         }
     }
@@ -2033,18 +2055,29 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (20, 4, 3, 2, '
-    stage(''Infrastructure VM Create'') {
+    stage(''Infrastructure MCI Create'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure VM Create''
+            echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
-                echo """shtest6-1"""
-                // def payload = """{ "name": "${MCI}", "vm": [ { "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
-                def payload = """{ "name": "${MCI}", "vm": [ { "name":"vm01", "commonImage": "${COMMON_IMAGE}", "commonSpec": "${COMMON_SPEC}" } ]}"""
+                def payload = JsonOutput.toJson([
+                    name: "${MCI}",
+                    vm: [
+                        [
+                            commonSpec: "${COMMON_SPEC}",
+                            commonImage: "${COMMON_IMAGE_ID}"
+                        ]
+                    ]
+                ])
 
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"""
-                def call = """curl -X ''POST'' ''${tb_vm_url}'' -H ''accept: application/json'' -H ''Content-Type: application/json'' -d ''${payload}'' --user ''${USER}:${USERPASS}''"""
-                def response = sh(script: """ ${call} """, returnStdout: true).trim()
-                echo """shtest6-2"""
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def call = """curl -X POST ''${tb_vm_url}'' \
+                  -H ''accept: application/json'' \
+                  -H ''Content-Type: application/json'' \
+                  -d ''${payload}'' \
+                  --user ''${USER}:${USERPASS}''"""
+                def response = sh(script: call, returnStdout: true).trim()
+
+                echo JsonOutput.prettyPrint(response)
             }
         }
     }');
