@@ -66,7 +66,7 @@ public class ReadyzServiceImpl implements ReadyzService {
 
 
 			// initData insert
-			ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			ossDto = OssDto.setDecryptPassword(ossDto, ossDto.getOssPassword());
 			ossService.managedJenkinsCredential(ossDto, "update");
 			workflowServiceImpl.createJenkinsJob("JENKINS", ossDto);
 
