@@ -2,10 +2,14 @@ package kr.co.mcmp.api.readyz.ReadyzService;
 
 import kr.co.mcmp.api.readyz.ReadyzDto.ReadyzResDto;
 import kr.co.mcmp.oss.dto.OssDto;
+import kr.co.mcmp.oss.dto.OssTypeDto;
 import kr.co.mcmp.oss.entity.OssType;
 import kr.co.mcmp.oss.repository.OssRepository;
 import kr.co.mcmp.oss.repository.OssTypeRepository;
+import kr.co.mcmp.oss.service.OssService;
+import kr.co.mcmp.oss.service.OssServiceImpl;
 import kr.co.mcmp.util.AES256Util;
+import kr.co.mcmp.workflow.service.WorkflowServiceImpl;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -20,11 +24,13 @@ import java.util.Objects;
 @Service
 public class ReadyzServiceImpl implements ReadyzService {
 
+	private final OssServiceImpl ossService;
 	private final OssRepository ossRepository;
 
 	private final OssTypeRepository ossTypeRepository;
 
 	private final JenkinsService jenkinsService;
+	private final WorkflowServiceImpl workflowServiceImpl;
 
 	/**
 	 * OSS 연결 확인
@@ -58,11 +64,18 @@ public class ReadyzServiceImpl implements ReadyzService {
 				return ReadyzResDto.setReadyzResponseDto(500, "Workflow Engine miss information!");
 			}
 
+
+			// initData insert
+			ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
+			ossService.managedJenkinsCredential(ossDto, "update");
+			workflowServiceImpl.createJenkinsJob("JENKINS", ossDto);
+
 			// connection Check
 			if(jenkinsService.isJenkinsConnect(ossDto))
 				return ReadyzResDto.setReadyzResponseDto(200, "Workflow Manager Ready!");
 			else
 				return ReadyzResDto.setReadyzResponseDto(500, "Connection failed");
+
 		}
 		else {
 			log.debug("[checkConnection] oss code >>> {}", target);

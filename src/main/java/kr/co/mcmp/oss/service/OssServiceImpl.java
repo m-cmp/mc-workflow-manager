@@ -126,7 +126,7 @@ public class OssServiceImpl implements OssService {
 			ossDto = OssDto.from(ossRepository.save(OssDto.toEntity(ossDto, ossTypeDto)));
 
 			if("JENKINS".equals(ossTypeDto.getOssTypeName().toUpperCase()))
-				workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
+				workflowServiceImpl.createJenkinsJob(ossTypeDto.getOssTypeName(), ossDto);
 
 			return ossDto.getOssIdx();
 		} catch (Exception e) {
@@ -151,7 +151,7 @@ public class OssServiceImpl implements OssService {
 
 			if("JENKINS".equals(ossTypeDto.getOssTypeName().toUpperCase())) {
 				managedJenkinsCredential(ossDto, "update");
-				workflowServiceImpl.createJenkinsJob(ossTypeDto, ossDto);
+				workflowServiceImpl.createJenkinsJob(ossTypeDto.getOssTypeName(), ossDto);
 			}
 
 			result = true;
@@ -312,7 +312,7 @@ public class OssServiceImpl implements OssService {
 	 * @param managedType
 	 * TODO : 고도화 (같은 oss 여러개 입력받기)
 	 */
-	private void managedJenkinsCredential(OssDto managedOss, String managedType) {
+	public void managedJenkinsCredential(OssDto managedOss, String managedType) {
 		try {
 			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx()));
 

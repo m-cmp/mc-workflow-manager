@@ -33,10 +33,10 @@ public interface WorkflowService {
     Boolean isWorkflowNameDuplicated(String workflowName);
 
     // Workflow 실행 (Idx)
-    Boolean runWorkflow(Long workflowIdx) throws IOException;
+    Boolean runWorkflow(Long workflowIdx);
 
     // Workflow 실행 (Workflow 정보)
-    Boolean runWorkflow(WorkflowReqDto workflowReqDto) throws IOException;
+    Boolean runWorkflow(WorkflowReqDto workflowReqDto);
 
     // Workflow 스테이지 목록
     List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList();

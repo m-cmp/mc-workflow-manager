@@ -106,14 +106,14 @@ public class WorkflowController {
 
     @Operation(summary="워크플로우 배포 실행")
     @GetMapping("/run/{workflowIdx}")
-    public ResponseWrapper<Boolean> runWorkflowGet(@PathVariable Long workflowIdx) throws IOException {
+    public ResponseWrapper<Boolean> runWorkflowGet(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowIdx));
     }
 
 
     @Operation(summary="워크플로우 배포 실행")
     @PostMapping("/run")
-    public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) throws IOException {
+    public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowReqDto));
     }
 
