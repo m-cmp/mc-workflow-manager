@@ -12,7 +12,7 @@ INSERT INTO oss (
     oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_username, oss_password
 ) VALUES (
     1, 1, 'SampleOss', 'Sample Description',
-    'http://${CB_WORKFLOW_MANAGER_EXTERNAL_IP}:8053', 'root', null
+    'http://${CB_WORKFLOW_MANAGER_EXTERNAL_IP}:9880', 'admin', 123456
 );
 EOF
 
