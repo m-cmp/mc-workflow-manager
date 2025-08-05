@@ -306,7 +306,7 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Async
     @Override
-    public Boolean runWorkflow(Long workflowIdx) {
+    public Boolean runWorkflow(Long workflowIdx) throws IOException {
         // 배포 실행 관련 사용자 이력 정보 수정
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
@@ -322,6 +322,18 @@ public class WorkflowServiceImpl implements WorkflowService {
 
         WorkflowReqDto workflowReqDto = WorkflowReqDto.of(workflowDto, paramList, stageList);
 
+        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+
+        boolean isExistJob = jenkinsService.isExistJobName(ossDto, workflowDto.getWorkflowName());
+        if(!isExistJob) {
+            jenkinsService.createJenkinsJob_v2(
+                    ossDto,
+                    workflowDto.getWorkflowName(),
+                    workflowDto.getScript(),
+                    paramList);
+        }
+        log.info("Jenkins Job 생성 완료 : {}", isExistJob);
+
         return runWorkflowCallback(workflowReqDto);
     }
 
@@ -332,11 +344,11 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Async
     @Override
-    public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
+    public Boolean runWorkflow(WorkflowReqDto workflowReqDto) throws IOException {
         return runWorkflowCallback(workflowReqDto);
     }
 
-    public Boolean runWorkflowCallback(WorkflowReqDto workflowReqDto) {
+    public Boolean runWorkflowCallback(WorkflowReqDto workflowReqDto) throws IOException {
 
         Map<String, List<String>> jenkinsJobParams = null;
 
@@ -353,6 +365,16 @@ public class WorkflowServiceImpl implements WorkflowService {
         // OSS 접속 정보 조회
         OssTypeDto ossTypeDto = getOssTypeDto(workflowReqDto.getWorkflowInfo().getOssIdx());
         OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
+
+        boolean isExistJob = jenkinsService.isExistJobName(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName());
+        if(!isExistJob) {
+            jenkinsService.createJenkinsJob_v2(
+                    ossDto,
+                    workflowReqDto.getWorkflowInfo().getWorkflowName(),
+                    workflowReqDto.getWorkflowInfo().getScript(),
+                    workflowReqDto.getWorkflowParams());
+        }
+        log.info("Jenkins Job 생성 완료 : {}", isExistJob);
 
         // Jenkins Job 실행
         int jenkinsBuildId = jenkinsService.buildJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsJobParams);

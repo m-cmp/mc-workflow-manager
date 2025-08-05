@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @Tag(name = "Workflow", description = "워크플로우 배포 관리")
@@ -105,14 +106,14 @@ public class WorkflowController {
 
     @Operation(summary="워크플로우 배포 실행")
     @GetMapping("/run/{workflowIdx}")
-    public ResponseWrapper<Boolean> runWorkflowGet(@PathVariable Long workflowIdx) {
+    public ResponseWrapper<Boolean> runWorkflowGet(@PathVariable Long workflowIdx) throws IOException {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowIdx));
     }
 
 
     @Operation(summary="워크플로우 배포 실행")
     @PostMapping("/run")
-    public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) {
+    public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) throws IOException {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowReqDto));
     }
 

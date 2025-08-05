@@ -1699,7 +1699,7 @@ docker stop k8s-tools
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (1, 1, 'MCI', 'mci01', 'N'),
 (2, 1, 'NAMESPACE', 'ns01', 'N'),
-(3, 1, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(3, 1, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (4, 1, 'USER', 'default', 'N'),
 (5, 1, 'USERPASS', 'default', 'N'),
 (6, 1, 'COMMON_IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
@@ -1709,7 +1709,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (8, 2, 'CLUSTER', 'pmk01', 'N'),
 (9, 2, 'NAMESPACE', 'ns01', 'N'),
-(10, 2, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(10, 2, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (11, 2, 'USER', 'default', 'N'),
 (12, 2, 'USERPASS', 'default', 'N');
 
@@ -1717,7 +1717,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 -- Workflow : create-ns
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (13, 3, 'NAMESPACE', 'ns01', 'N'),
-(14, 3, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(14, 3, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (15, 3, 'USER', 'default', 'N'),
 (16, 3, 'USERPASS', 'default', 'N');
 
@@ -1726,7 +1726,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (17, 4, 'MCI', 'mci01', 'N'),
 (18, 4, 'NAMESPACE', 'ns01', 'N'),
-(19, 4, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(19, 4, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (20, 4, 'USER', 'default', 'N'),
 (21, 4, 'USERPASS', 'default', 'N'),
 (22, 4, 'COMMON_IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
@@ -1737,7 +1737,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (24, 5, 'MCI', 'mci01', 'N'),
 (25, 5, 'NAMESPACE', 'ns01', 'N'),
-(26, 5, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(26, 5, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (27, 5, 'USER', 'default', 'N'),
 (28, 5, 'USERPASS', 'default', 'N');
 
@@ -1745,7 +1745,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 -- Workflow : pmk pre-installation task
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (29, 6, 'NAMESPACE', 'ns01', 'N'),
-(30, 6, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(30, 6, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (31, 6, 'USER', 'default', 'N'),
 (32, 6, 'USERPASS', 'default', 'N');
 
@@ -1754,7 +1754,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (33, 7, 'CLUSTER', 'pmk01', 'N'),
 (34, 7, 'NAMESPACE', 'ns01', 'N'),
-(35, 7, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(35, 7, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (36, 7, 'USER', 'default', 'N'),
 (37, 7, 'USERPASS', 'default', 'N');
 
@@ -1763,7 +1763,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (38, 8, 'CLUSTER', 'pmk01', 'N'),
 (39, 8, 'NAMESPACE', 'ns01', 'N'),
-(40, 8, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(40, 8, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (41, 8, 'USER', 'default', 'N'),
 (42, 8, 'USERPASS', 'default', 'N');
 
@@ -1772,7 +1772,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (43, 9, 'MCI', 'mci01', 'N'),
 (44, 9, 'NAMESPACE', 'ns01', 'N'),
-(45, 9, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(45, 9, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (46, 9, 'USER', 'default', 'N'),
 (47, 9, 'USERPASS', 'default', 'N');
 
@@ -1781,7 +1781,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (48, 10, 'MCI', 'mci01', 'N'),
 (49, 10, 'NAMESPACE', 'ns01', 'N'),
-(50, 10, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(50, 10, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (51, 10, 'USER', 'default', 'N'),
 (52, 10, 'USERPASS', 'default', 'N');
 
@@ -1790,7 +1790,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (53, 11, 'CLUSTER', 'pmk01', 'N'),
 (54, 11, 'NAMESPACE', 'ns01', 'N'),
-(55, 11, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(55, 11, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (56, 11, 'USER', 'default', 'N'),
 (57, 11, 'USERPASS', 'default', 'N');
 
@@ -1799,7 +1799,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (58, 12, 'CLUSTER', 'pmk01', 'N'),
 (59, 12, 'NAMESPACE', 'ns01', 'N'),
-(60, 12, 'TUMBLEBUG', 'http://tb-url:1323', 'N'),
+(60, 12, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (61, 12, 'USER', 'default', 'N'),
 (62, 12, 'USERPASS', 'default', 'N');
 

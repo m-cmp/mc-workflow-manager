@@ -9,6 +9,7 @@ import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface WorkflowService {
@@ -32,10 +33,10 @@ public interface WorkflowService {
     Boolean isWorkflowNameDuplicated(String workflowName);
 
     // Workflow 실행 (Idx)
-    Boolean runWorkflow(Long workflowIdx);
+    Boolean runWorkflow(Long workflowIdx) throws IOException;
 
     // Workflow 실행 (Workflow 정보)
-    Boolean runWorkflow(WorkflowReqDto workflowReqDto);
+    Boolean runWorkflow(WorkflowReqDto workflowReqDto) throws IOException;
 
     // Workflow 스테이지 목록
     List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList();
