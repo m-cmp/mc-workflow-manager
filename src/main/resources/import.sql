@@ -2,7 +2,7 @@
 INSERT INTO oss_type (oss_type_idx, oss_type_name, oss_type_desc) VALUES (1, 'JENKINS', 'init');
 
 -- Step 2: Insert into oss
--- INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_username, oss_password) VALUES (1, 1, 'SampleOss', 'Sample Description', 'http://sample.com', 'root', null);
+INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_username, oss_password) VALUES (1, 1, 'SampleOss', 'Sample Description', 'http://mc-workflow-manager-jenkins', 'admin', 123456);
 
 -- Step 3: Insert into workflow_stage_type (assuming this table exists and 1 is valid)
 -- 1, 'TUMBLEBUG INFO CHECK', 'TUMBLEBUG INFO CHECK'
