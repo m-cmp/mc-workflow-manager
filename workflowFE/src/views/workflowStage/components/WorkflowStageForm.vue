@@ -295,7 +295,7 @@ const onClickSubmit = async () => {
  */
 const _registWorkflowStage = async (): Promise<boolean> => {
   try {
-    const { data } = await registWorkflowStage(workflowStageFormData.value)
+  const { data } = await registWorkflowStage(workflowStageFormData.value)
     if (data) {
       toast.success('Registered successfully.')
       return true
@@ -315,7 +315,7 @@ const _registWorkflowStage = async (): Promise<boolean> => {
  */
 const _updateWorkflowStage = async (): Promise<boolean> => {
   try {
-    const { data } = await updateWorkflowStage(workflowStageFormData.value)
+  const { data } = await updateWorkflowStage(workflowStageFormData.value)
     if (data) {
       toast.success('Updated successfully.')
       return true

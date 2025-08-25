@@ -323,8 +323,8 @@ const onClickSubmit = async () => {
   
   // 성공적으로 처리된 경우에만 모달 닫기
   if (success) {
-    emit('get-oss-list');
-    setInit();
+  emit('get-oss-list');
+  setInit();
     
     // 모달 닫기
     if (modalInstance.value) {

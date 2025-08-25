@@ -244,8 +244,8 @@ const onClickSubmit = async () => {
  */
 const _registEventListener = async (): Promise<boolean> => {
   try {
-    const { data } = await registEventListener(eventListenerFormData.value)
-    if (data) {
+  const { data } = await registEventListener(eventListenerFormData.value)
+  if (data) {
       toast.success('Registered successfully.')
       return true
     } else {
@@ -264,8 +264,8 @@ const _registEventListener = async (): Promise<boolean> => {
  */
 const _updateEventListener = async (): Promise<boolean> => {
   try {
-    const { data } = await updateEventListener(eventListenerFormData.value)
-    if (data) {
+  const { data } = await updateEventListener(eventListenerFormData.value)
+  if (data) {
       toast.success('Updated successfully.')
       return true
     } else {
