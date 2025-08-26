@@ -134,10 +134,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    vm: [
+                    subGroups: [
                         [
-                            commonSpec: "${COMMON_SPEC}",
-                            commonImage: "${COMMON_IMAGE_ID}"
+                            specId: "${SPEC_ID}",
+                            imageId: "${IMAGE_ID}"
                         ]
                     ]
                 ])
@@ -470,8 +470,8 @@ pipeline {
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
-                    string(name: ''COMMON_IMAGE_ID'', value: COMMON_IMAGE_ID),
-                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC),
+                    string(name: ''IMAGE_ID'', value: IMAGE_ID),
+                    string(name: ''SPEC_ID'', value: SPEC_ID),
                 ]
             }
         }
@@ -671,10 +671,10 @@ pipeline {
             script {
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    vm: [
+                    subGroups: [
                         [
-                            commonSpec: "${COMMON_SPEC}",
-                            commonImage: "${COMMON_IMAGE_ID}"
+                            specId: "${SPEC_ID}",
+                            imageId: "${IMAGE_ID}"
                         ]
                     ]
                 ])
@@ -1702,8 +1702,8 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (3, 1, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (4, 1, 'USER', 'default', 'N'),
 (5, 1, 'USERPASS', 'default', 'N'),
-(6, 1, 'COMMON_IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(7, 1, 'COMMON_SPEC', 'aws+ap-northeast-2+t2.small', 'N');
+(6, 1, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
+(7, 1, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N');
 
 -- Workflow : k8s-mariadb-nginx-all-in-one
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
@@ -1729,8 +1729,8 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (19, 4, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (20, 4, 'USER', 'default', 'N'),
 (21, 4, 'USERPASS', 'default', 'N'),
-(22, 4, 'COMMON_IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(23, 4, 'COMMON_SPEC', 'aws+ap-northeast-2+t2.small', 'N');
+(22, 4, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
+(23, 4, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-mci
@@ -1853,7 +1853,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
                     string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE),
-                    string(name: ''COMMON_SPEC'', value: COMMON_SPEC),
+                    string(name: ''SPEC_ID'', value: SPEC_ID),
                 ]
             }
         }');
@@ -2061,10 +2061,10 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             script {
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    vm: [
+                    subGroups: [
                         [
-                            commonSpec: "${COMMON_SPEC}",
-                            commonImage: "${COMMON_IMAGE_ID}"
+                            specId: "${SPEC_ID}",
+                            imageId: "${IMAGE_ID}"
                         ]
                     ]
                 ])
