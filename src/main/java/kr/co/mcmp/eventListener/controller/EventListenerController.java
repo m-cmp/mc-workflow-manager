@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "event Listener", description = "이벤트 리스너 관리")
 @Slf4j
@@ -61,6 +62,18 @@ public class EventListenerController {
     @GetMapping("/run/{eventListenerIdx}")
     public ResponseWrapper<Boolean> runEventListener(@PathVariable Long eventListenerIdx) {
         return new ResponseWrapper<>(eventListenerService.runEventListener(eventListenerIdx));
+    }
+
+    @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
+    @PostMapping("/run/{eventListenerIdx}")
+    public ResponseWrapper<Boolean> runEventListenerPost(@PathVariable Long eventListenerIdx, @RequestBody Map<String, String> params) {
+        return new ResponseWrapper<>(eventListenerService.runEventListenerPost(eventListenerIdx, params));
+    }
+
+    @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
+    @PutMapping("/run/{eventListenerIdx}")
+    public ResponseWrapper<Boolean> runEventListenerPut(@PathVariable Long eventListenerIdx, @RequestBody Map<String, String> params) {
+        return new ResponseWrapper<>(eventListenerService.runEventListenerPut(eventListenerIdx, params));
     }
 
     @Operation(summary = "Event Listener Workflow 목록", description = "Event Listener Workflow 목록")

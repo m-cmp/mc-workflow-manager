@@ -7,6 +7,7 @@ import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public interface EventListenerService {
@@ -19,4 +20,6 @@ public interface EventListenerService {
     WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn);
     Boolean isEventListenerDuplicated(String eventlistenerName);
     Boolean runEventListener(Long eventListenerIdx);
+    Boolean runEventListenerPost(Long workflowIdx, Map<String, String> params);
+    Boolean runEventListenerPut(Long workflowIdx, Map<String, String> params);
 }
