@@ -6,6 +6,7 @@
       :new-btn-title="'New Workflow'"
       :popup-flag="false"
       :popup-target="''"
+      class="mb-3"
       @click-new-btn="onClickNewBtn"
     />
 

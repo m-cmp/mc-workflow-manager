@@ -39,7 +39,7 @@
             
             <!-- OSS 설명 -->
             <div class="mb-3">
-              <label class="form-label required">OSS Description</label>
+              <label class="form-label">OSS Description</label>
               <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Description" v-model="ossFormData.ossDesc" />
             </div>
 

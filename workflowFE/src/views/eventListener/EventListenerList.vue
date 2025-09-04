@@ -6,6 +6,7 @@
       :new-btn-title="'New Event Listener'"
       :popup-flag="true"
       :popup-target="'#eventListenerForm'"
+      class="mb-3"
       @click-new-btn="onClickNewBtn"
     />
 

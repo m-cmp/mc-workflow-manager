@@ -4,6 +4,10 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      path: '/',
+      redirect: '/web/workflow/list'
+    },
+    {
       path: '/web',
       name: 'rootOssList',
       component: () => import('@/views/oss/OssList.vue' as any)

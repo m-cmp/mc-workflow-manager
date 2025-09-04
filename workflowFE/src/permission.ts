@@ -7,6 +7,9 @@ router.beforeEach(async (to, from, next) => {
 
   window.addEventListener("message", async function (event) {
     let data
+    console.log('## event.data ### : ', event)
+    console.log('## event.data ### : ', event.data)
+    console.log('## event.data.accessToken ### : ', event.data.accessToken)
     if (event.data.accessToken === undefined) {
       data = {
         accessToken: "accesstokenExample", // 있는지 확인

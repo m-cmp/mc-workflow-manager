@@ -1,12 +1,15 @@
 <template>
+
+  <TableHeander 
+    :header-title="'Workflow Stage'"
+    :new-btn-title="'New Stage'"
+    :popup-flag="true"
+    :popup-target="'#workflowStageForm'"
+    class="mb-3"
+    @click-new-btn="onClickNewBtn"
+  />
+
   <div class="card card-flush w-100">
-    <TableHeander 
-      :header-title="'Workflow Stage'"
-      :new-btn-title="'New Stage'"
-      :popup-flag="true"
-      :popup-target="'#workflowStageForm'"
-      @click-new-btn="onClickNewBtn"
-    />
     <Tabulator 
       :columns="columns"
       :table-data="workflowStageList">
@@ -15,6 +18,7 @@
     <WorkflowStageForm 
       :mode="formMode"
       :workflow-stage-idx="selectWorkflowStageIdx"
+      :workflow-stage-name="selectWorkflowStageName"
       @get-workflow-stage-list="_getWorkflowStageList"/>
 
     <DeleteWorkflowStage 
@@ -104,11 +108,10 @@ const setColumns = () => {
           const target = e.target as HTMLElement;
           const btnFlag = target?.getAttribute('id');
           selectWorkflowStageIdx.value = cell.getRow().getData().workflowStageIdx;
+          selectWorkflowStageName.value = cell.getRow().getData().workflowStageName;
 
           if (btnFlag === 'edit-btn') {
               formMode.value = 'edit';
-          } else if (btnFlag === 'delete-btn') {
-              selectWorkflowStageName.value = cell.getRow().getData().workflowStageName;
           }
       }
     }

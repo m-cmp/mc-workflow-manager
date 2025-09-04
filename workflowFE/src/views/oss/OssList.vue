@@ -6,6 +6,7 @@
       :new-btn-title="'New OSS'"
       :popup-flag="true"
       :popup-target="'#ossForm'"
+      class="mb-3"
       @click-new-btn="onClickNewBtn"
     />
 

@@ -36,7 +36,7 @@
               <div class="grid gap-0 column-gap-3">
                 <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the Workflow Stage Name" v-model="workflowStageFormData.workflowStageName" />
                 <div class="col">
-                  <button v-if="!duplicatedWorkflowStage" class="btn btn-primary chk" @click="onClickDuplicatWorkflowStageName">Duplicate Check</button>
+                  <button v-if="!duplicatedWorkflowStage" class="btn btn-primary chk" @click="onClickDuplicatWorkflowStageName">Duplicate Check</button> 
                   <button v-else class="btn btn-success" style="margin: 3px;">Duplicate Check</button>
                 </div>
               </div>
@@ -44,7 +44,7 @@
             
             <!-- Workflow Stage Description -->
             <div class="mb-3">
-              <label class="form-label required">Workflow Stage Description</label>
+              <label class="form-label">Workflow Stage Description</label>
               <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the Workflow Stage Description" v-model="workflowStageFormData.workflowStageDesc" />
             </div>
 
@@ -96,7 +96,8 @@ const modalInstance = ref<Modal>()
  */
 interface Props {
   mode: String,
-  workflowStageIdx: number
+  workflowStageIdx: number,
+  workflowStageName: string
 }
 const props = defineProps<Props>()
 const emit = defineEmits(['get-workflow-stage-list'])
@@ -106,6 +107,11 @@ const emit = defineEmits(['get-workflow-stage-list'])
  * @Desc Call data set function according to workflowStageIdx value changes
  */
 const workflowStageIdx = computed(() => props.workflowStageIdx);
+const workflowStageName = computed(() => props.workflowStageName);
+
+// 초기화 중 상태 플래그
+const isInitializing = ref(false as boolean)
+
 watch(workflowStageIdx, async () => {
   _getWorkflowStageTypeList()
   await setInit();
@@ -135,6 +141,7 @@ const workflowStageFormData = ref({} as WorkflowStage)
  *    3. Initialize data when close / create / edit button is clicked
  */
 const setInit = async () => {
+  isInitializing.value = true
   if (props.mode === 'new') {
     workflowStageFormData.value.workflowStageIdx = 0
     workflowStageFormData.value.workflowStageTypeIdx = 0
@@ -146,11 +153,15 @@ const setInit = async () => {
 
     duplicatedWorkflowStage.value = false
     addWorkflowStageTypeFlag.value = false
+    isInitializing.value = false
+    console.log('isInitializing', isInitializing.value)
   }
   else {
-    const { data } = await getWorkflowStageDetailInfo(props.workflowStageIdx)
-    workflowStageFormData.value = data
-    duplicatedWorkflowStage.value = true
+    await getWorkflowStageDetailInfo(props.workflowStageIdx).then((res) => {
+      workflowStageFormData.value = res.data
+      duplicatedWorkflowStage.value = true
+      isInitializing.value = false
+    })
   }
 }
 
@@ -192,12 +203,14 @@ const onChangeWorkflowStageTypeAdd = async() => {
  *                      2. Set default script
  */
 const onClickedWorkflowStageType = async() => {
+  duplicatedWorkflowStage.value = false
   workflowStageTypeList.value.forEach((type) => {
     if (workflowStageFormData.value.workflowStageTypeIdx === type.workflowStageTypeIdx)
       workflowStageFormData.value.workflowStageTypeName = type.workflowStageTypeName
   })
   await _getWorkflowStageDefaultScript(workflowStageFormData.value.workflowStageTypeName)
 } 
+
 
 /**
  * @Title _getWorkflowStageDefaultScript
@@ -230,6 +243,22 @@ const onClickDuplicatWorkflowStageName = async () => {
     toast.error('Name is already in use.')
 }
 
+// 이름/타입 변경 시 중복체크 상태 초기화
+watch(
+  () => [
+    workflowStageFormData.value.workflowStageName,
+    workflowStageFormData.value.workflowStageTypeName
+  ],
+  () => {
+    if (isInitializing.value) return
+    if(workflowStageName.value === workflowStageFormData.value.workflowStageName) {
+      duplicatedWorkflowStage.value = true
+      return
+    }
+    duplicatedWorkflowStage.value = false
+  }
+)
+
 /**
  * @Title onClickSubmit
  * @Desc 
@@ -252,10 +281,6 @@ const onClickSubmit = async () => {
   }
   if (!duplicatedWorkflowStage.value) {
     toast.error('Please perform duplicate check.');
-    return;
-  }
-  if (!workflowStageFormData.value.workflowStageDesc) {
-    toast.error('Please enter Description.');
     return;
   }
   if (!workflowStageFormData.value.workflowStageContent) {
