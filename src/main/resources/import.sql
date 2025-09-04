@@ -137,7 +137,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     subGroups: [
                         [
                             specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}"
+                            imageId: "${IMAGE_ID}",
+                            rootDiskType: "{ROOT_DISK_TYPE}",
+                            rootDiskSize: "{ROOT_DISK_SIZE}}"
                         ]
                     ]
                 ])
@@ -189,7 +191,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure PMK Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
                 def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -197,9 +199,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
                     echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster"""
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
                         "name": "${CLUSTER}", \
                         "securityGroupIds": [ "${sg_id}" ], \
@@ -239,7 +241,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure PMK Delete''
             script {
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
                 def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS} """
                 sh(script: """ ${call} """, returnStdout: true)
                 echo "PMK deletion successful."
@@ -251,7 +253,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure PMK Running Status''
             script {
-                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                 def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "GET API call successful."
@@ -471,6 +473,8 @@ pipeline {
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
                     string(name: ''IMAGE_ID'', value: IMAGE_ID),
+                    string(name: ''ROOT_DISK_TYPE'', value: ROOT_DISK_TYPE),
+                    string(name: ''ROOT_DISK_SIZE'', value: ROOT_DISK_SIZE),
                     string(name: ''SPEC_ID'', value: SPEC_ID),
                 ]
             }
@@ -674,7 +678,9 @@ pipeline {
                     subGroups: [
                         [
                             specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}"
+                            imageId: "${IMAGE_ID}",
+                            rootDiskType: "{ROOT_DISK_TYPE}",
+                            rootDiskSize: "{ROOT_DISK_SIZE}}"
                         ]
                     ]
                 ])
@@ -777,7 +783,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhncloud+kr1+m2-c4m8"""
+def spec_id = """nhn+kr1+m2-c4m8"""
 def vNet_id = """vNet01"""
 def subnet_id = """subnet01"""
 def sg_id = """sg01"""
@@ -847,7 +853,7 @@ pipeline {
                 } else {
                     def call_tumblebug_regist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec"""
                     def call_tumblebug_regist_spec_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${spec_id}", \
                         "cspSpecName": "m2.c4m8", \
                         "num_vCPU": 4, \
@@ -887,7 +893,7 @@ pipeline {
                     def call_tumblebug_create_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet"""
                     def call_tumblebug_create_vnet_payload = """{ \
                         "cidrBlock": "10.0.0.0/16", \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "description": "${vNet_id} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
                         "name": "${vNet_id}", \
                         "subnetInfoList": [ \
@@ -932,24 +938,22 @@ pipeline {
                 } else {
                     def call_tumblebug_create_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup"""
                     def call_tumblebug_create_sg_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${sg_id}", \
                         "vNetId": "${vNet_id}", \
                         "description": "Security group for NHN K8s cluster & Workflow Create SecurityGroup", \
                         "firewallRules": [ \
                             { \
-                                "fromPort": "22", \
-                                "toPort": "22", \
-                                "ipProtocol": "tcp", \
-                                "direction": "inbound", \
-                                "cidr": "0.0.0.0/0" \
+                                "Ports": "22", \
+                                "Protocol": "tcp", \
+                                "Direction": "inbound", \
+                                "CIDR": "0.0.0.0/0" \
                             }, \
                             { \
-                                "fromPort": "6443", \
-                                "toPort": "6443", \
-                                "ipProtocol": "tcp", \
-                                "direction": "inbound", \
-                                "cidr": "0.0.0.0/0" \
+                                "Ports": "6443", \
+                                "Protocol": "tcp", \
+                                "Direction": "inbound", \
+                                "CIDR": "0.0.0.0/0" \
                             } \
                           ] \
                         }"""
@@ -984,7 +988,7 @@ pipeline {
                 } else {
                     def call_tumblebug_create_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey"""
                     def call_tumblebug_create_sshkey_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${sshkey_id}" \
                     }"""
                     def tumblebug_create_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sshkey_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sshkey_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -1015,7 +1019,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhncloud+kr1+m2-c4m8"""
+def spec_id = """nhn+kr1+m2-c4m8"""
 def vNet_id = """vNet01"""
 def subnet_id = """subnet01"""
 def sg_id = """sg01"""
@@ -1047,7 +1051,7 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: Infrastructure PMK Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
                 def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -1055,9 +1059,9 @@ pipeline {
                     tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
                     echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster"""
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
                         "name": "${CLUSTER}", \
                         "securityGroupIds": [ "${sg_id}" ], \
@@ -1100,7 +1104,7 @@ pipeline {
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Running Status''
         script {
-          def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+          def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
 
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -1148,7 +1152,7 @@ pipeline {
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Delete''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
           def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
           sh(script: """ ${call} """, returnStdout: true)
           echo "VM deletion successful."
@@ -1160,7 +1164,7 @@ pipeline {
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Running Status''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
             echo "GET API call successful."
@@ -1464,7 +1468,7 @@ pipeline {
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
-                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                         kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                         if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
                             echo "GET API call successful."
@@ -1585,7 +1589,7 @@ pipeline {
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
-                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                         kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                         if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
                             echo "GET API call successful."
@@ -1703,105 +1707,108 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (4, 1, 'USER', 'default', 'N'),
 (5, 1, 'USERPASS', 'default', 'N'),
 (6, 1, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(7, 1, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N');
-
+(7, 1, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
+(8, 1, 'ROOT_DISK_TYPE', '', 'N'),
+(9, 1, 'ROOT_DISK_SIZE', '100', 'N');
 -- Workflow : k8s-mariadb-nginx-all-in-one
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(8, 2, 'CLUSTER', 'pmk01', 'N'),
-(9, 2, 'NAMESPACE', 'ns01', 'N'),
-(10, 2, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(11, 2, 'USER', 'default', 'N'),
-(12, 2, 'USERPASS', 'default', 'N');
+(10, 2, 'CLUSTER', 'pmk01', 'N'),
+(11, 2, 'NAMESPACE', 'ns01', 'N'),
+(12, 2, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(13, 2, 'USER', 'default', 'N'),
+(14, 2, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : create-ns
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(13, 3, 'NAMESPACE', 'ns01', 'N'),
-(14, 3, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(15, 3, 'USER', 'default', 'N'),
-(16, 3, 'USERPASS', 'default', 'N');
+(15, 3, 'NAMESPACE', 'ns01', 'N'),
+(16, 3, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(17, 3, 'USER', 'default', 'N'),
+(18, 3, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : create-mci
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(17, 4, 'MCI', 'mci01', 'N'),
-(18, 4, 'NAMESPACE', 'ns01', 'N'),
-(19, 4, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(20, 4, 'USER', 'default', 'N'),
-(21, 4, 'USERPASS', 'default', 'N'),
-(22, 4, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(23, 4, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N');
+(19, 4, 'MCI', 'mci01', 'N'),
+(20, 4, 'NAMESPACE', 'ns01', 'N'),
+(21, 4, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(22, 4, 'USER', 'default', 'N'),
+(23, 4, 'USERPASS', 'default', 'N'),
+(24, 4, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
+(25, 4, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
+(26, 4, 'ROOT_DISK_TYPE', '', 'N'),
+(27, 4, 'ROOT_DISK_SIZE', '100', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-mci
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(24, 5, 'MCI', 'mci01', 'N'),
-(25, 5, 'NAMESPACE', 'ns01', 'N'),
-(26, 5, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(27, 5, 'USER', 'default', 'N'),
-(28, 5, 'USERPASS', 'default', 'N');
+(28, 5, 'MCI', 'mci01', 'N'),
+(29, 5, 'NAMESPACE', 'ns01', 'N'),
+(30, 5, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(31, 5, 'USER', 'default', 'N'),
+(32, 5, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : pmk pre-installation task
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(29, 6, 'NAMESPACE', 'ns01', 'N'),
-(30, 6, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(31, 6, 'USER', 'default', 'N'),
-(32, 6, 'USERPASS', 'default', 'N');
+(33, 6, 'NAMESPACE', 'ns01', 'N'),
+(34, 6, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(35, 6, 'USER', 'default', 'N'),
+(36, 6, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : create-pmk
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(33, 7, 'CLUSTER', 'pmk01', 'N'),
-(34, 7, 'NAMESPACE', 'ns01', 'N'),
-(35, 7, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(36, 7, 'USER', 'default', 'N'),
-(37, 7, 'USERPASS', 'default', 'N');
+(37, 7, 'CLUSTER', 'pmk01', 'N'),
+(38, 7, 'NAMESPACE', 'ns01', 'N'),
+(39, 7, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(40, 7, 'USER', 'default', 'N'),
+(41, 7, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-pmk
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(38, 8, 'CLUSTER', 'pmk01', 'N'),
-(39, 8, 'NAMESPACE', 'ns01', 'N'),
-(40, 8, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(41, 8, 'USER', 'default', 'N'),
-(42, 8, 'USERPASS', 'default', 'N');
+(42, 8, 'CLUSTER', 'pmk01', 'N'),
+(43, 8, 'NAMESPACE', 'ns01', 'N'),
+(44, 8, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(45, 8, 'USER', 'default', 'N'),
+(46, 8, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : mci-nginx-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(43, 9, 'MCI', 'mci01', 'N'),
-(44, 9, 'NAMESPACE', 'ns01', 'N'),
-(45, 9, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(46, 9, 'USER', 'default', 'N'),
-(47, 9, 'USERPASS', 'default', 'N');
+(47, 9, 'MCI', 'mci01', 'N'),
+(48, 9, 'NAMESPACE', 'ns01', 'N'),
+(49, 9, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(50, 9, 'USER', 'default', 'N'),
+(51, 9, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : mci-mariadb-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(48, 10, 'MCI', 'mci01', 'N'),
-(49, 10, 'NAMESPACE', 'ns01', 'N'),
-(50, 10, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(51, 10, 'USER', 'default', 'N'),
-(52, 10, 'USERPASS', 'default', 'N');
+(52, 10, 'MCI', 'mci01', 'N'),
+(53, 10, 'NAMESPACE', 'ns01', 'N'),
+(54, 10, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(55, 10, 'USER', 'default', 'N'),
+(56, 10, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : pmk-nginx-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(53, 11, 'CLUSTER', 'pmk01', 'N'),
-(54, 11, 'NAMESPACE', 'ns01', 'N'),
-(55, 11, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(56, 11, 'USER', 'default', 'N'),
-(57, 11, 'USERPASS', 'default', 'N');
+(57, 11, 'CLUSTER', 'pmk01', 'N'),
+(58, 11, 'NAMESPACE', 'ns01', 'N'),
+(59, 11, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(60, 11, 'USER', 'default', 'N'),
+(61, 11, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : pmk-mariadb-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(58, 12, 'CLUSTER', 'pmk01', 'N'),
-(59, 12, 'NAMESPACE', 'ns01', 'N'),
-(60, 12, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
-(61, 12, 'USER', 'default', 'N'),
-(62, 12, 'USERPASS', 'default', 'N');
+(62, 12, 'CLUSTER', 'pmk01', 'N'),
+(63, 12, 'NAMESPACE', 'ns01', 'N'),
+(64, 12, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(65, 12, 'USER', 'default', 'N'),
+(66, 12, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2064,7 +2071,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     subGroups: [
                         [
                             specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}"
+                            imageId: "${IMAGE_ID}",
+                            rootDiskType: "{ROOT_DISK_TYPE}",
+                            rootDiskSize: "{ROOT_DISK_SIZE}}"
                         ]
                     ]
                 ])
@@ -2171,7 +2180,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhncloud+kr1+m2-c4m8"""
+def spec_id = """nhn+kr1+m2-c4m8"""
 def vNet_id = """vNet01"""
 def subnet_id = """subnet01"""
 def sg_id = """sg01"""
@@ -2249,7 +2258,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                 } else {
                     def call_tumblebug_regist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec"""
                     def call_tumblebug_regist_spec_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${spec_id}", \
                         "cspSpecName": "m2.c4m8", \
                         "num_vCPU": 4, \
@@ -2291,7 +2300,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def call_tumblebug_create_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet"""
                     def call_tumblebug_create_vnet_payload = """{ \
                         "cidrBlock": "10.0.0.0/16", \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "description": "${vNet_id} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
                         "name": "${vNet_id}", \
                         "subnetInfoList": [ \
@@ -2338,24 +2347,22 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                 } else {
                     def call_tumblebug_create_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup"""
                     def call_tumblebug_create_sg_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${sg_id}", \
                         "vNetId": "${vNet_id}", \
                         "description": "Security group for NHN K8s cluster & Workflow Create SecurityGroup", \
                         "firewallRules": [ \
                             { \
-                                "fromPort": "22", \
-                                "toPort": "22", \
-                                "ipProtocol": "tcp", \
-                                "direction": "inbound", \
-                                "cidr": "0.0.0.0/0" \
+                                "Ports": "22", \
+                                "Protocol": "tcp", \
+                                "Direction": "inbound", \
+                                "CIDR": "0.0.0.0/0" \
                             }, \
                             { \
-                                "fromPort": "6443", \
-                                "toPort": "6443", \
-                                "ipProtocol": "tcp", \
-                                "direction": "inbound", \
-                                "cidr": "0.0.0.0/0" \
+                                "Ports": "6443", \
+                                "Protocol": "tcp", \
+                                "Direction": "inbound", \
+                                "CIDR": "0.0.0.0/0" \
                             } \
                           ] \
                         }"""
@@ -2392,7 +2399,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                 } else {
                     def call_tumblebug_create_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey"""
                     def call_tumblebug_create_sshkey_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "name": "${sshkey_id}" \
                     }"""
                     def tumblebug_create_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sshkey_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sshkey_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2425,7 +2432,7 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhncloud+kr1+m2-c4m8"""
+def spec_id = """nhn+kr1+m2-c4m8"""
 def vNet_id = """vNet01"""
 def subnet_id = """subnet01"""
 def sg_id = """sg01"""
@@ -2458,7 +2465,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: Infrastructure PMK Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
                 def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2466,9 +2473,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
                     echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster"""
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhncloud-kr1", \
+                        "connectionName": "nhn-kr1", \
                         "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
                         "name": "${CLUSTER}", \
                         "securityGroupIds": [ "${sg_id}" ], \
@@ -2512,7 +2519,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Running Status''
         script {
-          def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+          def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
 
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2560,7 +2567,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Delete''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
           def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
           sh(script: """ ${call} """, returnStdout: true)
           echo "VM deletion successful."
@@ -2572,7 +2579,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       steps {
         echo ''>>>>> STAGE: Infrastructure PMK Running Status''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
             echo "GET API call successful."
@@ -2889,7 +2896,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
-                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                         kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                         if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
                             echo "GET API call successful."
@@ -3015,7 +3022,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
-                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8scluster/${CLUSTER}?option=status"""
+                        def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                         kubeinfo = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                         if (kubeinfo.indexOf(''Http_Status_code:200'') > 0 ) {
                             echo "GET API call successful."
