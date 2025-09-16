@@ -11,16 +11,16 @@ INSERT INTO oss (oss_idx, oss_type_idx, oss_name, oss_desc, oss_url, oss_usernam
 -- 4, 'INFRASTRUCTURE MCI CREATE', 'INFRASTRUCTURE MCI CREATE'
 -- 5, 'INFRASTRUCTURE MCI DELETE', 'INFRASTRUCTURE MCI DELETE'
 -- 6, 'INFRASTRUCTURE MCI RUNNING STATUS', 'INFRASTRUCTURE MCI RUNNING STATUS'
--- 7, 'INFRASTRUCTURE PMK CREATE', 'INFRASTRUCTURE PMK CREATE'
--- 8, 'INFRASTRUCTURE PMK DELETE', 'INFRASTRUCTURE PMK DELETE'
--- 9, 'INFRASTRUCTURE PMK RUNNING STATUS', 'INFRASTRUCTURE PMK RUNNING STATUS'
+-- 7, 'INFRASTRUCTURE K8S Cluster CREATE', 'INFRASTRUCTURE K8S Cluster CREATE'
+-- 8, 'INFRASTRUCTURE K8S Cluster DELETE', 'INFRASTRUCTURE K8S Cluster DELETE'
+-- 9, 'INFRASTRUCTURE K8S Cluster RUNNING STATUS', 'INFRASTRUCTURE K8S Cluster RUNNING STATUS'
 -- 10, 'RUN JENKINS JOB', 'RUN JENKINS JOB'
 -- 11, 'VM ACCESS INFO', 'VM ACCESS INFO'
 -- 12, 'ACCESS VM AND SH(MCI VM)', 'ACCESS VM AND SH(MCI VM)'
 -- 13, 'WAIT FOR VM TO BE READY', 'WAIT FOR VM TO BE READY'
--- 14, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS'
+-- 14, 'K8S PRE-INSTALLATION TASKS', 'K8S PRE-INSTALLATION TASKS'
 -- 15, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO'
--- 16, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)'
+-- 16, 'K8S ACCESS AND SH(K8S Cluster)', 'K8S ACCESS AND SH(K8S Cluster)'
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
 (1, 'TUMBLEBUG INFO CHECK', 'TUMBLEBUG INFO CHECK'),
 (2, 'INFRASTRUCTURE NS CREATE', 'INFRASTRUCTURE NS CREATE'),
@@ -30,9 +30,9 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 (5, 'INFRASTRUCTURE MCI DELETE', 'INFRASTRUCTURE MCI DELETE'),
 (6, 'INFRASTRUCTURE MCI RUNNING STATUS', 'INFRASTRUCTURE MCI RUNNING STATUS'),
 
-(7, 'INFRASTRUCTURE PMK CREATE', 'INFRASTRUCTURE PMK CREATE'),
-(8, 'INFRASTRUCTURE PMK DELETE', 'INFRASTRUCTURE PMK DELETE'),
-(9, 'INFRASTRUCTURE PMK RUNNING STATUS', 'INFRASTRUCTURE PMK RUNNING STATUS'),
+(7, 'INFRASTRUCTURE K8S Cluster CREATE', 'INFRASTRUCTURE K8S Cluster CREATE'),
+(8, 'INFRASTRUCTURE K8S Cluster DELETE', 'INFRASTRUCTURE K8S Cluster DELETE'),
+(9, 'INFRASTRUCTURE K8S Cluster RUNNING STATUS', 'INFRASTRUCTURE K8S Cluster RUNNING STATUS'),
 
 (10, 'RUN JENKINS JOB', 'RUN JENKINS JOB'),
 
@@ -40,9 +40,9 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 (12, 'ACCESS VM AND SH(MCI VM)', 'ACCESS VM AND SH(MCI VM)'),
 (13, 'WAIT FOR VM TO BE READY', 'WAIT FOR VM TO BE READY'),
 
-(14, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS'),
+(14, 'K8S PRE-INSTALLATION TASKS', 'K8S PRE-INSTALLATION TASKS'),
 (15, 'K8S ACCESS GET CONFIG INFO', 'K8S ACCESS GET CONFIG INFO'),
-(16, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)');
+(16, 'K8S ACCESS AND SH(K8S Cluster)', 'K8S ACCESS AND SH(K8S Cluster)');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -53,16 +53,16 @@ INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_na
 -- 4. Infrastructure MCI Create
 -- 5. Infrastructure MCI Delete
 -- 6. Infrastructure MCI Running Status
--- 7. Infrastructure PMK Create
--- 8. Infrastructure PMK Delete
--- 9. Infrastructure PMK Running Status
+-- 7. Infrastructure K8S Cluster Create
+-- 8. Infrastructure K8S Cluster Delete
+-- 9. Infrastructure K8S Cluster Running Status
 -- 10. Run Jenkins Job
 -- 11. VM GET Access Info
 -- 12. ACCESS VM AND SH(MCI VM)
 -- 13. WAIT FOR VM TO BE READY
--- 14. PMK PRE-INSTALLATION TASKS
+-- 14. K8S PRE-INSTALLATION TASKS
 -- 15. K8S ACCESS GET CONFIG INFO
--- 16. K8S ACCESS AND SH(PMK K8S)
+-- 16. K8S ACCESS AND SH(K8S Cluster)
 -- INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Tumblebug Info Check', 'Tumblebug Info Check', '');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (1, 1, 1, 'Tumblebug Info Check', 'Tumblebug Info Check', '
     stage(''Tumblebug Info Check'') {
@@ -186,43 +186,27 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (7, 7, 1, 'Infrastructure PMK Create', 'Infrastructure PMK Create', '
-    stage(''Infrastructure PMK Create'') {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (7, 7, 1, 'Infrastructure K8S Cluster Create', 'Infrastructure K8S Cluster Create', '
+    stage(''Infrastructure K8S Cluster Create'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure PMK Create''
+            echo ''>>>>> STAGE: Infrastructure K8S Cluster Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
-                def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                def call_tumblebug_exist_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
+                def tumblebug_exist_k8s_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_k8s_cluster_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                if (tumblebug_exist_k8s_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "Exist cluster!"
-                    tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
+                    tumblebug_exist_k8s_cluster_response = tumblebug_exist_k8s_cluster_response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
+                    def call_tumblebug_create_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhn-kr1", \
-                        "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
-                        "name": "${CLUSTER}", \
-                        "securityGroupIds": [ "${sg_id}" ], \
-                        "subnetIds": [ "${subnet_id}" ], \
-                        "vNetId": "${vNet_id}", \
-                        "version": "v1.29.3", \
-                        "k8sNodeGroupList": [ \
-                            { \
-                                "desiredNodeSize": "1", \
-                                "imageId": "default", \
-                                "maxNodeSize": "3", \
-                                "minNodeSize": "1", \
-                                "name": "${ng_id}", \
-                                "onAutoScaling": "true", \
-                                "rootDiskSize": "default", \
-                                "rootDiskType": "default", \
-                                "specId": "${spec_id}", \
-                                "sshKeyId": "${sshkey_id}" \
-                            } \
-                        ] \
-                     }"""
+                            "imageId": "default", \
+                            "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                            "connectionName": "aws-ap-northeast-2", \
+                            "name": "k8scluster01", \
+                            "nodeGroupName": "k8sng01" \
+                        }"""
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -236,22 +220,22 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (8, 8, 1, 'Infrastructure PMK Delete', 'Infrastructure PMK Delete', '
-    stage(''Infrastructure PMK Delete'') {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (8, 8, 1, 'Infrastructure K8S Cluster Delete', 'Infrastructure K8S Cluster Delete', '
+    stage(''Infrastructure K8S Cluster Delete'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure PMK Delete''
+            echo ''>>>>> STAGE: Infrastructure K8S Cluster Delete''
             script {
                 def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
                 def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS} """
                 sh(script: """ ${call} """, returnStdout: true)
-                echo "PMK deletion successful."
+                echo "K8S Cluster deletion successful."
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (9, 9, 1, 'Infrastructure PMK Running Status', 'Infrastructure PMK Running Status', '
-    stage(''Infrastructure PMK Running Status'') {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (9, 9, 1, 'Infrastructure K8S Cluster Running Status', 'Infrastructure K8S Cluster Running Status', '
+    stage(''Infrastructure K8S Cluster Running Status'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+            echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
             script {
                 def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
                 def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
@@ -326,10 +310,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (14, 14, 1, 'PMK PRE-INSTALLATION TASKS', 'PMK PRE-INSTALLATION TASKS', '
-    stage(''PMK PRE-INSTALLATION TASKS'') {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (14, 14, 1, 'K8S PRE-INSTALLATION TASKS', 'K8S PRE-INSTALLATION TASKS', '
+    stage(''K8S PRE-INSTALLATION TASKS'') {
         steps {
-            echo ''>>>>>STAGE: PMK PRE-INSTALLATION TASKS''
+            echo ''>>>>>STAGE: K8S PRE-INSTALLATION TASKS''
             script {
                 def call_tumblebug_exist_ns_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
                 def tumblebug_exist_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_ns_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -364,8 +348,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (16, 16, 1, 'K8S ACCESS AND SH(PMK K8S)', 'K8S ACCESS AND SH(PMK K8S)', '
-    stage(''K8S ACCESS AND SH(PMK K8S)'') {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (16, 16, 1, 'K8S ACCESS AND SH(K8S Cluster)', 'K8S ACCESS AND SH(K8S Cluster)', '
+    stage(''K8S ACCESS AND SH(K8S Cluster)'') {
             steps {
                 sh ''''''
 
@@ -432,13 +416,13 @@ docker stop k8s-tools
 -- 3. create-ns
 -- 4. create-mci
 -- 5. delete-mci
--- 6. pmk pre-installation tasks
--- 7. create-pmk
--- 8. delete-pmk
+-- 6. k8s pre-installation tasks
+-- 7. create-k8s-cluster
+-- 8. delete-k8s-cluster
 -- 9. mci-nginx-install
 -- 10. mci-mariadb-install
--- 11. pmk-nginx-install
--- 12. pmk-mariadb-install
+-- 11. k8s-nginx-install
+-- 12. k8s-mariadb-install
 -- INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'create vm', 'test', 1, '');
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'vm-mariadb-nginx-all-in-one', 'test', 1, '
@@ -523,9 +507,9 @@ pipeline {
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''create-pmk'') {
+        stage (''create-k8s-cluster'') {
             steps {
-                build job: ''create-pmk'',
+                build job: ''create-k8s-cluster'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -539,9 +523,9 @@ pipeline {
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''pmk-nginx-install'') {
+        stage (''k8s-nginx-install'') {
             steps {
-                build job: ''pmk-nginx-install'',
+                build job: ''k8s-nginx-install'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -555,9 +539,9 @@ pipeline {
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''pmk-mariadb-install'') {
+        stage (''k8s-mariadb-install'') {
             steps {
-                build job: ''pmk-mariadb-install'',
+                build job: ''k8s-mariadb-install'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -777,7 +761,7 @@ pipeline {
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (6, 'pmk pre-installation tasks', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (6, 'k8s pre-installation tasks', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -811,9 +795,9 @@ pipeline {
             }
         }
     }
-    stage(''PMK PRE-INSTALLATION TASKS(namespace)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(namespace)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS (namespace)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (namespace)''
             script {
                 def call_tumblebug_exist_ns_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
                 def tumblebug_exist_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_ns_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -838,9 +822,9 @@ pipeline {
             }
         }
     }
-    stage(''PMK PRE-INSTALLATION TASKS(spec)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(spec)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS (spec)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (spec)''
             script {
                 // m2 / 4core / 8GB
                 def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${spec_id}"""
@@ -878,9 +862,9 @@ pipeline {
             }
         }
     }
-    stage(''PMK PRE-INSTALLATION TASKS(vNet)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(vNet)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(vNet)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(vNet)''
             script {
                 def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${vNet_id}"""
                 def tumblebug_exist_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_vnet_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -924,9 +908,9 @@ pipeline {
             }
         }
     }
-    stage(''PMK PRE-INSTALLATION TASKS(SecurityGroup)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(SecurityGroup)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(SecurityGroup)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(SecurityGroup)''
             script {
                 def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${sg_id}"""
                 def tumblebug_exist_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sg_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -974,9 +958,9 @@ pipeline {
             }
         }
     }
-    stage(''PMK PRE-INSTALLATION TASKS(sshKey)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(sshKey)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(sshKey)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(sshKey)''
             script {
                 def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${sshkey_id}"""
                 def tumblebug_exist_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sshkey_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -1013,7 +997,7 @@ pipeline {
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (7, 'create-pmk', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (7, 'create-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -1047,42 +1031,26 @@ pipeline {
             }
         }
     }
-    stage(''Infrastructure PMK Create'') {
+    stage(''Infrastructure K8S Cluster Create'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure PMK Create''
+            echo ''>>>>> STAGE: Infrastructure K8S Cluster Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
-                def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                def call_tumblebug_exist_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
+                def tumblebug_exist_k8s_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_k8s_cluster_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                if (tumblebug_exist_k8s_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "Exist cluster!"
-                    tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
+                    tumblebug_exist_k8s_cluster_response = tumblebug_exist_k8s_cluster_response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhn-kr1", \
-                        "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
-                        "name": "${CLUSTER}", \
-                        "securityGroupIds": [ "${sg_id}" ], \
-                        "subnetIds": [ "${subnet_id}" ], \
-                        "vNetId": "${vNet_id}", \
-                        "version": "v1.29.3", \
-                        "k8sNodeGroupList": [ \
-                            { \
-                                "desiredNodeSize": "1", \
-                                "imageId": "default", \
-                                "maxNodeSize": "3", \
-                                "minNodeSize": "1", \
-                                "name": "${ng_id}", \
-                                "onAutoScaling": "true", \
-                                "rootDiskSize": "default", \
-                                "rootDiskType": "default", \
-                                "specId": "${spec_id}", \
-                                "sshKeyId": "${sshkey_id}" \
-                            } \
-                        ] \
-                     }"""
+                        "imageId": "default", \
+                        "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                        "connectionName": "aws-ap-northeast-2", \
+                        "name": "k8scluster01", \
+                        "nodeGroupName": "k8sng01" \
+                    }"""
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -1100,9 +1068,9 @@ pipeline {
             }
         }
     }
-    stage(''Infrastructure PMK Running Status'') {
+    stage(''Infrastructure K8S Cluster Running Status'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
         script {
           def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
@@ -1122,7 +1090,7 @@ pipeline {
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (8, 'delete-pmk', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (8, 'delete-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -1148,9 +1116,9 @@ pipeline {
       }
     }
 
-    stage(''Infrastructure PMK Delete'') {
+    stage(''Infrastructure K8S Cluster Delete'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Delete''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Delete''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
           def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
@@ -1160,9 +1128,9 @@ pipeline {
       }
     }
 
-    stage(''Infrastructure PMK Running Status'') {
+    stage(''Infrastructure K8S Cluster Running Status'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
@@ -1439,7 +1407,7 @@ pipeline {
 }');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (11, 'pmk-nginx-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (11, 'k8s-nginx-install', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
@@ -1462,9 +1430,9 @@ def kubeconfig = ""
 pipeline {
     agent any
     stages {
-        stage(''Infrastructure PMK Running Status'') {
+        stage(''Infrastructure K8S Cluster Running Status'') {
             steps {
-                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+                echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
@@ -1477,13 +1445,13 @@ pipeline {
                             error "GET API call failed with status code: ${kubeinfo}"
                         }
 
-                        def pmkstatus = parseJson(kubeinfo)
+                        def k8sstatus = parseJson(kubeinfo)
 
-                        if(pmkstatus.flatten().contains(''Active'')) {
+                        if(k8sstatus.flatten().contains(''Active'')) {
                             break
                         }
                         else {
-                            echo """${pmkstatus}"""
+                            echo """${k8sstatus}"""
                             sh ''sleep 60'' // 1분 대기
                         }
                     }
@@ -1501,7 +1469,7 @@ pipeline {
             }
         }
 
-        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+        stage(''K8S ACCESS AND SH(K8S Cluster)'') {
             steps {
                 sh ''''''
 
@@ -1560,7 +1528,7 @@ docker stop k8s-tools
 }');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (12, 'pmk-mariadb-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (12, 'k8s-mariadb-install', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
@@ -1583,9 +1551,9 @@ def kubeconfig = ""
 pipeline {
     agent any
     stages {
-        stage(''Infrastructure PMK Running Status'') {
+        stage(''Infrastructure K8S Cluster Running Status'') {
             steps {
-                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+                echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
@@ -1598,13 +1566,13 @@ pipeline {
                             error "GET API call failed with status code: ${kubeinfo}"
                         }
 
-                        def pmkstatus = parseJson(kubeinfo)
+                        def k8sstatus = parseJson(kubeinfo)
 
-                        if(pmkstatus.flatten().contains(''Active'')) {
+                        if(k8sstatus.flatten().contains(''Active'')) {
                             break
                         }
                         else {
-                            echo """${pmkstatus}"""
+                            echo """${k8sstatus}"""
                             sh ''sleep 60'' // 1분 대기
                         }
                     }
@@ -1622,7 +1590,7 @@ pipeline {
             }
         }
 
-        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+        stage(''K8S ACCESS AND SH(K8S Cluster)'') {
             steps {
                 sh ''''''
 
@@ -1690,13 +1658,13 @@ docker stop k8s-tools
 -- 3. create-ns
 -- 4. create-mci
 -- 5. delete-mci
--- 6. pmk pre-installation tasks
--- 7. create-pmk
--- 8. delete-pmk
+-- 6. k8s pre-installation tasks
+-- 7. create-k8s-cluster
+-- 8. delete-k8s-cluster
 -- 9. mci-nginx-install
 -- 10. mci-mariadb-install
--- 11. pmk-nginx-install
--- 12. pmk-mariadb-install
+-- 11. k8s-nginx-install
+-- 12. k8s-mariadb-install
 -- INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES (1, 1, 'MCI', '', 'N');
 
 -- Workflow : vm-mariadb-nginx-all-in-one
@@ -1712,7 +1680,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (9, 1, 'ROOT_DISK_SIZE', '100', 'N');
 -- Workflow : k8s-mariadb-nginx-all-in-one
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(10, 2, 'CLUSTER', 'pmk01', 'N'),
+(10, 2, 'CLUSTER', 'k8s01', 'N'),
 (11, 2, 'NAMESPACE', 'ns01', 'N'),
 (12, 2, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (13, 2, 'USER', 'default', 'N'),
@@ -1749,7 +1717,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (32, 5, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk pre-installation task
+-- Workflow : k8s pre-installation task
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (33, 6, 'NAMESPACE', 'ns01', 'N'),
 (34, 6, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -1757,18 +1725,18 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (36, 6, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : create-pmk
+-- Workflow : create-k8s-cluster
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(37, 7, 'CLUSTER', 'pmk01', 'N'),
+(37, 7, 'CLUSTER', 'k8s01', 'N'),
 (38, 7, 'NAMESPACE', 'ns01', 'N'),
 (39, 7, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (40, 7, 'USER', 'default', 'N'),
 (41, 7, 'USERPASS', 'default', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : delete-pmk
+-- Workflow : delete-k8s-cluster
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(42, 8, 'CLUSTER', 'pmk01', 'N'),
+(42, 8, 'CLUSTER', 'k8s01', 'N'),
 (43, 8, 'NAMESPACE', 'ns01', 'N'),
 (44, 8, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (45, 8, 'USER', 'default', 'N'),
@@ -1793,18 +1761,18 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (56, 10, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk-nginx-install
+-- Workflow : k8s-nginx-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(57, 11, 'CLUSTER', 'pmk01', 'N'),
+(57, 11, 'CLUSTER', 'k8s01', 'N'),
 (58, 11, 'NAMESPACE', 'ns01', 'N'),
 (59, 11, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (60, 11, 'USER', 'default', 'N'),
 (61, 11, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk-mariadb-install
+-- Workflow : k8s-mariadb-install
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(62, 12, 'CLUSTER', 'pmk01', 'N'),
+(62, 12, 'CLUSTER', 'k8s01', 'N'),
 (63, 12, 'NAMESPACE', 'ns01', 'N'),
 (64, 12, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (65, 12, 'USER', 'default', 'N'),
@@ -1818,13 +1786,13 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 -- 3. create-ns
 -- 4. create-mci
 -- 5. delete-mci
--- 6. pmk pre-installation tasks
--- 7. create-pmk
--- 8. delete-pmk
+-- 6. k8s pre-installation tasks
+-- 7. create-k8s-cluster
+-- 8. delete-k8s-cluster
 -- 9. mci-nginx-install
 -- 10. mci-mariadb-install
--- 11. pmk-nginx-install
--- 12. pmk-mariadb-install
+-- 11. k8s-nginx-install
+-- 12. k8s-mariadb-install
 -- INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (1, 1, 1, null, '');
 -- Workflow : vm-mariadb-nginx-all-in-one
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (1, 1, 1, null, '
@@ -1911,9 +1879,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''create-pmk'') {
+        stage (''create-k8s-cluster'') {
             steps {
-                build job: ''create-pmk'',
+                build job: ''create-k8s-cluster'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -1927,9 +1895,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''pmk-nginx-install'') {
+        stage (''k8s-nginx-install'') {
             steps {
-                build job: ''pmk-nginx-install'',
+                build job: ''k8s-nginx-install'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -1943,9 +1911,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         //=============================================================================================
         // stage template - Run Jenkins Job
         //=============================================================================================
-        stage (''pmk-mariadb-install'') {
+        stage (''k8s-mariadb-install'') {
             steps {
-                build job: ''pmk-mariadb-install'',
+                build job: ''k8s-mariadb-install'',
                 parameters: [
                     string(name: ''CLUSTER'', value: CLUSTER),
                     string(name: ''NAMESPACE'', value: NAMESPACE),
@@ -2173,7 +2141,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
   }
 }');
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk pre-installation tasks
+-- Workflow : k8s pre-installation tasks
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (28, 6, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -2210,9 +2178,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (30, 6, 3, 14, '
-    stage(''PMK PRE-INSTALLATION TASKS(namespace)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(namespace)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS (namespace)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (namespace)''
             script {
                 def call_tumblebug_exist_ns_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}"""
                 def tumblebug_exist_ns_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_ns_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2243,9 +2211,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
     }');
 
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (31, 6, 4, 15, '
-    stage(''PMK PRE-INSTALLATION TASKS(spec)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(spec)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS (spec)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (spec)''
             script {
                 // m2 / 4core / 8GB
                 def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${spec_id}"""
@@ -2285,9 +2253,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
     }');
 
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (32, 6, 5, 15, '
-    stage(''PMK PRE-INSTALLATION TASKS(vNet)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(vNet)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(vNet)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(vNet)''
             script {
                 def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${vNet_id}"""
                 def tumblebug_exist_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_vnet_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2333,9 +2301,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
     }');
 
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (33, 6, 6, 15, '
-    stage(''PMK PRE-INSTALLATION TASKS(SecurityGroup)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(SecurityGroup)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(SecurityGroup)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(SecurityGroup)''
             script {
                 def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${sg_id}"""
                 def tumblebug_exist_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sg_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2385,9 +2353,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
     }');
 
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (34, 6, 7, 14, '
-    stage(''PMK PRE-INSTALLATION TASKS(sshKey)'') {
+    stage(''K8S PRE-INSTALLATION TASKS(sshKey)'') {
         steps {
-            echo ''>>>>> STAGE: PMK PRE-INSTALLATION TASKS(sshKey)''
+            echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(sshKey)''
             script {
                 def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${sshkey_id}"""
                 def tumblebug_exist_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sshkey_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2425,7 +2393,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 }');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : create-pmk
+-- Workflow : create-k8s-cluster
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (36, 7, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -2461,42 +2429,26 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (38, 7, 3, 7, '
-    stage(''Infrastructure PMK Create'') {
+    stage(''Infrastructure K8S Cluster Create'') {
         steps {
-            echo ''>>>>> STAGE: Infrastructure PMK Create''
+            echo ''>>>>> STAGE: Infrastructure K8S Cluster Create''
             script {
-                def call_tumblebug_exist_pmk_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
-                def tumblebug_exist_pmk_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_pmk_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                def call_tumblebug_exist_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
+                def tumblebug_exist_k8s_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_k8s_cluster_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                if (tumblebug_exist_pmk_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                if (tumblebug_exist_k8s_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "Exist cluster!"
-                    tumblebug_exist_pmk_response = tumblebug_exist_pmk_response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(tumblebug_exist_pmk_response)
+                    tumblebug_exist_k8s_cluster_response = tumblebug_exist_k8s_cluster_response.replace(''- Http_Status_code:200'', '''')
+                    echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
-                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster"""
+                    def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
                     def call_tumblebug_create_cluster_payload = """{ \
-                        "connectionName": "nhn-kr1", \
-                        "description": "NHN Cloud Kubernetes Cluster & Workflow Created cluster", \
-                        "name": "${CLUSTER}", \
-                        "securityGroupIds": [ "${sg_id}" ], \
-                        "subnetIds": [ "${subnet_id}" ], \
-                        "vNetId": "${vNet_id}", \
-                        "version": "v1.29.3", \
-                        "k8sNodeGroupList": [ \
-                            { \
-                                "desiredNodeSize": "1", \
-                                "imageId": "default", \
-                                "maxNodeSize": "3", \
-                                "minNodeSize": "1", \
-                                "name": "${ng_id}", \
-                                "onAutoScaling": "true", \
-                                "rootDiskSize": "default", \
-                                "rootDiskType": "default", \
-                                "specId": "${spec_id}", \
-                                "sshKeyId": "${sshkey_id}" \
-                            } \
-                        ] \
-                     }"""
+                        "imageId": "default", \
+                        "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                        "connectionName": "aws-ap-northeast-2", \
+                        "name": "k8scluster01", \
+                        "nodeGroupName": "k8sng01" \
+                    }"""
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2515,9 +2467,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (39, 7, 4, 9, '
-    stage(''Infrastructure PMK Running Status'') {
+    stage(''Infrastructure K8S Cluster Running Status'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
         script {
           def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
@@ -2536,7 +2488,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
   }
 }');
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : delete-pmk
+-- Workflow : delete-k8s-cluster
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (41, 8, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -2563,9 +2515,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (43, 8, 3, 8, '
-    stage(''Infrastructure PMK Delete'') {
+    stage(''Infrastructure K8S Cluster Delete'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Delete''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Delete''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}"""
           def call = """curl -X DELETE "${tb_vm_url}" -H "accept: application/json" --user ${USER}:${USERPASS}"""
@@ -2575,9 +2527,9 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       }
     }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (44, 8, 4, 9, '
-    stage(''Infrastructure PMK Running Status'') {
+    stage(''Infrastructure K8S Cluster Running Status'') {
       steps {
-        echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+        echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
@@ -2865,7 +2817,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 }');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk-nginx-install
+-- Workflow : k8s-nginx-install
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (56, 11, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -2890,9 +2842,9 @@ pipeline {
     agent any
     stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (57, 11, 2, 9, '
-        stage(''Infrastructure PMK Running Status'') {
+        stage(''Infrastructure K8S Cluster Running Status'') {
             steps {
-                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+                echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
@@ -2905,13 +2857,13 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             error "GET API call failed with status code: ${kubeinfo}"
                         }
 
-                        def pmkstatus = parseJson(kubeinfo)
+                        def k8sstatus = parseJson(kubeinfo)
 
-                        if(pmkstatus.flatten().contains(''Active'')) {
+                        if(k8sstatus.flatten().contains(''Active'')) {
                             break
                         }
                         else {
-                            echo """${pmkstatus}"""
+                            echo """${k8sstatus}"""
                             sh ''sleep 60'' // 1분 대기
                         }
                     }
@@ -2929,7 +2881,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             }
         }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (59, 11, 4, 16, '
-        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+        stage(''K8S ACCESS AND SH(K8S Cluster)'') {
             steps {
                 sh ''''''
 
@@ -2991,7 +2943,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
--- Workflow : pmk-mariadb-install
+-- Workflow : k8s-mariadb-install
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (61, 12, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
@@ -3016,9 +2968,9 @@ pipeline {
     agent any
     stages {');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (62, 12, 2, 9, '
-        stage(''Infrastructure PMK Running Status'') {
+        stage(''Infrastructure K8S Cluster Running Status'') {
             steps {
-                echo ''>>>>> STAGE: Infrastructure PMK Running Status''
+                echo ''>>>>> STAGE: Infrastructure K8S Cluster Running Status''
                 script {
                     for (int attempt = 1; attempt <= 30; attempt++) {
 
@@ -3031,13 +2983,13 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             error "GET API call failed with status code: ${kubeinfo}"
                         }
 
-                        def pmkstatus = parseJson(kubeinfo)
+                        def k8sstatus = parseJson(kubeinfo)
 
-                        if(pmkstatus.flatten().contains(''Active'')) {
+                        if(k8sstatus.flatten().contains(''Active'')) {
                             break
                         }
                         else {
-                            echo """${pmkstatus}"""
+                            echo """${k8sstatus}"""
                             sh ''sleep 60'' // 1분 대기
                         }
                     }
@@ -3055,7 +3007,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             }
         }');
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (64, 12, 4, 16, '
-        stage(''K8S ACCESS AND SH(PMK K8S)'') {
+        stage(''K8S ACCESS AND SH(K8S Cluster)'') {
             steps {
                 sh ''''''
 
