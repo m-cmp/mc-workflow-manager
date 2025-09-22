@@ -138,8 +138,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         [
                             specId: "${SPEC_ID}",
                             imageId: "${IMAGE_ID}",
-                            rootDiskType: "{ROOT_DISK_TYPE}",
-                            rootDiskSize: "{ROOT_DISK_SIZE}}"
+                            rootDiskType: "${ROOT_DISK_TYPE}",
+                            rootDiskSize: "${ROOT_DISK_SIZE}"
                         ]
                     ]
                 ])
@@ -663,8 +663,8 @@ pipeline {
                         [
                             specId: "${SPEC_ID}",
                             imageId: "${IMAGE_ID}",
-                            rootDiskType: "{ROOT_DISK_TYPE}",
-                            rootDiskSize: "{ROOT_DISK_SIZE}}"
+                            rootDiskType: "${ROOT_DISK_TYPE}",
+                            rootDiskSize: "${ROOT_DISK_SIZE}"
                         ]
                     ]
                 ])
@@ -767,13 +767,6 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhn+kr1+m2-c4m8"""
-def vNet_id = """vNet01"""
-def subnet_id = """subnet01"""
-def sg_id = """sg01"""
-def sshkey_id = """sshkey01"""
-def ng_id = """ng01"""
-
 
 pipeline {
   agent any
@@ -827,7 +820,7 @@ pipeline {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (spec)''
             script {
                 // m2 / 4core / 8GB
-                def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${spec_id}"""
+                def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${SPEC_ID}"""
                 def tumblebug_exist_spec_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_spec_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS} """, returnStdout: true).trim()
 
                 if (tumblebug_exist_spec_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -838,7 +831,7 @@ pipeline {
                     def call_tumblebug_regist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec"""
                     def call_tumblebug_regist_spec_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${spec_id}", \
+                        "name": "${SPEC_ID}", \
                         "cspSpecName": "m2.c4m8", \
                         "num_vCPU": 4, \
                         "mem_GiB": 8, \
@@ -848,11 +841,11 @@ pipeline {
                     def tumblebug_regist_spec_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_regist_spec_url} -H "Content-Type: application/json" -d ''${call_tumblebug_regist_spec_payload}'' --user ${USER}:${USERPASS} """, returnStdout: true).trim()
 
                     if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create Spec successful >> ${spec_id}"""
+                        echo """Create Spec successful >> ${SPEC_ID}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create Spec successful >> ${spec_id}"""
+                        echo """Create Spec successful >> ${SPEC_ID}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else {
@@ -866,7 +859,7 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(vNet)''
             script {
-                def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${vNet_id}"""
+                def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${VNET_ID}"""
                 def tumblebug_exist_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_vnet_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -878,13 +871,13 @@ pipeline {
                     def call_tumblebug_create_vnet_payload = """{ \
                         "cidrBlock": "10.0.0.0/16", \
                         "connectionName": "nhn-kr1", \
-                        "description": "${vNet_id} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
-                        "name": "${vNet_id}", \
+                        "description": "${VNET_ID} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
+                        "name": "${VNET_ID}", \
                         "subnetInfoList": [ \
                             { \
                                 "description": "nhn-subnet managed by CB-Tumblebug", \
                                 "ipv4_CIDR": "10.0.1.0/24", \
-                                "name": "${subnet_id}", \
+                                "name": "${SUBNET_ID}", \
                                 "zone": "kr-pub-a" \
                             } \
                         ] \
@@ -892,13 +885,13 @@ pipeline {
                     def tumblebug_create_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_vnet_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_vnet_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create vNet successful >> ${vNet_id}"""
-                        echo """Create subnet successful >> ${subnet_id}"""
+                        echo """Create vNet successful >> ${VNET_ID}"""
+                        echo """Create subnet successful >> ${SUBNET_ID}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create vNet successful >> ${vNet_id}"""
-                        echo """Create subnet successful >> ${subnet_id}"""
+                        echo """Create vNet successful >> ${VNET_ID}"""
+                        echo """Create subnet successful >> ${SUBNET_ID}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else {
@@ -912,7 +905,7 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(SecurityGroup)''
             script {
-                def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${sg_id}"""
+                def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${SG_ID}"""
                 def tumblebug_exist_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sg_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_sg_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -923,8 +916,8 @@ pipeline {
                     def call_tumblebug_create_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup"""
                     def call_tumblebug_create_sg_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${sg_id}", \
-                        "vNetId": "${vNet_id}", \
+                        "name": "${SG_ID}", \
+                        "vNetId": "${VNET_ID}", \
                         "description": "Security group for NHN K8s cluster & Workflow Create SecurityGroup", \
                         "firewallRules": [ \
                             { \
@@ -944,11 +937,11 @@ pipeline {
                     def tumblebug_create_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sg_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sg_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_sg_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        echo """Create SecurityGroup successful >> ${SG_ID}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else if (tumblebug_create_sg_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        echo """Create SecurityGroup successful >> ${SG_ID}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else {
@@ -962,7 +955,7 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(sshKey)''
             script {
-                def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${sshkey_id}"""
+                def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${SSHKEY_ID}"""
                 def tumblebug_exist_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sshkey_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -973,16 +966,16 @@ pipeline {
                     def call_tumblebug_create_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey"""
                     def call_tumblebug_create_sshkey_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${sshkey_id}" \
+                        "name": "${SSHKEY_ID}" \
                     }"""
                     def tumblebug_create_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sshkey_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sshkey_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create sshkey >> ${sshkey_id}"""
+                        echo """Create sshkey >> ${SSHKEY_ID}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create sshkey >> ${sshkey_id}"""
+                        echo """Create sshkey >> ${SSHKEY_ID}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else {
@@ -1002,13 +995,6 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
-
-def spec_id = """nhn+kr1+m2-c4m8"""
-def vNet_id = """vNet01"""
-def subnet_id = """subnet01"""
-def sg_id = """sg01"""
-def sshkey_id = """sshkey01"""
-def ng_id = """ng01"""
 
 
 pipeline {
@@ -1044,13 +1030,47 @@ pipeline {
                     echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
                     def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
-                    def call_tumblebug_create_cluster_payload = """{ \
-                        "imageId": "default", \
-                        "specId": "aws+ap-northeast-2+t3a.xlarge", \
-                        "connectionName": "aws-ap-northeast-2", \
-                        "name": "k8scluster01", \
-                        "nodeGroupName": "k8sng01" \
-                    }"""
+
+                    // CPS에 따른 클러스터 페이로드 선택
+                    def call_tumblebug_create_cluster_payload
+
+                    if (CPS == "azure") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "azure+koreacentral+standard_b4ms", \
+                            "connectionName": "azure-koreacentral", \
+                            "name": "k8scluster02", \
+                            "nodeGroupName": "k8sng02" \
+                        }"""
+                    } else if (CPS == "nhn") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "efe7f58f-5a32-4905-aa3b-e7839bd191d7", \
+                            "specId": "nhn+kr1+m2.c4m8", \
+                            "connectionName": "nhn-kr1", \
+                            "name": "k8scluster02", \
+                            "nodeGroupName": "k8sng02" \
+                        }"""
+                    } else if (CPS == "gcp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "gcp+asia-east1+e2-standard-4", \
+                            "connectionName": "gcp-asia-east1", \
+                            "name": "k8s03", \
+                            "nodeGroupName": "k8sng02", \
+                            "version": "1.32.2-gke.1297002" \
+                        }"""
+                    } else if (CPS == "aws") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                            "connectionName": "aws-ap-northeast-2", \
+                            "name": "k8scluster01", \
+                            "nodeGroupName": "k8sng01" \
+                        }"""
+                    } else {
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
+                    }
+
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -1684,7 +1704,8 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (11, 2, 'NAMESPACE', 'ns01', 'N'),
 (12, 2, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (13, 2, 'USER', 'default', 'N'),
-(14, 2, 'USERPASS', 'default', 'N');
+(14, 2, 'USERPASS', 'default', 'N'),
+(67, 2, 'CPS', 'azure', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : create-ns
@@ -1722,7 +1743,13 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (33, 6, 'NAMESPACE', 'ns01', 'N'),
 (34, 6, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (35, 6, 'USER', 'default', 'N'),
-(36, 6, 'USERPASS', 'default', 'N');
+(36, 6, 'USERPASS', 'default', 'N'),
+(75, 6, 'SPEC_ID', 'nhn+kr1+m2-c4m8', 'N'),
+(76, 6, 'VNET_ID', 'vNet01', 'N'),
+(77, 6, 'SUBNET_ID', 'subnet01', 'N'),
+(78, 6, 'SG_ID', 'sg01', 'N'),
+(79, 6, 'SSHKEY_ID', 'sshkey01', 'N'),
+(80, 6, 'NG_ID', 'ng01', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : create-k8s-cluster
@@ -1731,7 +1758,8 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (38, 7, 'NAMESPACE', 'ns01', 'N'),
 (39, 7, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (40, 7, 'USER', 'default', 'N'),
-(41, 7, 'USERPASS', 'default', 'N');
+(41, 7, 'USERPASS', 'default', 'N'),
+(68, 7, 'CPS', 'azure', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-k8s-cluster
@@ -2040,8 +2068,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         [
                             specId: "${SPEC_ID}",
                             imageId: "${IMAGE_ID}",
-                            rootDiskType: "{ROOT_DISK_TYPE}",
-                            rootDiskSize: "{ROOT_DISK_SIZE}}"
+                            rootDiskType: "${ROOT_DISK_TYPE}",
+                            rootDiskSize: "${ROOT_DISK_SIZE}"
                         ]
                     ]
                 ])
@@ -2148,14 +2176,6 @@ import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
 
-def spec_id = """nhn+kr1+m2-c4m8"""
-def vNet_id = """vNet01"""
-def subnet_id = """subnet01"""
-def sg_id = """sg01"""
-def sshkey_id = """sshkey01"""
-def ng_id = """ng01"""
-
-
 pipeline {
   agent any
   stages {');
@@ -2216,7 +2236,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS (spec)''
             script {
                 // m2 / 4core / 8GB
-                def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${spec_id}"""
+                def call_tumblebug_exist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec/${SPEC_ID}"""
                 def tumblebug_exist_spec_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_spec_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS} """, returnStdout: true).trim()
 
                 if (tumblebug_exist_spec_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2227,7 +2247,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def call_tumblebug_regist_spec_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/spec"""
                     def call_tumblebug_regist_spec_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${spec_id}", \
+                        "name": "${SPEC_ID}", \
                         "cspSpecName": "m2.c4m8", \
                         "num_vCPU": 4, \
                         "mem_GiB": 8, \
@@ -2237,11 +2257,11 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def tumblebug_regist_spec_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_regist_spec_url} -H "Content-Type: application/json" -d ''${call_tumblebug_regist_spec_payload}'' --user ${USER}:${USERPASS} """, returnStdout: true).trim()
 
                     if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create Spec successful >> ${spec_id}"""
+                        echo """Create Spec successful >> ${SPEC_ID}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else if (tumblebug_regist_spec_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create Spec successful >> ${spec_id}"""
+                        echo """Create Spec successful >> ${SPEC_ID}"""
                         tumblebug_regist_spec_response = tumblebug_regist_spec_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_regist_spec_response)
                     } else {
@@ -2257,7 +2277,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(vNet)''
             script {
-                def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${vNet_id}"""
+                def call_tumblebug_exist_vnet_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet/${VNET_ID}"""
                 def tumblebug_exist_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_vnet_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2269,13 +2289,13 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def call_tumblebug_create_vnet_payload = """{ \
                         "cidrBlock": "10.0.0.0/16", \
                         "connectionName": "nhn-kr1", \
-                        "description": "${vNet_id} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
-                        "name": "${vNet_id}", \
+                        "description": "${VNET_ID} managed by CB-Tumblebug & Workflow Created vNet, subnet", \
+                        "name": "${VNET_ID}", \
                         "subnetInfoList": [ \
                             { \
                                 "description": "nhn-subnet managed by CB-Tumblebug", \
                                 "ipv4_CIDR": "10.0.1.0/24", \
-                                "name": "${subnet_id}", \
+                                "name": "${SUBNET_ID}", \
                                 "zone": "kr-pub-a" \
                             } \
                         ] \
@@ -2283,13 +2303,13 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def tumblebug_create_vnet_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_vnet_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_vnet_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create vNet successful >> ${vNet_id}"""
-                        echo """Create subnet successful >> ${subnet_id}"""
+                        echo """Create vNet successful >> ${VNET_ID}"""
+                        echo """Create subnet successful >> ${SUBNET_ID}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else if (tumblebug_create_vnet_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create vNet successful >> ${vNet_id}"""
-                        echo """Create subnet successful >> ${subnet_id}"""
+                        echo """Create vNet successful >> ${VNET_ID}"""
+                        echo """Create subnet successful >> ${SUBNET_ID}"""
                         tumblebug_create_vnet_response = tumblebug_create_vnet_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_vnet_response)
                     } else {
@@ -2305,7 +2325,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(SecurityGroup)''
             script {
-                def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${sg_id}"""
+                def call_tumblebug_exist_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup/${SG_ID}"""
                 def tumblebug_exist_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sg_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_sg_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2316,8 +2336,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def call_tumblebug_create_sg_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup"""
                     def call_tumblebug_create_sg_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${sg_id}", \
-                        "vNetId": "${vNet_id}", \
+                        "name": "${SG_ID}", \
+                        "vNetId": "${VNET_ID}", \
                         "description": "Security group for NHN K8s cluster & Workflow Create SecurityGroup", \
                         "firewallRules": [ \
                             { \
@@ -2337,11 +2357,11 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def tumblebug_create_sg_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sg_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sg_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_sg_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        echo """Create SecurityGroup successful >> ${SG_ID}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else if (tumblebug_create_sg_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create SecurityGroup successful >> ${sg_id}"""
+                        echo """Create SecurityGroup successful >> ${SG_ID}"""
                         tumblebug_create_sg_response = tumblebug_create_sg_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sg_response)
                     } else {
@@ -2357,7 +2377,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: K8S PRE-INSTALLATION TASKS(sshKey)''
             script {
-                def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${sshkey_id}"""
+                def call_tumblebug_exist_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey/${SSHKEY_ID}"""
                 def tumblebug_exist_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X GET ${call_tumblebug_exist_sshkey_url} -H "Content-Type: application/json" --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                 if (tumblebug_exist_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2368,16 +2388,16 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     def call_tumblebug_create_sshkey_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey"""
                     def call_tumblebug_create_sshkey_payload = """{ \
                         "connectionName": "nhn-kr1", \
-                        "name": "${sshkey_id}" \
+                        "name": "${SSHKEY_ID}" \
                     }"""
                     def tumblebug_create_sshkey_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_sshkey_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_sshkey_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create sshkey >> ${sshkey_id}"""
+                        echo """Create sshkey >> ${SSHKEY_ID}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:200'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else if (tumblebug_create_sshkey_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create sshkey >> ${sshkey_id}"""
+                        echo """Create sshkey >> ${SSHKEY_ID}"""
                         tumblebug_create_sshkey_response = tumblebug_create_sshkey_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_sshkey_response)
                     } else {
@@ -2399,13 +2419,6 @@ import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
 import groovy.json.JsonSlurper
-
-def spec_id = """nhn+kr1+m2-c4m8"""
-def vNet_id = """vNet01"""
-def subnet_id = """subnet01"""
-def sg_id = """sg01"""
-def sshkey_id = """sshkey01"""
-def ng_id = """ng01"""
 
 pipeline {
   agent any
@@ -2442,13 +2455,47 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
                     def call_tumblebug_create_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
-                    def call_tumblebug_create_cluster_payload = """{ \
-                        "imageId": "default", \
-                        "specId": "aws+ap-northeast-2+t3a.xlarge", \
-                        "connectionName": "aws-ap-northeast-2", \
-                        "name": "k8scluster01", \
-                        "nodeGroupName": "k8sng01" \
-                    }"""
+
+                    // CPS에 따른 클러스터 페이로드 선택
+                    def call_tumblebug_create_cluster_payload
+
+                    if (CPS == "azure") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "azure+koreacentral+standard_b4ms", \
+                            "connectionName": "azure-koreacentral", \
+                            "name": "k8scluster02", \
+                            "nodeGroupName": "k8sng02" \
+                        }"""
+                    } else if (CPS == "nhn") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "efe7f58f-5a32-4905-aa3b-e7839bd191d7", \
+                            "specId": "nhn+kr1+m2.c4m8", \
+                            "connectionName": "nhn-kr1", \
+                            "name": "k8scluster02", \
+                            "nodeGroupName": "k8sng02" \
+                        }"""
+                    } else if (CPS == "gcp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "gcp+asia-east1+e2-standard-4", \
+                            "connectionName": "gcp-asia-east1", \
+                            "name": "k8s03", \
+                            "nodeGroupName": "k8sng02", \
+                            "version": "1.32.2-gke.1297002" \
+                        }"""
+                    } else if (CPS == "aws") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                            "connectionName": "aws-ap-northeast-2", \
+                            "name": "k8scluster01", \
+                            "nodeGroupName": "k8sng01" \
+                        }"""
+                    } else {
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
+                    }
+
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
