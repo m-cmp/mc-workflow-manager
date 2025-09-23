@@ -1039,15 +1039,15 @@ pipeline {
                             "imageId": "default", \
                             "specId": "azure+koreacentral+standard_b4ms", \
                             "connectionName": "azure-koreacentral", \
-                            "name": "k8scluster02", \
-                            "nodeGroupName": "k8sng02" \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng01" \
                         }"""
                     } else if (CPS == "nhn") {
                         call_tumblebug_create_cluster_payload = """{ \
                             "imageId": "efe7f58f-5a32-4905-aa3b-e7839bd191d7", \
                             "specId": "nhn+kr1+m2.c4m8", \
                             "connectionName": "nhn-kr1", \
-                            "name": "k8scluster02", \
+                            "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng02" \
                         }"""
                     } else if (CPS == "gcp") {
@@ -1056,7 +1056,7 @@ pipeline {
                             "specId": "gcp+asia-east1+e2-standard-4", \
                             "connectionName": "gcp-asia-east1", \
                             "name": "k8s03", \
-                            "nodeGroupName": "k8sng02", \
+                            "nodeGroupName": "${CLUSTER}", \
                             "version": "1.32.2-gke.1297002" \
                         }"""
                     } else if (CPS == "aws") {
@@ -1064,8 +1064,8 @@ pipeline {
                             "imageId": "default", \
                             "specId": "aws+ap-northeast-2+t3a.xlarge", \
                             "connectionName": "aws-ap-northeast-2", \
-                            "name": "k8scluster01", \
-                            "nodeGroupName": "k8sng01" \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng04" \
                         }"""
                     } else {
                         error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
@@ -2464,15 +2464,15 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "imageId": "default", \
                             "specId": "azure+koreacentral+standard_b4ms", \
                             "connectionName": "azure-koreacentral", \
-                            "name": "k8scluster02", \
-                            "nodeGroupName": "k8sng02" \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng01" \
                         }"""
                     } else if (CPS == "nhn") {
                         call_tumblebug_create_cluster_payload = """{ \
                             "imageId": "efe7f58f-5a32-4905-aa3b-e7839bd191d7", \
                             "specId": "nhn+kr1+m2.c4m8", \
                             "connectionName": "nhn-kr1", \
-                            "name": "k8scluster02", \
+                            "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng02" \
                         }"""
                     } else if (CPS == "gcp") {
@@ -2481,7 +2481,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "specId": "gcp+asia-east1+e2-standard-4", \
                             "connectionName": "gcp-asia-east1", \
                             "name": "k8s03", \
-                            "nodeGroupName": "k8sng02", \
+                            "nodeGroupName": "${CLUSTER}", \
                             "version": "1.32.2-gke.1297002" \
                         }"""
                     } else if (CPS == "aws") {
@@ -2489,8 +2489,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "imageId": "default", \
                             "specId": "aws+ap-northeast-2+t3a.xlarge", \
                             "connectionName": "aws-ap-northeast-2", \
-                            "name": "k8scluster01", \
-                            "nodeGroupName": "k8sng01" \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng04" \
                         }"""
                     } else {
                         error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
