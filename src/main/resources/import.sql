@@ -1067,8 +1067,16 @@ pipeline {
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng04" \
                         }"""
+                    } else if (CPS == "ncp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "ncp+kr1+c4m8", \
+                            "connectionName": "ncp-kr1", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng05" \
+                        }"""
                     } else {
-                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp"
                     }
 
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -2492,8 +2500,16 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng04" \
                         }"""
+                    } else if (CPS == "ncp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "ncp+kr1+c4m8", \
+                            "connectionName": "ncp-kr1", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng05" \
+                        }"""
                     } else {
-                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws"
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp"
                     }
 
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()

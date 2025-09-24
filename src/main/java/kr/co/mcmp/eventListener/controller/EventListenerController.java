@@ -60,8 +60,10 @@ public class EventListenerController {
 
     @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
     @GetMapping("/run/{eventListenerIdx}")
-    public ResponseWrapper<Boolean> runEventListener(@PathVariable Long eventListenerIdx) {
-        return new ResponseWrapper<>(eventListenerService.runEventListener(eventListenerIdx));
+    public ResponseWrapper<Boolean> runEventListener(
+            @PathVariable Long eventListenerIdx,
+            @RequestParam Map<String, String> params) {
+        return new ResponseWrapper<>(eventListenerService.runEventListener(eventListenerIdx, params));
     }
 
     @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")

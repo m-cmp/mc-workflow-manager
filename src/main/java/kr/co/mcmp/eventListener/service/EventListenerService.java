@@ -19,7 +19,7 @@ public interface EventListenerService {
     List<WorkflowListResDto> getWorkflowList(String eventListenerYn);
     WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn);
     Boolean isEventListenerDuplicated(String eventlistenerName);
-    Boolean runEventListener(Long eventListenerIdx);
+    Boolean runEventListener(Long eventListenerIdx, Map<String, String> params);
     Boolean runEventListenerPost(Long workflowIdx, Map<String, String> params);
     Boolean runEventListenerPut(Long workflowIdx, Map<String, String> params);
 }
