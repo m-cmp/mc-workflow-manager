@@ -9,10 +9,11 @@ networks:
 services:
   # jenkins - for workflow manager
   jenkins:
-    image: bitnami/jenkins:2.462.3
+    image: jenkins/jenkins:2.462.3-lts
     user: root
     container_name: we-jenkins
     platform: linux/amd64
+    restart: unless-stopped
     networks:
       - internal_network
       - external_network
@@ -22,35 +23,15 @@ services:
         protocol: tcp
       - "8080:8080" # or any other required port mapping
     volumes:
-      - ./jenkins_home:/bitnami/jenkins/home # -v $HOME/mcmp/oss/jenkins:/var/jenkins_home
+      - ./jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker # -v $(which docker):/usr/bin/docker
+      - /usr/bin/docker:/usr/bin/docker
+      - ./init.groovy.d:/usr/share/jenkins/ref/init.groovy.d
     environment:
-      JENKINS_USERNAME: admin
-      JENKINS_PASSWORD: 123456
-      JENKINS_PLUGINS: >-
-        workflow-api,
-        swarm,
-        authorize-project,
-        antisamy-markup-formatter,
-        pipeline-github-lib,
-        pipeline-rest-api,
-        git,
-        github-branch-source,
-        gradle,
-        pipeline-model-definition,
-        pipeline-build-step,
-        workflow-aggregator,
-        matrix-project,
-        email-ext,
-        durable-task,
-        checks-api,
-        build-timeout,
-        timestamper,
-        ws-cleanup,
-        ssh-slaves,
-        ssh-agent,
-        publish-over-ssh
+      # Jenkins Admin 설정
+      JENKINS_ADMIN_ID: admin
+      JENKINS_ADMIN_PASSWORD: 1234567
+      JAVA_OPTS: -Djenkins.install.runSetupWizard=false
     healthcheck: # for workflow-manager
       test: [ "CMD", "curl", "-f", "http://localhost:8080/login" ]
       interval: 1m
