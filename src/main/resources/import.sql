@@ -268,8 +268,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "imageId": "default", \
                             "specId": "gcp+asia-east1+e2-standard-4", \
                             "connectionName": "gcp-asia-east1", \
-                            "name": "k8s03", \
-                            "nodeGroupName": "${CLUSTER}", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng03", \
                             "version": "1.31.11-gke.1036000" \
                         }"""
                     } else if (CPS == "aws") {
@@ -1205,8 +1205,8 @@ pipeline {
                             "imageId": "default", \
                             "specId": "gcp+asia-east1+e2-standard-4", \
                             "connectionName": "gcp-asia-east1", \
-                            "name": "k8s03", \
-                            "nodeGroupName": "${CLUSTER}", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng03", \
                             "version": "1.31.11-gke.1036000" \
                         }"""
                     } else if (CPS == "aws") {
@@ -2695,8 +2695,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "imageId": "default", \
                             "specId": "gcp+asia-east1+e2-standard-4", \
                             "connectionName": "gcp-asia-east1", \
-                            "name": "k8s03", \
-                            "nodeGroupName": "${CLUSTER}", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng03", \
                             "version": "1.31.11-gke.1036000" \
                         }"""
                     } else if (CPS == "aws") {
