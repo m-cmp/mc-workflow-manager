@@ -1328,12 +1328,12 @@ pipeline {
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-          if (response.indexOf(''Http_Status_code:200'') > 0 ) {
-            echo "GET API call successful."
-            response = response.replace(''- Http_Status_code:200'', '''')
+          if (response.indexOf(''Http_Status_code:404'') > 0 ) {
+            echo "K8S Cluster is not found."
+            response = response.replace(''- Http_Status_code:404'', '''')
             echo JsonOutput.prettyPrint(response)
           } else {
-            error "GET API call failed with status code: ${response}"
+            error "K8S Cluster is exist."
           }
         }
       }
@@ -2819,12 +2819,12 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         script {
           def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
-          if (response.indexOf(''Http_Status_code:200'') > 0 ) {
-            echo "GET API call successful."
-            response = response.replace(''- Http_Status_code:200'', '''')
+          if (response.indexOf(''Http_Status_code:404'') > 0 ) {
+            echo "K8S Cluster is not found."
+            response = response.replace(''- Http_Status_code:404'', '''')
             echo JsonOutput.prettyPrint(response)
           } else {
-            error "GET API call failed with status code: ${response}"
+            error "K8S Cluster is exist."
           }
         }
       }
