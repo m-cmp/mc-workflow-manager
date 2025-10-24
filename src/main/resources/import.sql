@@ -132,14 +132,59 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
+                def imageId, specId, rootDiskType, rootDiskSize
+                if (CSP == "aws") {
+                    imageId = "ami-03236529070b4a0a5"
+                    specId = "aws+ap-northeast-2+t2.small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "azure") {
+                    imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
+                    specId = "azure+koreasouth+standard_b1s"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "gcp") {
+                    imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
+                    specId = "gcp+asia-northeast3+g1-small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "ncp") {
+                    imageId = "23214590"
+                    specId = "ncp+kr+c8-g3a"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "nhn") {
+                    imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
+                    specId = "nhn+kr1+r2.c4m16"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "alibaba") {
+                    imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
+                    specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "tencent") {
+                    imageId = "img-7rotv4ux"
+                    specId = "tencent+ap-shanghai+m9.medium16"
+                    rootDiskType = "default"
+                    rootDiskSize = "30"
+                } else if (CSP == "ibm") {
+                    imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
+                    specId = "ibm+jp-osa+cx2d-2x4"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else {
+                    error "Unsupported CSP: ${CSP}. Supported values are: aws, azure, gcp, ncp, nhn, alibaba, tencent, ibm"
+                }
+
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
                     subGroups: [
                         [
-                            specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}",
-                            rootDiskType: "${ROOT_DISK_TYPE}",
-                            rootDiskSize: "${ROOT_DISK_SIZE}"
+                            specId: specId,
+                            imageId: imageId,
+                            rootDiskType: rootDiskType,
+                            rootDiskSize: rootDiskSize
                         ]
                     ]
                 ])
@@ -200,18 +245,78 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
                     def call_tumblebug_create_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
-                    def call_tumblebug_create_cluster_payload = """{ \
+                    def call_tumblebug_create_cluster_payload
+
+                    if (CPS == "azure") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "azure+koreacentral+standard_b4ms", \
+                            "connectionName": "azure-koreacentral", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng01" \
+                        }"""
+                    } else if (CPS == "nhn") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "efe7f58f-5a32-4905-aa3b-e7839bd191d7", \
+                            "specId": "nhn+kr1+m2.c4m8", \
+                            "connectionName": "nhn-kr1", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng02" \
+                        }"""
+                    } else if (CPS == "gcp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "gcp+asia-east1+e2-standard-4", \
+                            "connectionName": "gcp-asia-east1", \
+                            "name": "k8s03", \
+                            "nodeGroupName": "${CLUSTER}", \
+                            "version": "1.33.3-gke.1136000" \
+                        }"""
+                    } else if (CPS == "aws") {
+                        call_tumblebug_create_cluster_payload = """{ \
                             "imageId": "default", \
                             "specId": "aws+ap-northeast-2+t3a.xlarge", \
                             "connectionName": "aws-ap-northeast-2", \
-                            "name": "k8scluster01", \
-                            "nodeGroupName": "k8sng01" \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng04" \
                         }"""
+                    } else if (CPS == "ncp") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "default", \
+                            "specId": "ncp+kr1+c4m8", \
+                            "connectionName": "ncp-kr1", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng05" \
+                        }"""
+                    } else if (CPS == "alibaba") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "aliyun_3_x64_20G_container_optimized_20250117.vhd", \
+                            "specId": "alibaba+ap-northeast-2+ecs.g6e.xlarge", \
+                            "connectionName": "alibaba-ap-northeast-2", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng06" \
+                        }"""
+                    } else if (CPS == "tencent") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "img-22trbn9x", \
+                            "specId": "tencent+ap-seoul+s5.medium4", \
+                            "connectionName": "tencent-ap-seoul", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng07" \
+                        }"""
+                    } else {
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp, alibaba, tencent"
+                    }
+
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
                     if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create cluster >> ${CLUSTER}"""
                         tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
@@ -456,10 +561,7 @@ pipeline {
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
-                    string(name: ''IMAGE_ID'', value: IMAGE_ID),
-                    string(name: ''ROOT_DISK_TYPE'', value: ROOT_DISK_TYPE),
-                    string(name: ''ROOT_DISK_SIZE'', value: ROOT_DISK_SIZE),
-                    string(name: ''SPEC_ID'', value: SPEC_ID),
+                    string(name: ''CSP'', value: CSP),
                 ]
             }
         }
@@ -515,7 +617,8 @@ pipeline {
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
-                    string(name: ''USERPASS'', value: USERPASS)
+                    string(name: ''USERPASS'', value: USERPASS),
+                    string(name: ''CPS'', value: CPS)
                 ]
             }
         }
@@ -657,14 +760,61 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
+                // CSP에 따른 MCI 설정 선택
+                def imageId, specId, rootDiskType, rootDiskSize
+
+                if (CSP == "aws") {
+                    imageId = "ami-03236529070b4a0a5"
+                    specId = "aws+ap-northeast-2+t2.small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "azure") {
+                    imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
+                    specId = "azure+koreasouth+standard_b1s"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "gcp") {
+                    imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
+                    specId = "gcp+asia-northeast3+g1-small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "ncp") {
+                    imageId = "23214590"
+                    specId = "ncp+kr+c8-g3a"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "nhn") {
+                    imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
+                    specId = "nhn+kr1+r2.c4m16"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "alibaba") {
+                    imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
+                    specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "tencent") {
+                    imageId = "img-7rotv4ux"
+                    specId = "tencent+ap-shanghai+m9.medium16"
+                    rootDiskType = "default"
+                    rootDiskSize = "30"
+                } else if (CSP == "ibm") {
+                    imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
+                    specId = "ibm+jp-osa+cx2d-2x4"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else {
+                    error "Unsupported CSP: ${CSP}. Supported values are: aws, azure, gcp, ncp, nhn, alibaba, tencent, ibm"
+                }
+
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
                     subGroups: [
                         [
-                            specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}",
-                            rootDiskType: "${ROOT_DISK_TYPE}",
-                            rootDiskSize: "${ROOT_DISK_SIZE}"
+                            specId: specId,
+                            imageId: imageId,
+                            rootDiskType: rootDiskType,
+                            rootDiskSize: rootDiskSize
                         ]
                     ]
                 ])
@@ -1057,7 +1207,7 @@ pipeline {
                             "connectionName": "gcp-asia-east1", \
                             "name": "k8s03", \
                             "nodeGroupName": "${CLUSTER}", \
-                            "version": "1.32.2-gke.1297002" \
+                            "version": "1.33.3-gke.1136000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -1075,8 +1225,24 @@ pipeline {
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng05" \
                         }"""
+                    } else if (CPS == "alibaba") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "aliyun_3_x64_20G_container_optimized_20250117.vhd", \
+                            "specId": "alibaba+ap-northeast-2+ecs.g6e.xlarge", \
+                            "connectionName": "alibaba-ap-northeast-2", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng06" \
+                        }"""
+                    } else if (CPS == "tencent") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "img-22trbn9x", \
+                            "specId": "tencent+ap-seoul+s5.medium4", \
+                            "connectionName": "tencent-ap-seoul", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng07" \
+                        }"""
                     } else {
-                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp"
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp, alibaba, tencent"
                     }
 
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -1702,10 +1868,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (3, 1, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (4, 1, 'USER', 'default', 'N'),
 (5, 1, 'USERPASS', 'default', 'N'),
-(6, 1, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(7, 1, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
-(8, 1, 'ROOT_DISK_TYPE', '', 'N'),
-(9, 1, 'ROOT_DISK_SIZE', '100', 'N');
+(6, 1, 'CSP', 'aws', 'N');
 -- Workflow : k8s-mariadb-nginx-all-in-one
 INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (10, 2, 'CLUSTER', 'k8s01', 'N'),
@@ -1731,10 +1894,7 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (21, 4, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (22, 4, 'USER', 'default', 'N'),
 (23, 4, 'USERPASS', 'default', 'N'),
-(24, 4, 'IMAGE_ID', 'ami-03236529070b4a0a5', 'N'),
-(25, 4, 'SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
-(26, 4, 'ROOT_DISK_TYPE', '', 'N'),
-(27, 4, 'ROOT_DISK_SIZE', '100', 'N');
+(24, 4, 'CSP', 'aws', 'N');
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : delete-mci
@@ -1863,8 +2023,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
                     string(name: ''USERPASS'', value: USERPASS),
-                    string(name: ''COMMON_IMAGE'', value: COMMON_IMAGE),
-                    string(name: ''SPEC_ID'', value: SPEC_ID),
+                    string(name: ''CSP'', value: CSP),
                 ]
             }
         }');
@@ -1923,7 +2082,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     string(name: ''NAMESPACE'', value: NAMESPACE),
                     string(name: ''TUMBLEBUG'', value: TUMBLEBUG),
                     string(name: ''USER'', value: USER),
-                    string(name: ''USERPASS'', value: USERPASS)
+                    string(name: ''USERPASS'', value: USERPASS),
+                    string(name: ''CPS'', value: CPS)
                 ]
             }
         }');
@@ -2070,14 +2230,61 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
+                // CSP에 따른 MCI 설정 선택
+                def imageId, specId, rootDiskType, rootDiskSize
+
+                if (CSP == "aws") {
+                    imageId = "ami-03236529070b4a0a5"
+                    specId = "aws+ap-northeast-2+t2.small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "azure") {
+                    imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
+                    specId = "azure+koreasouth+standard_b1s"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "gcp") {
+                    imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
+                    specId = "gcp+asia-northeast3+g1-small"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "ncp") {
+                    imageId = "23214590"
+                    specId = "ncp+kr+c8-g3a"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "nhn") {
+                    imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
+                    specId = "nhn+kr1+r2.c4m16"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "alibaba") {
+                    imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
+                    specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else if (CSP == "tencent") {
+                    imageId = "img-7rotv4ux"
+                    specId = "tencent+ap-shanghai+m9.medium16"
+                    rootDiskType = "default"
+                    rootDiskSize = "30"
+                } else if (CSP == "ibm") {
+                    imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
+                    specId = "ibm+jp-osa+cx2d-2x4"
+                    rootDiskType = "default"
+                    rootDiskSize = "default"
+                } else {
+                    error "Unsupported CSP: ${CSP}. Supported values are: aws, azure, gcp, ncp, nhn, alibaba, tencent, ibm"
+                }
+
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
                     subGroups: [
                         [
-                            specId: "${SPEC_ID}",
-                            imageId: "${IMAGE_ID}",
-                            rootDiskType: "${ROOT_DISK_TYPE}",
-                            rootDiskSize: "${ROOT_DISK_SIZE}"
+                            specId: specId,
+                            imageId: imageId,
+                            rootDiskType: rootDiskType,
+                            rootDiskSize: rootDiskSize
                         ]
                     ]
                 ])
@@ -2490,7 +2697,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "connectionName": "gcp-asia-east1", \
                             "name": "k8s03", \
                             "nodeGroupName": "${CLUSTER}", \
-                            "version": "1.32.2-gke.1297002" \
+                            "version": "1.33.3-gke.1136000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -2508,8 +2715,24 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng05" \
                         }"""
+                    } else if (CPS == "alibaba") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "aliyun_3_x64_20G_container_optimized_20250117.vhd", \
+                            "specId": "alibaba+ap-northeast-2+ecs.g6e.xlarge", \
+                            "connectionName": "alibaba-ap-northeast-2", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng06" \
+                        }"""
+                    } else if (CPS == "tencent") {
+                        call_tumblebug_create_cluster_payload = """{ \
+                            "imageId": "img-22trbn9x", \
+                            "specId": "tencent+ap-seoul+s5.medium4", \
+                            "connectionName": "tencent-ap-seoul", \
+                            "name": "${CLUSTER}", \
+                            "nodeGroupName": "k8sng07" \
+                        }"""
                     } else {
-                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp"
+                        error "Unsupported CPS: ${CPS}. Supported values are: azure, nhn, gcp, aws, ncp, alibaba, tencent"
                     }
 
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
@@ -3129,3 +3352,49 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
     }
 }
 ');
+
+-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- New Workflow : clean ns
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (13, 'clean ns', 'test', 1, '
+pipeline {
+  agent any
+  stages {
+    stage (''delete securityGroup'') {
+      steps {
+        script {
+          def url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/securityGroup"""
+          def call = """curl -X DELETE ${url} --user "${USER}:${USERPASS}""""
+          sh(script: """ ${call} """, returnStdout: true)
+        }
+      }
+    }
+    stage (''delete sshKey'') {
+      steps {
+        script {
+          def url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/sshKey"""
+          def call = """curl -X DELETE ${url} --user "${USER}:${USERPASS}""""
+          sh(script: """ ${call} """, returnStdout: true)
+        }
+      }
+    }
+    stage (''delete vNet'') {
+      steps {
+        script {
+          def url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/resources/vNet"""
+          def call = """curl -X DELETE ${url} --user "${USER}:${USERPASS}""""
+          sh(script: """ ${call} """, returnStdout: true)
+        }
+      }
+    }
+  }
+}');
+
+-- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Workflow : clean ns params
+INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(81, 13, 'NAMESPACE', 'ns01', 'N'),
+(82, 13, 'TUMBLEBUG', 'http://localhost:1323', 'N'),
+(83, 13, 'USER', 'default', 'N'),
+(84, 13, 'USERPASS', 'default', 'N');
+
+-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
