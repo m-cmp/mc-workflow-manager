@@ -270,7 +270,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.31.11-gke.1036000" \
+                            "version": "1.33.3-gke.1136000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -1207,7 +1207,7 @@ pipeline {
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.31.11-gke.1036000" \
+                            "version": "1.33.3-gke.1136000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -2697,7 +2697,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.31.11-gke.1036000" \
+                            "version": "1.33.3-gke.1136000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
