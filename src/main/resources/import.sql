@@ -270,7 +270,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.33.4-gke.1172000" \
+                            "version": "1.33.5-gke.1125000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -310,64 +310,85 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                     def tumblebug_create_cluster_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_cluster_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_cluster_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
 
-                    // Additional: When CPS is aws, create extra node group via k8sNodeGroupDynamic
-                    if (CPS == "aws") {
-                        def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
-                        def call_tumblebug_create_nodegroup_payload = """{ \
-                            "imageId": "default", \
-                            "specId": "aws+ap-northeast-2+t3a.xlarge", \
-                            "name": "k8sng01" \
-                        }"""
-                        def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
-                        if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
-                            echo "Create nodeGroup >> k8sng01"
-                        } else {
-                            echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
-                        }
-                    }
-
-                    // Additional: When CPS is tencent, create node group via k8sNodeGroupDynamic
-                    if (CPS == "tencent") {
-                        def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
-                        def call_tumblebug_create_nodegroup_payload = """{ \
-                            "imageId": "img-22trbn9x", \
-                            "specId": "tencent+ap-seoul+s5.medium4", \
-                            "name": "k8sng07" \
-                        }"""
-                        def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
-                        if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
-                            echo "Create nodeGroup >> k8sng07"
-                        } else {
-                            echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
-                        }
-                    }
-
-                    // Additional: When CPS is alibaba, create node group via k8sNodeGroupDynamic
-                    if (CPS == "alibaba") {
-                        def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
-                        def call_tumblebug_create_nodegroup_payload = """{ \
-                            "imageId": "default", \
-                            "specId": "alibaba+ap-southeast-1+ecs.t6-c1m4.2xlarge", \
-                            "nodeGroupName": "k8sng06", \
-                            "RootDiskType": "cloud_efficiency", \
-                            "RootDiskSize": "40" \
-                        }"""
-                        def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
-                        if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
-                            echo "Create nodeGroup >> k8sng06"
-                        } else {
-                            echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
-                        }
-                    }
-
-                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0) {
                         echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
+                        def responseCode = tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ? ''- Http_Status_code:200'' : ''- Http_Status_code:201''
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(responseCode, '''')
                         echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
-                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        
+                        // Wait for cluster to be Active before creating node group
+                        echo "Waiting for cluster to be Active..."
+                        def isActive = false
+                        for (int attempt = 1; attempt <= 30; attempt++) {
+                            def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
+                            def status_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                            if (status_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                                status_response = status_response.replace(''- Http_Status_code:200'', '''')
+                                
+                                if(status_response.contains(''Active'')) {
+                                    echo "Cluster is Active!"
+                                    isActive = true
+                                    break
+                                } else {
+                                    echo "Cluster not yet Active. Waiting... (attempt ${attempt}/30)"
+                                    sh ''sleep 60''
+                                }
+                            } else {
+                                echo "Status check attempt ${attempt}/30 failed"
+                                sh ''sleep 60''
+                            }
+                        }
+                        
+                        // Additional: When CPS is aws, create extra node group via k8sNodeGroupDynamic
+                        if (CPS == "aws") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                                "name": "k8sng01" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng01"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+
+                        // Additional: When CPS is tencent, create node group via k8sNodeGroupDynamic
+                        if (CPS == "tencent") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "img-22trbn9x", \
+                                "specId": "tencent+ap-seoul+s5.medium4", \
+                                "name": "k8sng07" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng07"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+
+                        // Additional: When CPS is alibaba, create node group via k8sNodeGroupDynamic
+                        if (CPS == "alibaba") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "alibaba+ap-southeast-1+ecs.t6-c1m4.2xlarge", \
+                                "nodeGroupName": "k8sng06", \
+                                "RootDiskType": "cloud_efficiency", \
+                                "RootDiskSize": "40" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng06"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+                        
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
                     }
@@ -1257,7 +1278,7 @@ pipeline {
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.33.4-gke.1172000" \
+                            "version": "1.33.5-gke.1125000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -1347,15 +1368,85 @@ pipeline {
                         }
                     }
 
+                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        def responseCode = tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ? ''- Http_Status_code:200'' : ''- Http_Status_code:201''
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(responseCode, '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        
+                        // Wait for cluster to be Active before creating node group
+                        echo "Waiting for cluster to be Active..."
+                        def isActive = false
+                        for (int attempt = 1; attempt <= 30; attempt++) {
+                            def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
+                            def status_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                            if (status_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                                status_response = status_response.replace(''- Http_Status_code:200'', '''')
+                                
+                                if(status_response.contains(''Active'')) {
+                                    echo "Cluster is Active!"
+                                    isActive = true
+                                    break
+                                } else {
+                                    echo "Cluster not yet Active. Waiting... (attempt ${attempt}/30)"
+                                    sh ''sleep 60''
+                                }
+                            } else {
+                                echo "Status check attempt ${attempt}/30 failed"
+                                sh ''sleep 60''
+                            }
+                        }
+                        
+                        // Additional: When CPS is aws, create extra node group via k8sNodeGroupDynamic
+                        if (CPS == "aws") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                                "name": "k8sng01" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng01"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
 
-                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
-                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        // Additional: When CPS is tencent, create node group via k8sNodeGroupDynamic
+                        if (CPS == "tencent") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "img-22trbn9x", \
+                                "specId": "tencent+ap-seoul+s5.medium4", \
+                                "name": "k8sng07" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng07"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+
+                        // Additional: When CPS is alibaba, create node group via k8sNodeGroupDynamic
+                        if (CPS == "alibaba") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "alibaba+ap-southeast-1+ecs.t6-c1m4.2xlarge", \
+                                "nodeGroupName": "k8sng06", \
+                                "RootDiskType": "cloud_efficiency", \
+                                "RootDiskSize": "40" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng06"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+                        
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
                     }
@@ -2798,7 +2889,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                             "connectionName": "gcp-asia-east1", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.33.4-gke.1172000" \
+                            "version": "1.33.5-gke.1125000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -2888,15 +2979,85 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         }
                     }
 
+                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0) {
+                        echo """Create cluster >> ${CLUSTER}"""
+                        def responseCode = tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ? ''- Http_Status_code:200'' : ''- Http_Status_code:201''
+                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(responseCode, '''')
+                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        
+                        // Wait for cluster to be Active before creating node group
+                        echo "Waiting for cluster to be Active..."
+                        def isActive = false
+                        for (int attempt = 1; attempt <= 30; attempt++) {
+                            def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}?option=status"""
+                            def status_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
+                            if (status_response.indexOf(''Http_Status_code:200'') > 0 ) {
+                                status_response = status_response.replace(''- Http_Status_code:200'', '''')
+                                
+                                if(status_response.contains(''Active'')) {
+                                    echo "Cluster is Active!"
+                                    isActive = true
+                                    break
+                                } else {
+                                    echo "Cluster not yet Active. Waiting... (attempt ${attempt}/30)"
+                                    sh ''sleep 60''
+                                }
+                            } else {
+                                echo "Status check attempt ${attempt}/30 failed"
+                                sh ''sleep 60''
+                            }
+                        }
+                        
+                        // Additional: When CPS is aws, create extra node group via k8sNodeGroupDynamic
+                        if (CPS == "aws") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "aws+ap-northeast-2+t3a.xlarge", \
+                                "name": "k8sng01" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng01"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
 
-                    if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
-                        echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
-                    } else if (tumblebug_create_cluster_response.indexOf(''Http_Status_code:201'') > 0 ) {
-                        echo """Create cluster >> ${CLUSTER}"""
-                        tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(''- Http_Status_code:201'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        // Additional: When CPS is tencent, create node group via k8sNodeGroupDynamic
+                        if (CPS == "tencent") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "img-22trbn9x", \
+                                "specId": "tencent+ap-seoul+s5.medium4", \
+                                "name": "k8sng07" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng07"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+
+                        // Additional: When CPS is alibaba, create node group via k8sNodeGroupDynamic
+                        if (CPS == "alibaba") {
+                            def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
+                            def call_tumblebug_create_nodegroup_payload = """{ \
+                                "imageId": "default", \
+                                "specId": "alibaba+ap-southeast-1+ecs.t6-c1m4.2xlarge", \
+                                "nodeGroupName": "k8sng06", \
+                                "RootDiskType": "cloud_efficiency", \
+                                "RootDiskSize": "40" \
+                            }"""
+                            def tumblebug_create_nodegroup_response = sh(script: """curl -w "- Http_Status_code:%{http_code}" -X POST ${call_tumblebug_create_nodegroup_url} -H "Content-Type: application/json" -d ''${call_tumblebug_create_nodegroup_payload}'' --user ${USER}:${USERPASS}""", returnStdout: true).trim()
+                            if (tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:200'') > 0 || tumblebug_create_nodegroup_response.indexOf(''Http_Status_code:201'') > 0) {
+                                echo "Create nodeGroup >> k8sng06"
+                            } else {
+                                echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
+                            }
+                        }
+                        
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
                     }
