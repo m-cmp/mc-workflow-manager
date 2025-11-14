@@ -132,43 +132,51 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
-                def imageId, specId, rootDiskType, rootDiskSize
+                def imageId, specId, rootDiskType, rootDiskSize, sgName
                 if (CSP == "aws") {
+                    sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "azure") {
+                    sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
                     specId = "azure+koreasouth+standard_b1s"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "gcp") {
+                    sgName = "g3"
                     imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
                     specId = "gcp+asia-northeast3+g1-small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "ncp") {
+                    sgName = "g4"
                     imageId = "23214590"
                     specId = "ncp+kr+c8-g3a"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "nhn") {
+                    sgName = "g5"
                     imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
                     specId = "nhn+kr1+r2.c4m16"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "alibaba") {
+                    sgName = "g6"
                     imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
                     specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "tencent") {
+                    sgName = "g7"
                     imageId = "img-7rotv4ux"
                     specId = "tencent+ap-shanghai+m9.medium16"
                     rootDiskType = "default"
                     rootDiskSize = "30"
                 } else if (CSP == "ibm") {
+                    sgName = "g8"
                     imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
                     specId = "ibm+jp-osa+cx2d-2x4"
                     rootDiskType = "default"
@@ -181,6 +189,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     name: "${MCI}",
                     subGroups: [
                         [
+                            name: sgName,
                             specId: specId,
                             imageId: imageId,
                             rootDiskType: rootDiskType,
@@ -832,44 +841,52 @@ pipeline {
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
                 // CSP에 따른 MCI 설정 선택
-                def imageId, specId, rootDiskType, rootDiskSize
+                def imageId, specId, rootDiskType, rootDiskSize, sgName
 
                 if (CSP == "aws") {
+                    sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "azure") {
+                    sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
                     specId = "azure+koreasouth+standard_b1s"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "gcp") {
+                    sgName = "g3"
                     imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
                     specId = "gcp+asia-northeast3+g1-small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "ncp") {
+                    sgName = "g4"
                     imageId = "23214590"
                     specId = "ncp+kr+c8-g3a"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "nhn") {
+                    sgName = "g5"
                     imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
                     specId = "nhn+kr1+r2.c4m16"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "alibaba") {
+                    sgName = "g6"
                     imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
                     specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "tencent") {
+                    sgName = "g7"
                     imageId = "img-7rotv4ux"
                     specId = "tencent+ap-shanghai+m9.medium16"
                     rootDiskType = "default"
                     rootDiskSize = "30"
                 } else if (CSP == "ibm") {
+                    sgName = "g8"
                     imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
                     specId = "ibm+jp-osa+cx2d-2x4"
                     rootDiskType = "default"
@@ -882,6 +899,7 @@ pipeline {
                     name: "${MCI}",
                     subGroups: [
                         [
+                            name: sgName,
                             specId: specId,
                             imageId: imageId,
                             rootDiskType: rootDiskType,
@@ -2423,44 +2441,52 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             echo ''>>>>> STAGE: Infrastructure MCI Create''
             script {
                 // CSP에 따른 MCI 설정 선택
-                def imageId, specId, rootDiskType, rootDiskSize
+                def imageId, specId, rootDiskType, rootDiskSize, sgName
 
                 if (CSP == "aws") {
+                    sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "azure") {
+                    sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
                     specId = "azure+koreasouth+standard_b1s"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "gcp") {
+                    sgName = "g3"
                     imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20250712"
                     specId = "gcp+asia-northeast3+g1-small"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "ncp") {
+                    sgName = "g4"
                     imageId = "23214590"
                     specId = "ncp+kr+c8-g3a"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "nhn") {
+                    sgName = "g5"
                     imageId = "abc5d0a0-4001-4e5b-ac28-de341b2a0834"
                     specId = "nhn+kr1+r2.c4m16"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "alibaba") {
+                    sgName = "g6"
                     imageId = "ubuntu_22_04_uefi_x64_20G_alibase_20240807.vhd"
                     specId = "alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "tencent") {
+                    sgName = "g7"
                     imageId = "img-7rotv4ux"
                     specId = "tencent+ap-shanghai+m9.medium16"
                     rootDiskType = "default"
                     rootDiskSize = "30"
                 } else if (CSP == "ibm") {
+                    sgName = "g8"
                     imageId = "r034-76e0174f-fd2f-4c31-b95b-b859a403f85f"
                     specId = "ibm+jp-osa+cx2d-2x4"
                     rootDiskType = "default"
@@ -2473,6 +2499,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     name: "${MCI}",
                     subGroups: [
                         [
+                            name: sgName,
                             specId: specId,
                             imageId: imageId,
                             rootDiskType: rootDiskType,
