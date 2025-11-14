@@ -1,4 +1,4 @@
-FROM docker.io/library/openjdk:17-jdk-slim
+FROM docker.io/library/openjdk:26-ea-17-jdk-slim
 ENV TZ=Asia/Seoul
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
