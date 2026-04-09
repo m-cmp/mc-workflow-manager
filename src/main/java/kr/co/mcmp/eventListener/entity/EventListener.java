@@ -3,7 +3,7 @@ package kr.co.mcmp.eventListener.entity;
 import kr.co.mcmp.workflow.Entity.Workflow;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Getter

@@ -3,7 +3,7 @@ package kr.co.mcmp.workflow.Entity;
 import kr.co.mcmp.oss.entity.Oss;
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 
 @Entity
 @Getter
