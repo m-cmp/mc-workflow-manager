@@ -2,7 +2,7 @@ package kr.co.mcmp.workflow.Entity;
 
 import lombok.*;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity

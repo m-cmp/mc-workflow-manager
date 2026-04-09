@@ -21,26 +21,21 @@ spring:
       settings:
         web-allow-others: true # 원격연결(배포 후 외부에서) 허용
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
     hibernate:
       ddl-auto: ${DB_INIT_YN:update}
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
         format_sql: true
         show_sql: true
-        hbm2ddl: # 처음에 더미데이터등을 넣기위해 sql을 실행
-          #import_files: ./data.sql # 확인필요
+        hbm2ddl:
           import_files: classpath:import.sql
-          import_files_sql_extractor: org.hibernate.tool.hbm2ddl.MultipleLinesSqlCommandExtractor # 멀티 라인 입력 가능하도록
           connection:
-            charSet: UTF-8 # 인코딩 설정
+            charSet: UTF-8
           sql:
             init:
               data-locations: classpath:import.sql
               mode: always # ${SQL_DATA_INIT:never}
               platform: h2
-              #schema-locations: classpath:ddl.sql
 
   servlet:
     multipart:
