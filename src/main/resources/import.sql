@@ -137,8 +137,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
-                    rootDiskType = "default"
-                    rootDiskSize = "default"
+                    rootDiskType = "gp3"
+                    rootDiskSize = 20
                 } else if (CSP == "azure") {
                     sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
@@ -187,7 +187,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    subGroups: [
+                    nodeGroups: [
                         [
                             name: sgName,
                             specId: specId,
@@ -198,7 +198,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     ]
                 ])
 
-                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infraDynamic"
                 def call = """curl -X POST ''${tb_vm_url}'' \
                   -H ''accept: application/json'' \
                   -H ''Content-Type: application/json'' \
@@ -216,7 +216,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         echo ''>>>>> STAGE: Infrastructure MCI Delete''
         script {
           echo "MCI Terminate Start."
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=terminate"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=terminate"""
           sh(script: """curl -X DELETE --user ${USER}:${USERPASS} "${tb_vm_url}" -H ''accept: application/json'' """, returnStdout: true)
           echo "MCI Terminate successful."
         }
@@ -227,7 +227,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Running Status''
             script {
-                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=status"""
+                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=status"""
                 def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
 
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -445,7 +445,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ''>>>>>STAGE: VM GET Access Info''
             script {
-                def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
                 if (response.contains(''Http_Status_code:200'')) {
                     echo "GET API call successful."
                     callData = response.replace(''- Http_Status_code:200'', '''')
@@ -454,7 +454,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "GET API call failed with status code: ${response}"
                 }
 
-                def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
                 def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
                 def pemkey = getSSHKey(response2)
                 if (pemkey) {
@@ -847,8 +847,8 @@ pipeline {
                     sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
-                    rootDiskType = "default"
-                    rootDiskSize = "default"
+                    rootDiskType = "gp3"
+                    rootDiskSize = 20
                 } else if (CSP == "azure") {
                     sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
@@ -897,7 +897,7 @@ pipeline {
 
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    subGroups: [
+                    nodeGroups: [
                         [
                             name: sgName,
                             specId: specId,
@@ -908,7 +908,7 @@ pipeline {
                     ]
                 ])
 
-                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infraDynamic"
                 def call = """curl -X POST ''${tb_vm_url}'' \
                   -H ''accept: application/json'' \
                   -H ''Content-Type: application/json'' \
@@ -924,7 +924,7 @@ pipeline {
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Running Status''
             script {
-                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=status"""
+                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=status"""
                 def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
 
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -972,7 +972,7 @@ pipeline {
         echo ''>>>>> STAGE: Infrastructure MCI Delete''
         script {
           echo "MCI Terminate Start."
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=terminate"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=terminate"""
           sh(script: """curl -X DELETE --user ${USER}:${USERPASS} "${tb_vm_url}" -H ''accept: application/json'' """, returnStdout: true)
           echo "MCI Terminate successful."
         }
@@ -982,7 +982,7 @@ pipeline {
       steps {
         echo ''>>>>> STAGE: Infrastructure MCI Running Status''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=status"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
             echo "GET API call successful."
@@ -1586,7 +1586,7 @@ pipeline {
             steps {
                 echo ''>>>>>STAGE: VM GET Access Info''
                 script {
-                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/ns01/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/ns01/infra/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
                     if (response.contains(''Http_Status_code:200'')) {
                         echo "GET API call successful."
                         callData = response.replace(''- Http_Status_code:200'', '''')
@@ -1595,7 +1595,7 @@ pipeline {
                         error "GET API call failed with status code: ${response}"
                     }
 
-                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
                     def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
                     def pemkey = getSSHKey(response2)
                     if (pemkey) {
@@ -1718,7 +1718,7 @@ pipeline {
             steps {
                 echo ''>>>>>STAGE: VM GET Access Info''
                 script {
-                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
                     if (response.contains(''Http_Status_code:200'')) {
                         echo "GET API call successful."
                         callData = response.replace(''- Http_Status_code:200'', '''')
@@ -1727,7 +1727,7 @@ pipeline {
                         error "GET API call failed with status code: ${response}"
                     }
 
-                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
                     def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
                     def pemkey = getSSHKey(response2)
                     if (pemkey) {
@@ -2447,8 +2447,8 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     sgName = "g1"
                     imageId = "ami-03236529070b4a0a5"
                     specId = "aws+ap-northeast-2+t2.small"
-                    rootDiskType = "default"
-                    rootDiskSize = "default"
+                    rootDiskType = "gp3"
+                    rootDiskSize = 20
                 } else if (CSP == "azure") {
                     sgName = "g2"
                     imageId = "Canonical:0001-com-ubuntu-server-jammy:22_04-lts:22.04.202505210"
@@ -2497,7 +2497,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 
                 def payload = JsonOutput.toJson([
                     name: "${MCI}",
-                    subGroups: [
+                    nodeGroups: [
                         [
                             name: sgName,
                             specId: specId,
@@ -2508,7 +2508,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                     ]
                 ])
 
-                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mciDynamic"
+                def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infraDynamic"
                 def call = """curl -X POST ''${tb_vm_url}'' \
                   -H ''accept: application/json'' \
                   -H ''Content-Type: application/json'' \
@@ -2525,7 +2525,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         steps {
             echo ''>>>>> STAGE: Infrastructure MCI Running Status''
             script {
-                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=status"""
+                def tb_vm_status_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=status"""
                 def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
 
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
@@ -2575,7 +2575,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
         echo ''>>>>> STAGE: Infrastructure MCI Delete''
         script {
           echo "MCI Terminate Start."
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=terminate"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=terminate"""
           sh(script: """curl -X DELETE --user ${USER}:${USERPASS} "${tb_vm_url}" -H ''accept: application/json'' """, returnStdout: true)
           echo "MCI Terminate successful."
         }
@@ -2586,7 +2586,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
       steps {
         echo ''>>>>> STAGE: Infrastructure MCI Running Status''
         script {
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=status"""
+          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=status"""
           def response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
           if (response.indexOf(''Http_Status_code:200'') > 0 ) {
             echo "GET API call successful."
@@ -3207,7 +3207,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 echo ''>>>>>STAGE: VM GET Access Info''
                 script {
-                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/ns01/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/ns01/infra/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
                     if (response.contains(''Http_Status_code:200'')) {
                         echo "GET API call successful."
                         callData = response.replace(''- Http_Status_code:200'', '''')
@@ -3216,7 +3216,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         error "GET API call failed with status code: ${response}"
                     }
 
-                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
                     def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
                     def pemkey = getSSHKey(response2)
                     if (pemkey) {
@@ -3346,7 +3346,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
             steps {
                 echo ''>>>>>STAGE: VM GET Access Info''
                 script {
-                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
+                    def response = sh(script: """curl -w "- Http_Status_code:%{http_code}" ${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo --user "default:default" """, returnStdout: true).trim()
                     if (response.contains(''Http_Status_code:200'')) {
                         echo "GET API call successful."
                         callData = response.replace(''- Http_Status_code:200'', '''')
@@ -3355,7 +3355,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
                         error "GET API call failed with status code: ${response}"
                     }
 
-                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/mci/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
+                    def tb_sw_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=accessinfo&accessInfoOption=showSshKey"
                     def response2 = sh(script: """curl -X ''GET'' --user ''${USER}:${USERPASS}'' ''${tb_sw_url}'' -H ''accept: application/json'' """, returnStdout: true).trim()
                     def pemkey = getSSHKey(response2)
                     if (pemkey) {
