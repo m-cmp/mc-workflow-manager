@@ -13,6 +13,10 @@ repositories {
     mavenCentral()
 }
 
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 dependencies {
 
 
