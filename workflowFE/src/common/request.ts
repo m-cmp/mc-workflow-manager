@@ -1,8 +1,10 @@
 import axios from "axios";
 import { useToast } from "vue-toastification";
 
-const splitUrl = window.location.host.split(':');
-const baseUrl = window.location.protocol + '//' + splitUrl[0] + ':18083'
+const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim();
+const baseUrl = configuredBaseUrl?.startsWith("http://") && window.location.protocol === "https:"
+    ? window.location.origin
+    : configuredBaseUrl || window.location.origin;
 const toast = useToast();
 const service = axios.create({
     // baseURL: process.env.VUE_APP_API_URL,
