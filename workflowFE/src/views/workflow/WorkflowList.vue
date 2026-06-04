@@ -85,11 +85,12 @@ onBeforeUnmount(() => {
 
 let workflowListPollingTimer: ReturnType<typeof setInterval> | undefined
 let workflowListFetching = false
+const WORKFLOW_LIST_POLLING_INTERVAL_MS = 15000
 const startWorkflowListPolling = () => {
   stopWorkflowListPolling()
   workflowListPollingTimer = setInterval(() => {
     _getWorkflowList(false)
-  }, 5000)
+  }, WORKFLOW_LIST_POLLING_INTERVAL_MS)
 }
 const stopWorkflowListPolling = () => {
   if (workflowListPollingTimer) {
@@ -148,9 +149,10 @@ const setColumns = () => {
       // widthShrink: 1,
     },
     {
-      title: "Created Date",
-      field: "regDate",
+      title: "Last Run Date",
+      field: "runDate",
       width: '20%',
+      formatter: runDateFormatter,
       // widthShrink: 5,
     },
     {
@@ -199,6 +201,19 @@ const statusFormatter = (cell: any) => {
     </span>
   </div>
   `
+}
+const runDateFormatter = (cell: any) => {
+  const value = cell.getValue()
+  if (!value) {
+    return '<span>-</span>'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return `<span>${value}</span>`
+  }
+
+  return `<span>${date.toLocaleString()}</span>`
 }
 const buttonFormatter = () => {
   return `

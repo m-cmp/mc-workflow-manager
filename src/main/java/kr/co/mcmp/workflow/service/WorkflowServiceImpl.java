@@ -34,6 +34,7 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -306,6 +307,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     public Boolean runWorkflow(Long workflowIdx) {
         // 배포 실행 관련 사용자 이력 정보 수정
+        updateWorkflowRunDate(workflowIdx);
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
 
         List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
@@ -331,6 +333,9 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Override
     public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
+        if (workflowReqDto.getWorkflowInfo() != null) {
+            updateWorkflowRunDate(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
+        }
         workflowAsyncExecutor.runWorkflow(workflowReqDto);
         return true;
     }
@@ -493,6 +498,20 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
         return WorkflowDto.from(workflow);
+    }
+
+    public void updateWorkflowRunDate(Long workflowIdx) {
+        if (workflowIdx == null || workflowIdx == 0) {
+            return;
+        }
+
+        Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
+        if (workflow == null) {
+            return;
+        }
+
+        workflow.updateRunDate(LocalDateTime.now());
+        workflowRepository.save(workflow);
     }
 
     /**

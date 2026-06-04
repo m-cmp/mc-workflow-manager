@@ -4,6 +4,7 @@ import kr.co.mcmp.oss.entity.Oss;
 import lombok.*;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -30,4 +31,11 @@ public class Workflow {
     @Lob
     @Column(name = "script", columnDefinition = "CLOB")
     private String script;
+
+    @Column(name = "run_date")
+    private LocalDateTime runDate;
+
+    public void updateRunDate(LocalDateTime runDate) {
+        this.runDate = runDate;
+    }
 }

@@ -32,6 +32,7 @@ export interface Workflow {
   workflowInfo: WorkflowInfo
   workflowParams: Array<WorkflowParams>
   workflowStageMappings: Array<WorkflowStageMappings>
+  runDate?: string
 }
 
 export interface WorkflowInfo {
@@ -40,6 +41,7 @@ export interface WorkflowInfo {
   workflowPurpose: string
   ossIdx: number
   script: string | string[]
+  runDate?: string
 }
 
 export interface WorkflowParams {
@@ -141,7 +143,7 @@ export interface JenkinsStage {
 //   modId: string
 //   modName: string
 //   protectedYn: string
-//   regDate: string
+//   runDate: string
 //   regId: string
 //   regName: string
 // }

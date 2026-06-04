@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,6 +21,7 @@ public class WorkflowListResDto {
     private WorkflowDto workflowInfo;
     private List<WorkflowParamDto> workflowParams;
     private List<WorkflowStageMappingDto> workflowStageMappings;
+    private LocalDateTime runDate;
 
     // from : 외부 (entity -> dto)
     public static WorkflowListResDto from(Workflow workflow, List<WorkflowParam> workflowParams, List<WorkflowStageMapping> workflowStageMappings) {
@@ -27,6 +29,7 @@ public class WorkflowListResDto {
                 .workflowInfo            (WorkflowDto.from(workflow))
                 .workflowParams         (workflowParams.stream().map(WorkflowParamDto::from).collect(Collectors.toList()))
                 .workflowStageMappings  (workflowStageMappings.stream().map(WorkflowStageMappingDto::from).collect(Collectors.toList()))
+                .runDate                (workflow.getRunDate())
                 .build();
     }
 
@@ -36,6 +39,7 @@ public class WorkflowListResDto {
                 .workflowInfo(workflowDto)
                 .workflowParams(workflowParams)
                 .workflowStageMappings(workflowStageMappings)
+                .runDate(workflowDto.getRunDate())
                 .build();
     }
 }

@@ -608,9 +608,9 @@ docker stop k8s-tools
 -- 10. mci-mariadb-install
 -- 11. k8s-nginx-install
 -- 12. k8s-mariadb-install
--- INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'create vm', 'test', 1, '');
+-- INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (1, 'create vm', 'test', 1, '', NULL);
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (1, 'vm-mariadb-nginx-all-in-one', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (1, 'vm-mariadb-nginx-all-in-one', 'test', 1, '
 pipeline {
     agent any
     stages {
@@ -678,11 +678,11 @@ pipeline {
             }
         }
     }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (2, 'k8s-mariadb-nginx-all-in-one', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (2, 'k8s-mariadb-nginx-all-in-one', 'test', 1, '
 pipeline {
     agent any
     stages {
@@ -735,11 +735,11 @@ pipeline {
             }
         }
     }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (3, 'create-ns', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (3, 'create-ns', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -804,11 +804,11 @@ pipeline {
         }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (4, 'create-mci', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (4, 'create-mci', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -938,11 +938,11 @@ pipeline {
         }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (5, 'delete-mci', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (5, 'delete-mci', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -996,11 +996,11 @@ pipeline {
       }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (6, 'k8s pre-installation tasks', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (6, 'k8s pre-installation tasks', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -1225,11 +1225,11 @@ pipeline {
         }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (7, 'create-k8s-cluster', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (7, 'create-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -1490,11 +1490,11 @@ pipeline {
       }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (8, 'delete-k8s-cluster', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (8, 'delete-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 import groovy.json.JsonSlurperClassic
@@ -1549,11 +1549,11 @@ pipeline {
       }
     }
   }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (9, 'mci-nginx-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (9, 'mci-nginx-install', 'test', 1, '
 import groovy.json.JsonSlurper
 
 def getSSHKey(jsonInput) {
@@ -1688,9 +1688,9 @@ pipeline {
             }
          }
     }
-}');
+}', NULL);
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (10, 'mci-mariadb-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (10, 'mci-mariadb-install', 'test', 1, '
 import groovy.json.JsonSlurper
 
 def getSSHKey(jsonInput) {
@@ -1808,10 +1808,10 @@ pipeline {
             }
         }
     }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (11, 'k8s-nginx-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (11, 'k8s-nginx-install', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
@@ -1929,10 +1929,10 @@ docker stop k8s-tools
             }
         }
     }
-}');
+}', NULL);
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (12, 'k8s-mariadb-install', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (12, 'k8s-mariadb-install', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
 
@@ -2050,7 +2050,7 @@ docker stop k8s-tools
             }
         }
     }
-}');
+}', NULL);
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3695,7 +3695,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- New Workflow : clean ns
-INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script) VALUES (13, 'clean ns', 'test', 1, '
+INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (13, 'clean ns', 'test', 1, '
 pipeline {
   agent any
   stages {
@@ -3727,7 +3727,7 @@ pipeline {
       }
     }
   }
-}');
+}', NULL);
 
 -- -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Workflow : clean ns params

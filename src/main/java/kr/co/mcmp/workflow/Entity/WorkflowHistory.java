@@ -33,4 +33,11 @@ public class WorkflowHistory {
 
     @Column(name = "date")
     private LocalDateTime date;
+
+    @PrePersist
+    public void prePersist() {
+        if (this.date == null) {
+            this.date = LocalDateTime.now();
+        }
+    }
 }

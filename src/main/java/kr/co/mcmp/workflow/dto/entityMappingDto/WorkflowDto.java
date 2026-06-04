@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.time.LocalDateTime;
+
 @SuperBuilder
 @Getter
 @NoArgsConstructor // 기본 생성자 추가
@@ -17,6 +19,7 @@ public class WorkflowDto {
     private Long ossIdx;
     private String script;
     private String status;
+    private LocalDateTime runDate;
 
     // from : 외부 (entity -> dto)
     public static WorkflowDto from(Workflow workflow) {
@@ -26,6 +29,7 @@ public class WorkflowDto {
                 .workflowPurpose(workflow.getWorkflowPurpose())
                 .ossIdx(workflow.getOss().getOssIdx())
                 .script(workflow.getScript())
+                .runDate(workflow.getRunDate())
                 .build();
     }
 
@@ -37,6 +41,7 @@ public class WorkflowDto {
                 .workflowPurpose(workflowDto.getWorkflowPurpose())
                 .ossIdx(workflowDto.getOssIdx())
                 .script(workflowDto.getScript())
+                .runDate(workflowDto.getRunDate())
                 .build();
     }
 
@@ -48,6 +53,7 @@ public class WorkflowDto {
                 .workflowPurpose(workflowDto.getWorkflowPurpose())
                 .oss(OssDto.toEntity(ossDto, ossTypeDto))
                 .script(workflowDto.getScript())
+                .runDate(workflowDto.getRunDate())
                 .build();
     }
 
@@ -60,6 +66,7 @@ public class WorkflowDto {
                 .ossIdx(workflowDto.getOssIdx())
                 .script(workflowDto.getScript())
                 .status(status) // status 필드 포함
+                .runDate(workflowDto.getRunDate())
                 .build();
     }
 
