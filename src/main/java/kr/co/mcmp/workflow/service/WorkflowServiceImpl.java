@@ -1,6 +1,5 @@
 package kr.co.mcmp.workflow.service;
 
-import com.cdancy.jenkins.rest.domain.job.BuildInfo;
 import kr.co.mcmp.oss.dto.OssDto;
 import kr.co.mcmp.oss.dto.OssTypeDto;
 import kr.co.mcmp.oss.entity.Oss;
@@ -28,7 +27,6 @@ import kr.co.mcmp.workflowStage.repository.WorkflowStageRepository;
 import kr.co.mcmp.workflowStage.repository.WorkflowStageTypeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -36,7 +34,6 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -65,6 +62,8 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final JenkinsService jenkinsService;
 
     private final JenkinsPipelineGeneratorService pipelineService;
+
+    private final WorkflowAsyncExecutor workflowAsyncExecutor;
 
     /**
      * 워크플로우 목록 조회
@@ -304,7 +303,6 @@ public class WorkflowServiceImpl implements WorkflowService {
      * @param workflowIdx
      * @return
      */
-    @Async
     @Override
     public Boolean runWorkflow(Long workflowIdx) {
         // 배포 실행 관련 사용자 이력 정보 수정
@@ -322,7 +320,8 @@ public class WorkflowServiceImpl implements WorkflowService {
 
         WorkflowReqDto workflowReqDto = WorkflowReqDto.of(workflowDto, paramList, stageList);
 
-        return runWorkflowCallback(workflowReqDto);
+        workflowAsyncExecutor.runWorkflow(workflowReqDto);
+        return true;
     }
 
     /**
@@ -330,84 +329,10 @@ public class WorkflowServiceImpl implements WorkflowService {
      * @param workflowReqDto
      * @return
      */
-    @Async
     @Override
     public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
-        return runWorkflowCallback(workflowReqDto);
-    }
-
-    public Boolean runWorkflowCallback(WorkflowReqDto workflowReqDto) {
-
-        Map<String, List<String>> jenkinsJobParams = null;
-
-        if(!StringUtils.isEmpty(workflowReqDto.getWorkflowParams())) {
-            Map<String, List<String>> finalJenkinsJobParams = new HashMap<>();
-
-            for(WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
-                finalJenkinsJobParams.put(param.getParamKey(), Arrays.asList(param.getParamValue()));
-            }
-
-            jenkinsJobParams = finalJenkinsJobParams;
-        }
-
-        // OSS 접속 정보 조회
-        OssTypeDto ossTypeDto = getOssTypeDto(workflowReqDto.getWorkflowInfo().getOssIdx());
-        OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
-
-        // Jenkins Job 실행
-        int jenkinsBuildId = jenkinsService.buildJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsJobParams);
-        int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId);
-
-        // 배포 이력 정보 등록
-        saveWorkflowHistory(
-                workflowReqDto,
-                ossDto,
-                ossTypeDto,
-                "script",
-                workflowReqDto.getWorkflowInfo().getScript(),
-                "root",
-                null);
-
-        for(WorkflowParamDto paramDto : workflowReqDto.getWorkflowParams()) {
-            saveWorkflowHistory(
-                workflowReqDto,
-                ossDto,
-                ossTypeDto,
-                "paramKey",
-                paramDto.getParamKey(),
-                "root",
-                null);
-
-            saveWorkflowHistory(
-                workflowReqDto,
-                ossDto,
-                ossTypeDto,
-                "paramValue",
-                paramDto.getParamValue(),
-                "root",
-                null);
-        }
-
-        // Jenkins Job 실행 대기
-        BuildInfo buildInfo = jenkinsService.waitJenkinsBuild(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsBuildId, buildNumber);
-        log.info("BuildInfo ==> {}", buildInfo.toString());
-
-        // TODO : 실행후 액션 필요 (기존 : History에 결과값 추가)
-        saveWorkflowHistory(
-            workflowReqDto,
-            ossDto,
-            ossTypeDto,
-            "result",
-            buildInfo.result(),
-            "root",
-            null);
-
-        // 빌드 실행 결과 확인
-        WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), buildInfo.number());
-        if("SUCCESS".equals(jenkinsBuildHistory.getStatus().toUpperCase()))
-            return true;
-        else
-            return false;
+        workflowAsyncExecutor.runWorkflow(workflowReqDto);
+        return true;
     }
 
     /**
@@ -568,27 +493,6 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
         return WorkflowDto.from(workflow);
-    }
-
-    /**
-     * WorkflowHistory 저장
-     * @param workflowReqDto
-     * @param ossDto
-     * @param ossTypeDto
-     * @param dataType
-     * @param data
-     */
-    private void saveWorkflowHistory(WorkflowReqDto workflowReqDto, OssDto ossDto, OssTypeDto ossTypeDto, String dataType, String data, String userId, LocalDateTime date) {
-        WorkflowHistory workflowHistoryEntity = WorkflowHistoryDto.buildEntity(
-                workflowReqDto.getWorkflowInfo(),
-                ossDto,
-                ossTypeDto,
-                dataType,
-                data,
-                userId,
-                date
-        );
-        workflowHistoryRepository.save(workflowHistoryEntity);
     }
 
     /**

@@ -54,6 +54,7 @@ const props = defineProps<Props>()
 const emit = defineEmits(['get-workflow-list'])
 const workflowIdx = computed(() => props.workflowIdx)
 const workflowFormData = ref({} as Workflow)
+const running = ref(false)
 
 watch(() => workflowIdx.value, async () => {
   const { data } = await getWorkflowDetailInfo(workflowIdx.value, 'N')
@@ -65,19 +66,24 @@ watch(() => workflowIdx.value, async () => {
  * @Desc 실행 버튼 클릭시 동작 / 실행 api 호출
  */
 const onClickRun = async () => {
-  toast.success('워크플로우가 실행 되었습니다.')
+  if (running.value) {
+    return
+  }
 
-  // 목록 상태 체크를 위한 emit
-  emit('get-workflow-list')
-  
-  await runWorkflow(workflowFormData.value).then(({ data }) => {
-    if (data)
-      toast.success('워크플로우가 정상적으로 완료 되었습니다.')
-    else
-      toast.error('워크플로우가 정상적으로 완료 되지 못했습니다.')
-
-    // 목록 상태 체크를 위한 emit
+  running.value = true
+  try {
+    const { data } = await runWorkflow(workflowFormData.value)
+    if (data) {
+      toast.success('워크플로우 실행 요청이 접수되었습니다.')
+    } else {
+      toast.error('워크플로우 실행 요청을 처리하지 못했습니다.')
+    }
     emit('get-workflow-list')
-  })
+  } catch (error) {
+    console.log(error)
+    toast.error('워크플로우 실행 요청을 처리하지 못했습니다.')
+  } finally {
+    running.value = false
+  }
 }
 </script>

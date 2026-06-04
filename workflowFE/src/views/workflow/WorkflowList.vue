@@ -53,7 +53,7 @@ import TableHeader from '../../components/Table/TableHeader.vue'
 import Tabulator from '@/components/Table/Tabulator.vue'
 // @ts-ignore
 import { getWorkflowList, existEventListener } from '@/api/workflow'
-import { onMounted, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 // @ts-ignore
 import type { Workflow } from '@/views/type/type'
 import type { ColumnDefinition } from 'tabulator-tables';
@@ -76,17 +76,48 @@ const columns = ref([] as Array<ColumnDefinition>)
 onMounted(async () => {
   setColumns()
   await _getWorkflowList()
+  startWorkflowListPolling()
 })
 
-const _getWorkflowList = async () => {
+onBeforeUnmount(() => {
+  stopWorkflowListPolling()
+})
+
+let workflowListPollingTimer: ReturnType<typeof setInterval> | undefined
+let workflowListFetching = false
+const startWorkflowListPolling = () => {
+  stopWorkflowListPolling()
+  workflowListPollingTimer = setInterval(() => {
+    _getWorkflowList(false)
+  }, 5000)
+}
+const stopWorkflowListPolling = () => {
+  if (workflowListPollingTimer) {
+    clearInterval(workflowListPollingTimer)
+    workflowListPollingTimer = undefined
+  }
+}
+
+const _getWorkflowList = async (showLoading = true) => {
+  if (workflowListFetching) {
+    return
+  }
+
+  workflowListFetching = true
   try {
-    overlayShow.value = true
+    if (showLoading) {
+      overlayShow.value = true
+    }
     await getWorkflowList('N').then(({ data }) => {
-      overlayShow.value = false
       workflowList.value = data
     })
   } catch(error) {
     console.log(error)
+  } finally {
+    if (showLoading) {
+      overlayShow.value = false
+    }
+    workflowListFetching = false
   }
 }
 

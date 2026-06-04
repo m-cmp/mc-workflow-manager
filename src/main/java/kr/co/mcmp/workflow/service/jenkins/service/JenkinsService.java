@@ -20,6 +20,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestClientResponseException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -308,6 +309,9 @@ public class JenkinsService {
 //    }
 //
     private void addParameter(Document document, List<WorkflowParamDto> params) {
+        if (CollectionUtils.isEmpty(params)) {
+            return;
+        }
 
         // parametersDefinitionProperty
         NodeList propertiesList = document.getElementsByTagName("properties");

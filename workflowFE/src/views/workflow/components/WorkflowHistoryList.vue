@@ -29,7 +29,7 @@
   
 </template>
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 // @ts-ignore
 import { getWorkflowRunHistory } from '@/api/workflow'
 import type { ColumnDefinition } from 'tabulator-tables';
@@ -56,28 +56,71 @@ interface Props {
 
 const props = defineProps<Props>()
 watch(() => props.workflowIdx, async () => {
-  if(props.workflowIdx !== 0)
+  if(isRunnableWorkflowIdx(props.workflowIdx)) {
     await setRunHistory(props.workflowIdx)
+    startRunHistoryPolling()
+  } else {
+    stopRunHistoryPolling()
+  }
 })
 watch(() => showComponentFlag.value, () => {
 })
 
 onMounted(() => {
   setColumns()
+  if (isRunnableWorkflowIdx(props.workflowIdx)) {
+    setRunHistory(props.workflowIdx)
+    startRunHistoryPolling()
+  }
+})
+
+onBeforeUnmount(() => {
+  stopRunHistoryPolling()
 })
 
 
 const runHistoryList = ref([] as Array<RunHistory>)
-const setRunHistory = async (workflowIdx?: number | string | string[]) => {
-  overlayShow.value = true
+let runHistoryPollingTimer: ReturnType<typeof setInterval> | undefined
+let runHistoryFetching = false
+const isRunnableWorkflowIdx = (workflowIdx?: number | string | string[]) => {
+  return workflowIdx !== undefined && workflowIdx !== 0 && workflowIdx !== '0'
+}
+const startRunHistoryPolling = () => {
+  stopRunHistoryPolling()
+  runHistoryPollingTimer = setInterval(() => {
+    setRunHistory(props.workflowIdx, false)
+  }, 5000)
+}
+const stopRunHistoryPolling = () => {
+  if (runHistoryPollingTimer) {
+    clearInterval(runHistoryPollingTimer)
+    runHistoryPollingTimer = undefined
+  }
+}
+const setRunHistory = async (workflowIdx?: number | string | string[], showLoading = true) => {
+  if (runHistoryFetching || !isRunnableWorkflowIdx(workflowIdx)) {
+    return
+  }
+
+  runHistoryFetching = true
+  if (showLoading) {
+    overlayShow.value = true
+  }
+
   await getWorkflowRunHistory(workflowIdx).then(({ data }) => {
-    overlayShow.value = false
     data.forEach((runHistoryInfo: RunHistory) => {
       runHistoryInfo.startTimeMillis = new Date(runHistoryInfo.startTimeMillis).toLocaleString();
       runHistoryInfo.user = 'ADMIN';
     })
     runHistoryList.value = _.sortBy(data, 'name').reverse()
     showComponentFlag.value = true
+  }).catch((error) => {
+    console.log(error)
+  }).finally(() => {
+    if (showLoading) {
+      overlayShow.value = false
+    }
+    runHistoryFetching = false
   })
 }
 
