@@ -593,6 +593,579 @@ docker stop k8s-tools
             }
     }');
 
+-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Step 4-1: Insert category-managed workflow stages
+-- category: infra, k8s, app-deploy, db-backup-restore, common-util
+INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
+(17, 'infra', '인프라'),
+(18, 'k8s', '인프라 - K8s'),
+(19, 'app-deploy', '앱 배포'),
+(20, 'db-backup-restore', '데이터 - Backup / Restore'),
+(21, 'common-util', '공통 / 유틸');
+
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (17, 17, 1, 'infra-create', 'INFRA 생성 (CSP별 spec 기반)', '
+    stage("infra-create") {
+        steps {
+            echo ">>>>> STAGE: infra-create"
+            script {
+                def payload = params.INFRA_CREATE_PAYLOAD?.trim()
+                if (!payload) {
+                    def specId = params.SPEC_ID ?: params.SPEC
+                    def imageId = params.IMAGE_ID ?: params.IMAGE
+                    payload = JsonOutput.toJson([
+                        name: params.INFRA_ID,
+                        description: params.INFRA_DESC ?: "Workflow created infra",
+                        installMonAgent: params.INSTALL_MON_AGENT ?: "no",
+                        policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
+                        label: [
+                            region: params.REGION ?: ""
+                        ],
+                        nodeGroups: [[
+                            name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                            nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
+                            specId: specId,
+                            imageId: imageId,
+                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
+                        ]]
+                    ])
+                }
+                writeFile file: "infra-create.json", text: payload
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-create failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (18, 17, 2, 'infra-get', 'INFRA 단건 조회', '
+    stage("infra-get") {
+        steps {
+            echo ">>>>> STAGE: infra-get"
+            script {
+                def option = params.INFRA_GET_OPTION ? "?option=${params.INFRA_GET_OPTION}" : ""
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}${option}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-get failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (19, 17, 3, 'infra-list', 'INFRA 목록 조회', '
+    stage("infra-list") {
+        steps {
+            echo ">>>>> STAGE: infra-list"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-list failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (20, 17, 4, 'infra-update', 'INFRA 스펙 변경 (resize 등)', '
+    stage("infra-update") {
+        steps {
+            echo ">>>>> STAGE: infra-update"
+            script {
+                def method = params.INFRA_UPDATE_METHOD ?: "PUT"
+                def path = params.INFRA_UPDATE_PATH ?: "/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}"
+                def payload = params.INFRA_UPDATE_PAYLOAD ?: "{}"
+                writeFile file: "infra-update.json", text: payload
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X "${method}" "${params.TUMBLEBUG}${path}" -H "Content-Type: application/json" -d @infra-update.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-update failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (21, 17, 5, 'infra-delete', 'INFRA 삭제', '
+    stage("infra-delete") {
+        steps {
+            echo ">>>>> STAGE: infra-delete"
+            script {
+                def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-delete failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (22, 17, 6, 'infra-start', 'INFRA 시작', '
+    stage("infra-start") {
+        steps {
+            echo ">>>>> STAGE: infra-start"
+            script {
+                def force = params.INFRA_CONTROL_FORCE ?: "false"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/control/infra/${params.INFRA_ID}?action=resume&force=${force}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-start failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (23, 17, 7, 'infra-stop', 'INFRA 중지', '
+    stage("infra-stop") {
+        steps {
+            echo ">>>>> STAGE: infra-stop"
+            script {
+                def force = params.INFRA_CONTROL_FORCE ?: "false"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/control/infra/${params.INFRA_ID}?action=suspend&force=${force}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-stop failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (24, 17, 8, 'infra-reboot', 'INFRA 재시작', '
+    stage("infra-reboot") {
+        steps {
+            echo ">>>>> STAGE: infra-reboot"
+            script {
+                def force = params.INFRA_CONTROL_FORCE ?: "false"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/control/infra/${params.INFRA_ID}?action=reboot&force=${force}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra-reboot failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (25, 17, 9, 'infra-ssh-connect-check', 'INFRA SSH 연결 확인', '
+    stage("infra-ssh-connect-check") {
+        steps {
+            echo ">>>>> STAGE: infra-ssh-connect-check"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=accessInfo" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "infra accessInfo lookup failed: ${response}"
+                }
+                if (params.SSH_HOST && params.SSH_USER) {
+                    def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
+                    sh """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" "echo ssh-ok" """
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (26, 18, 1, 'k8s-cluster-create', 'K8s 클러스터 생성', '
+    stage("k8s-cluster-create") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-create"
+            script {
+                def payload = params.K8S_CREATE_PAYLOAD?.trim()
+                if (!payload) {
+                    payload = JsonOutput.toJson([
+                        name: params.K8S_CLUSTER_ID,
+                        nodeGroupName: params.K8S_NODEGROUP_NAME ?: "ng1",
+                        specId: params.SPEC_ID,
+                        imageId: params.IMAGE_ID,
+                        version: params.K8S_VERSION ?: "",
+                        desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
+                        minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
+                        maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                    ])
+                }
+                writeFile file: "k8s-cluster-create.json", text: payload
+                def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-create failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (27, 18, 2, 'k8s-cluster-get', '클러스터 단건 조회', '
+    stage("k8s-cluster-get") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-get"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-get failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (28, 18, 3, 'k8s-cluster-list', '클러스터 목록 조회', '
+    stage("k8s-cluster-list") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-list"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-list failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (29, 18, 4, 'k8s-cluster-update', '클러스터 수정 (노드 수 등)', '
+    stage("k8s-cluster-update") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-update"
+            script {
+                def payload = params.K8S_UPDATE_PAYLOAD?.trim()
+                if (!payload) {
+                    payload = JsonOutput.toJson([version: params.K8S_VERSION])
+                }
+                writeFile file: "k8s-cluster-update.json", text: payload
+                def skipVersionCheck = params.K8S_SKIP_VERSION_CHECK ?: "false"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X PUT "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/upgrade?skipVersionCheck=${skipVersionCheck}" -H "Content-Type: application/json" -d @k8s-cluster-update.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-update failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (30, 18, 5, 'k8s-cluster-delete', '클러스터 삭제', '
+    stage("k8s-cluster-delete") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-delete"
+            script {
+                def option = params.K8S_DELETE_OPTION ?: "force"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=${option}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-delete failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (31, 18, 6, 'k8s-nodegroup-add', '노드그룹 추가', '
+    stage("k8s-nodegroup-add") {
+        steps {
+            echo ">>>>> STAGE: k8s-nodegroup-add"
+            script {
+                def payload = params.K8S_NODEGROUP_PAYLOAD?.trim()
+                if (!payload) {
+                    payload = JsonOutput.toJson([
+                        name: params.K8S_NODEGROUP_NAME,
+                        specId: params.SPEC_ID,
+                        imageId: params.IMAGE_ID,
+                        desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
+                        minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
+                        maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                    ])
+                }
+                writeFile file: "k8s-nodegroup-add.json", text: payload
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-nodegroup-add failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (32, 18, 7, 'k8s-nodegroup-remove', '노드그룹 제거', '
+    stage("k8s-nodegroup-remove") {
+        steps {
+            echo ">>>>> STAGE: k8s-nodegroup-remove"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroup/${params.K8S_NODEGROUP_NAME}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-nodegroup-remove failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (33, 18, 8, 'k8s-kubeconfig-get', 'kubeconfig 조회', '
+    stage("k8s-kubeconfig-get") {
+        steps {
+            echo ">>>>> STAGE: k8s-kubeconfig-get"
+            script {
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/kubeconfig" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "k8s-kubeconfig-get failed: ${response}"
+                }
+                def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                writeFile file: "kubeconfig-response.json", text: body
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (34, 19, 1, 'app-deploy-helm', 'Helm chart 기반 앱 배포', '
+    stage("app-deploy-helm") {
+        steps {
+            echo ">>>>> STAGE: app-deploy-helm"
+            script {
+                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def namespace = params.KUBE_NAMESPACE ?: "default"
+                def valuesArgs = params.HELM_VALUES_ARGS ?: ""
+                sh """helm upgrade --install "${params.RELEASE_NAME}" "${params.HELM_CHART}" --namespace "${namespace}" --create-namespace --kubeconfig kubeconfig ${valuesArgs}"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (35, 19, 2, 'app-deploy-manifest', 'K8s manifest 기반 앱 배포', '
+    stage("app-deploy-manifest") {
+        steps {
+            echo ">>>>> STAGE: app-deploy-manifest"
+            script {
+                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                writeFile file: "manifest.yaml", text: params.K8S_MANIFEST ?: ""
+                def namespace = params.KUBE_NAMESPACE ?: "default"
+                sh """kubectl apply -f manifest.yaml --namespace "${namespace}" --kubeconfig kubeconfig"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (36, 19, 3, 'app-deploy-status-check', '배포 상태 확인 (pod/deployment ready)', '
+    stage("app-deploy-status-check") {
+        steps {
+            echo ">>>>> STAGE: app-deploy-status-check"
+            script {
+                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def namespace = params.KUBE_NAMESPACE ?: "default"
+                def deployment = params.DEPLOYMENT_NAME
+                if (deployment) {
+                    sh """kubectl rollout status deployment/${deployment} --namespace "${namespace}" --kubeconfig kubeconfig --timeout="${params.ROLLOUT_TIMEOUT ?: "300s"}" """
+                } else {
+                    sh """kubectl get pods --namespace "${namespace}" --kubeconfig kubeconfig"""
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (37, 19, 4, 'app-undeploy', '앱 삭제', '
+    stage("app-undeploy") {
+        steps {
+            echo ">>>>> STAGE: app-undeploy"
+            script {
+                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def namespace = params.KUBE_NAMESPACE ?: "default"
+                def deployType = params.APP_DEPLOY_TYPE ?: "helm"
+                if (deployType == "manifest") {
+                    writeFile file: "manifest.yaml", text: params.K8S_MANIFEST ?: ""
+                    sh """kubectl delete -f manifest.yaml --namespace "${namespace}" --kubeconfig kubeconfig --ignore-not-found=true"""
+                } else {
+                    sh """helm uninstall "${params.RELEASE_NAME}" --namespace "${namespace}" --kubeconfig kubeconfig || true"""
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (38, 19, 5, 'app-rollback', '이전 버전 롤백', '
+    stage("app-rollback") {
+        steps {
+            echo ">>>>> STAGE: app-rollback"
+            script {
+                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def namespace = params.KUBE_NAMESPACE ?: "default"
+                def revision = params.HELM_REVISION ?: ""
+                sh """helm rollback "${params.RELEASE_NAME}" ${revision} --namespace "${namespace}" --kubeconfig kubeconfig"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'MariaDB 설치', '
+    stage("mariadb-install") {
+        steps {
+            echo ">>>>> STAGE: mariadb-install"
+            script {
+                def dbName = params.DB_NAME ?: "testdb"
+                def dbUser = params.DB_USER ?: "mariadb_user"
+                def dbPassword = params.DB_PASSWORD ?: "mariadb_pass"
+                def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
+                if (!params.SSH_HOST || !params.SSH_USER) {
+                    error "SSH_HOST and SSH_USER are required for mariadb-install"
+                }
+                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" << "EOF"
+set -e
+if command -v apt-get >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server mariadb-client
+elif command -v yum >/dev/null 2>&1; then
+  sudo yum install -y mariadb-server mariadb
+else
+  echo "Unsupported package manager"
+  exit 1
+fi
+sudo systemctl enable --now mariadb || sudo systemctl enable --now mysql
+sudo mariadb -e "CREATE DATABASE IF NOT EXISTS \`${dbName}\`;"
+sudo mariadb -e "CREATE USER IF NOT EXISTS ''${dbUser}''@''%'' IDENTIFIED BY ''${dbPassword}'';"
+sudo mariadb -e "GRANT ALL PRIVILEGES ON \`${dbName}\`.* TO ''${dbUser}''@''%'';"
+sudo mariadb -e "FLUSH PRIVILEGES;"
+EOF"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (39, 20, 2, 'db-backup-export', 'DB 백업 파일 export', '
+    stage("db-backup-export") {
+        steps {
+            echo ">>>>> STAGE: db-backup-export"
+            script {
+                def dbPort = params.DB_PORT ?: "3306"
+                def backupFile = params.DB_BACKUP_FILE ?: "${params.DB_NAME}.sql"
+                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb-dump -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" > "${backupFile}" """
+                archiveArtifacts artifacts: backupFile, allowEmptyArchive: false
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (40, 20, 3, 'db-backup-import', '백업 파일 import (restore)', '
+    stage("db-backup-import") {
+        steps {
+            echo ">>>>> STAGE: db-backup-import"
+            script {
+                def dbPort = params.DB_PORT ?: "3306"
+                def backupFile = params.DB_BACKUP_FILE ?: "${params.DB_NAME}.sql"
+                if (params.SCHEMA_SQL_CONTENT?.trim()) {
+                    writeFile file: backupFile, text: params.SCHEMA_SQL_CONTENT
+                }
+                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${backupFile}" """
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (49, 20, 4, 'db-schema-import', 'schema.sql import', '
+    stage("db-schema-import") {
+        steps {
+            echo ">>>>> STAGE: db-schema-import"
+            script {
+                def dbPort = params.DB_PORT ?: "3306"
+                def schemaFile = params.SCHEMA_SQL_FILE ?: "schema.sql"
+                if (params.SCHEMA_SQL_CONTENT?.trim()) {
+                    writeFile file: schemaFile, text: params.SCHEMA_SQL_CONTENT
+                }
+                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${schemaFile}" """
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (41, 20, 5, 'db-data-insert', '초기 데이터 insert', '
+    stage("db-data-insert") {
+        steps {
+            echo ">>>>> STAGE: db-data-insert"
+            script {
+                def dbPort = params.DB_PORT ?: "3306"
+                writeFile file: "insert.sql", text: params.INSERT_SQL ?: ""
+                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < insert.sql"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (42, 20, 6, 'db-data-verify', '데이터 적재 결과 확인', '
+    stage("db-data-verify") {
+        steps {
+            echo ">>>>> STAGE: db-data-verify"
+            script {
+                def dbPort = params.DB_PORT ?: "3306"
+                writeFile file: "verify.sql", text: params.VERIFY_SQL ?: "SELECT 1"
+                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < verify.sql"""
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (43, 21, 1, 'ssh-command-exec', 'SSH 원격 명령 실행', '
+    stage("ssh-command-exec") {
+        steps {
+            echo ">>>>> STAGE: ssh-command-exec"
+            script {
+                def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
+                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" "${params.SSH_COMMAND}" """
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (44, 21, 2, 'http-request', 'REST API 호출', '
+    stage("http-request") {
+        steps {
+            echo ">>>>> STAGE: http-request"
+            script {
+                def method = params.HTTP_METHOD ?: "GET"
+                def headers = params.HTTP_HEADERS ?: ""
+                def body = params.HTTP_BODY ?: ""
+                def bodyArg = ""
+                if (body) {
+                    writeFile file: "http-request-body.json", text: body
+                    bodyArg = "-d @http-request-body.json"
+                }
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X "${method}" ${headers} ${bodyArg} "${params.HTTP_URL}" """, returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "http-request failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (45, 21, 3, 'wait-for-condition', '조건 충족까지 대기 (polling)', '
+    stage("wait-for-condition") {
+        steps {
+            echo ">>>>> STAGE: wait-for-condition"
+            script {
+                def method = params.WAIT_METHOD ?: "GET"
+                def expectedStatus = params.WAIT_HTTP_STATUS ?: "200"
+                def containsText = params.WAIT_CONTAINS ?: ""
+                def maxAttempts = (params.WAIT_MAX_ATTEMPTS ?: "30").toInteger()
+                def intervalSeconds = (params.WAIT_INTERVAL_SECONDS ?: "10").toInteger()
+                for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X "${method}" "${params.WAIT_URL}" """, returnStdout: true).trim()
+                    echo "wait attempt ${attempt}/${maxAttempts}: ${response}"
+                    def statusMatched = response.contains("Http_Status_code:${expectedStatus}")
+                    def bodyMatched = !containsText || response.contains(containsText)
+                    if (statusMatched && bodyMatched) {
+                        echo "condition matched"
+                        return
+                    }
+                    sleep time: intervalSeconds, unit: "SECONDS"
+                }
+                error "wait-for-condition timeout"
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (46, 21, 4, 'notification-send', '결과 알림 발송 (Slack 등)', '
+    stage("notification-send") {
+        steps {
+            echo ">>>>> STAGE: notification-send"
+            script {
+                def payload = params.NOTIFICATION_PAYLOAD?.trim()
+                if (!payload) {
+                    payload = JsonOutput.toJson([text: params.NOTIFICATION_MESSAGE ?: "Workflow finished"])
+                }
+                writeFile file: "notification.json", text: payload
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.NOTIFICATION_WEBHOOK_URL}" -H "Content-Type: application/json" -d @notification.json""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "notification-send failed: ${response}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (47, 21, 5, 'script-exec', '쉘 스크립트 실행', '
+    stage("script-exec") {
+        steps {
+            echo ">>>>> STAGE: script-exec"
+            script {
+                writeFile file: "workflow-script.sh", text: params.SCRIPT_CONTENT ?: "echo no script"
+                sh "chmod +x workflow-script.sh"
+                sh "./workflow-script.sh"
+            }
+        }
+    }');
+
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Step 5: Insert into workflow

@@ -55,6 +55,8 @@ export interface WorkflowStageMappings {
   mappingIdx?: number
   stageOrder: number
   workflowStageIdx: number
+  workflowStageName?: string
+  workflowStageTypeName?: string
   stageContent: string
 
   defaultScriptTag: string

@@ -52,6 +52,39 @@
             </div>
           </div>
 
+          <!-- Infra Deployment Setting -->
+          <div class="mb-3" v-if="showInfraSettings">
+            <label class="form-label">Infra Deployment Setting</label>
+            <div class="grid gap-0 column-gap-3 mb-2">
+              <select class="form-select p-2 g-col-3" v-model="infraProvider" @change="onChangeInfraProvider">
+                <option v-for="provider in infraProviderList" :value="provider" :key="provider">
+                  {{ provider }}
+                </option>
+              </select>
+              <select class="form-select p-2 g-col-3" v-model="selectedRegion" @change="onChangeInfraSelection">
+                <option value="">Region</option>
+                <option v-for="option in regionOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <select class="form-select p-2 g-col-3" v-model="selectedImage" @change="onChangeInfraSelection">
+                <option value="">Image</option>
+                <option v-for="option in imageOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <select class="form-select p-2 g-col-3" v-model="selectedSpec" @change="onChangeInfraSelection">
+                <option value="">VM Spec</option>
+                <option v-for="option in specOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+            <button class="btn btn-outline-primary" @click="onClickRefreshInfraOptions">
+              Refresh
+            </button>
+          </div>
+
           <!-- OSS URL -->
           <!-- <div class="mb-3">
             <label class="form-label required">OSS URL</label>
@@ -116,6 +149,7 @@ import type { Workflow, WorkflowPurpose, Oss, WorkflowInfo, WorkflowParams, Work
 import PipelineGenerator from '@/views/workflow/components/PipelineGenerator.vue';
 // @ts-ignore
 import { duplicateCheck, getWorkflowDetailInfo, registWorkflow, updateWorkflow, getTemplateStage } from '@/api/workflow'
+import { getMcInfraRegions, getMcInfraResources } from '@/api/infraManager'
 import { useToast } from 'vue-toastification';
 // @ts-ignore
 import ParamForm from './components/ParamForm.vue';
@@ -124,17 +158,21 @@ import WorkflowHistoryList from '@/views/workflow/components/WorkflowHistoryList
 import { reactive } from 'vue';
 // @ts-ignore
 import _ from 'lodash';
+import { computed } from 'vue';
 import { watch } from 'vue';
+import { useUserStore } from '@/stores/user'
 
 const toast = useToast()
 const route = useRoute();
 const router = useRouter();
+const userInfo = useUserStore()
 
-onMounted(() => {
+onMounted(async () => {
   setMode()
-  setWorkflowFormData()
-  setOssInfo()
+  await setWorkflowFormData()
+  await setOssInfo()
   setWorkflowPurposeList()
+  await loadInfraOptions()
 })
 
 // ================================================================================= Set mode
@@ -179,6 +217,238 @@ const setWorkflowFormData = async () => {
     workflowInfoFormData = { ...workflowInfoFormData, workflowIdx: route.params.workflowIdx }
     duplicatedWorkflow.value = true
   }
+}
+
+// ================================================================================= Infra manager options / auto parameters
+interface InfraOption {
+  label: string
+  value: string
+}
+
+const infraProviderList = ['aws', 'azure', 'gcp', 'ncp', 'nhn', 'alibaba', 'tencent', 'ibm']
+const infraProvider = ref('aws')
+const selectedRegion = ref('')
+const selectedImage = ref('')
+const selectedSpec = ref('')
+const regionOptions = ref([] as Array<InfraOption>)
+const imageOptions = ref([] as Array<InfraOption>)
+const specOptions = ref([] as Array<InfraOption>)
+
+const showInfraSettings = computed(() => {
+  return mode.value === 'new' || workflowStageMappingsFormData.value.some((stage) => stage.workflowStageName === 'infra-create')
+})
+
+watch(selectedRegion, async () => {
+  await Promise.all([loadMcInfraImages(), loadMcInfraSpecs()])
+  applyInfraSelectionParams()
+})
+
+const onChangeInfraProvider = async () => {
+  selectedRegion.value = ''
+  selectedImage.value = ''
+  selectedSpec.value = ''
+  await loadInfraOptions()
+  applyInfraSelectionParams()
+}
+
+const onChangeInfraSelection = () => {
+  applyInfraSelectionParams()
+}
+
+const onClickRefreshInfraOptions = async () => {
+  await loadInfraOptions()
+}
+
+const loadInfraOptions = async () => {
+  await Promise.all([loadMcInfraRegions(), loadMcInfraImages(), loadMcInfraSpecs()])
+}
+
+const loadMcInfraRegions = async () => {
+  try {
+    const { data } = await getMcInfraRegions(infraProvider.value)
+    regionOptions.value = normalizeInfraOptions(data)
+  } catch (error) {
+    regionOptions.value = []
+  }
+}
+
+const loadMcInfraImages = async () => {
+  try {
+    const query = selectedRegion.value ? { filterKey: 'region', filterVal: selectedRegion.value } : {}
+    const { data } = await getMcInfraResources(getNamespaceParamValue(), 'image', query)
+    imageOptions.value = normalizeInfraOptions(data)
+  } catch (error) {
+    imageOptions.value = []
+  }
+}
+
+const loadMcInfraSpecs = async () => {
+  try {
+    const query = selectedRegion.value ? { filterKey: 'region', filterVal: selectedRegion.value } : {}
+    const { data } = await getMcInfraResources(getNamespaceParamValue(), 'spec', query)
+    specOptions.value = normalizeInfraOptions(data)
+  } catch (error) {
+    specOptions.value = []
+  }
+}
+
+const normalizeInfraOptions = (response: any): Array<InfraOption> => {
+  const payload = response?.data ?? response
+  const sourceList = findFirstArray(payload)
+  const seen = new Set<string>()
+
+  return sourceList
+    .map((item: any) => {
+      const value = String(
+        item?.id ??
+        item?.name ??
+        item?.specId ??
+        item?.imageId ??
+        item?.regionName ??
+        item?.RegionName ??
+        item?.region ??
+        item?.connectionName ??
+        item ?? ''
+      )
+      const label = String(
+        item?.name ??
+        item?.id ??
+        item?.specName ??
+        item?.imageName ??
+        item?.specId ??
+        item?.imageId ??
+        item?.regionName ??
+        item?.RegionName ??
+        item?.region ??
+        value
+      )
+      return { label, value }
+    })
+    .filter((option: InfraOption) => {
+      if (!option.value || seen.has(option.value)) return false
+      seen.add(option.value)
+      return true
+    })
+}
+
+const findFirstArray = (payload: any): Array<any> => {
+  if (Array.isArray(payload)) return payload
+  if (!payload || typeof payload !== 'object') return []
+
+  const preferredKeys = [
+    'regions', 'region', 'regionList',
+    'images', 'image', 'imageList',
+    'specs', 'spec', 'specList',
+    'resources', 'resource', 'resourceList',
+    'items', 'list', 'result'
+  ]
+
+  for (const key of preferredKeys) {
+    if (Array.isArray(payload[key])) return payload[key]
+  }
+
+  for (const value of Object.values(payload)) {
+    const nested = findFirstArray(value)
+    if (nested.length > 0) return nested
+  }
+
+  return []
+}
+
+const getNamespaceParamValue = () => {
+  const namespaceParam = workflowParamsFormData.value.find((param) => param.paramKey?.toUpperCase() === 'NAMESPACE')
+  return namespaceParam?.paramValue || userInfo.projectInfo.ns_id || 'default'
+}
+
+const applyInfraSelectionParams = () => {
+  upsertWorkflowParam('NAMESPACE', getNamespaceParamValue())
+  upsertWorkflowParam('REGION', selectedRegion.value)
+  upsertWorkflowParam('IMAGE', selectedImage.value)
+  upsertWorkflowParam('IMAGE_ID', selectedImage.value)
+  upsertWorkflowParam('SPEC', selectedSpec.value)
+  upsertWorkflowParam('SPEC_ID', selectedSpec.value)
+}
+
+const addDefaultParamsForStage = (stageName?: string) => {
+  if (!stageName) return
+
+  const workflowName = workflowInfoFormData.workflowName || 'workflow'
+  const defaultInfraId = `${workflowName}-infra`
+  const stageParamMap: Record<string, Array<WorkflowParams>> = {
+    'infra-create': [
+      { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
+      { paramKey: 'REGION', paramValue: selectedRegion.value, eventListenerYn: 'N' },
+      { paramKey: 'IMAGE', paramValue: selectedImage.value, eventListenerYn: 'N' },
+      { paramKey: 'IMAGE_ID', paramValue: selectedImage.value, eventListenerYn: 'N' },
+      { paramKey: 'SPEC', paramValue: selectedSpec.value, eventListenerYn: 'N' },
+      { paramKey: 'SPEC_ID', paramValue: selectedSpec.value, eventListenerYn: 'N' },
+    ],
+    'mariadb-install': [
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
+      { paramKey: 'DB_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'DB_PORT', paramValue: '3306', eventListenerYn: 'N' },
+      { paramKey: 'DB_NAME', paramValue: 'testdb', eventListenerYn: 'N' },
+      { paramKey: 'DB_USER', paramValue: 'mariadb_user', eventListenerYn: 'N' },
+      { paramKey: 'DB_PASSWORD', paramValue: 'mariadb_pass', eventListenerYn: 'N' },
+      { paramKey: 'SSH_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'SSH_USER', paramValue: 'cb-user', eventListenerYn: 'N' },
+      { paramKey: 'SSH_KEY_FILE', paramValue: '', eventListenerYn: 'N' },
+    ],
+    'db-backup-import': [
+      { paramKey: 'DB_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'DB_PORT', paramValue: '3306', eventListenerYn: 'N' },
+      { paramKey: 'DB_NAME', paramValue: 'testdb', eventListenerYn: 'N' },
+      { paramKey: 'DB_USER', paramValue: 'mariadb_user', eventListenerYn: 'N' },
+      { paramKey: 'DB_PASSWORD', paramValue: 'mariadb_pass', eventListenerYn: 'N' },
+      { paramKey: 'DB_BACKUP_FILE', paramValue: 'schema.sql', eventListenerYn: 'N' },
+      { paramKey: 'SCHEMA_SQL_CONTENT', paramValue: '', eventListenerYn: 'N' },
+    ],
+    'db-schema-import': [
+      { paramKey: 'DB_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'DB_PORT', paramValue: '3306', eventListenerYn: 'N' },
+      { paramKey: 'DB_NAME', paramValue: 'testdb', eventListenerYn: 'N' },
+      { paramKey: 'DB_USER', paramValue: 'mariadb_user', eventListenerYn: 'N' },
+      { paramKey: 'DB_PASSWORD', paramValue: 'mariadb_pass', eventListenerYn: 'N' },
+      { paramKey: 'SCHEMA_SQL_FILE', paramValue: 'schema.sql', eventListenerYn: 'N' },
+      { paramKey: 'SCHEMA_SQL_CONTENT', paramValue: '', eventListenerYn: 'N' },
+    ],
+    'db-data-insert': [
+      { paramKey: 'DB_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'DB_PORT', paramValue: '3306', eventListenerYn: 'N' },
+      { paramKey: 'DB_NAME', paramValue: 'testdb', eventListenerYn: 'N' },
+      { paramKey: 'DB_USER', paramValue: 'mariadb_user', eventListenerYn: 'N' },
+      { paramKey: 'DB_PASSWORD', paramValue: 'mariadb_pass', eventListenerYn: 'N' },
+      { paramKey: 'INSERT_SQL', paramValue: "INSERT INTO sample_table VALUES (1, 'sample row');", eventListenerYn: 'N' },
+    ],
+  }
+
+  stageParamMap[stageName]?.forEach((param) => upsertWorkflowParam(param.paramKey, param.paramValue, param.eventListenerYn))
+}
+
+const upsertWorkflowParam = (paramKey: string, paramValue: string, eventListenerYn = 'N') => {
+  if (!paramKey) return
+  const normalizedKey = paramKey.trim().toUpperCase()
+  const existingParam = workflowParamsFormData.value.find((param) => param.paramKey?.trim().toUpperCase() === normalizedKey)
+
+  if (existingParam) {
+    if (paramValue || !existingParam.paramValue) {
+      existingParam.paramValue = paramValue
+    }
+    existingParam.eventListenerYn = existingParam.eventListenerYn || eventListenerYn
+    return
+  }
+
+  workflowParamsFormData.value.push({
+    paramIdx: 0,
+    paramKey: normalizedKey,
+    paramValue,
+    eventListenerYn,
+  })
 }
 
 
@@ -262,7 +532,9 @@ const onClickSubmit = async () => {
     toast.error('Please create Pipeline script.');
     return;
   }
-  setSubmitParam()
+  if (!setSubmitParam()) {
+    return
+  }
   if(mode.value === 'new')
     await _registWorkflow()
   else 
@@ -303,10 +575,14 @@ const _updateWorkflow = async () => {
 }
 const setSubmitParam = () => {
   setWorkflowInfoScript()
+  if (!cleanupWorkflowParams()) {
+    return false
+  }
   setRemoveWorkflowParamIdx()
   if (mode.value == 'new') {
     setRemoveWorkflowIdx()
   }
+  return true
 }
 
 const setWorkflowInfoScript = () => {
@@ -329,6 +605,33 @@ const setRemoveWorkflowParamIdx = () => {
   workflowParamsFormData.value.forEach((param) => {
     delete param['paramIdx']
   })
+}
+
+const cleanupWorkflowParams = () => {
+  const seenKeys = new Set<string>()
+  const cleanedParams: Array<WorkflowParams> = []
+
+  for (const param of workflowParamsFormData.value) {
+    const paramKey = param.paramKey?.trim()
+    if (!paramKey) continue
+
+    const normalizedKey = paramKey.toUpperCase()
+    if (seenKeys.has(normalizedKey)) {
+      toast.error(`Duplicate parameter key: ${normalizedKey}`)
+      return false
+    }
+
+    seenKeys.add(normalizedKey)
+    cleanedParams.push({
+      ...param,
+      paramKey: normalizedKey,
+      paramValue: param.paramValue ?? '',
+      eventListenerYn: param.eventListenerYn || 'N',
+    })
+  }
+
+  workflowParamsFormData.value = cleanedParams
+  return true
 }
 // ================================================================================= Run Action
 const onClickRun = () => {
@@ -391,5 +694,6 @@ const _getTemplateStage = async (workflowName:string) => {
 
 const spliceWorkflowStageMappingsFormData = (transClone: WorkflowStageMappings) => {
   workflowStageMappingsFormData.value.splice(workflowStageMappingsFormData.value.length - 1, 0, transClone);
+  addDefaultParamsForStage(transClone.workflowStageName)
 }
 </script>

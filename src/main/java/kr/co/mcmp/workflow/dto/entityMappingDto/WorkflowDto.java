@@ -20,6 +20,7 @@ public class WorkflowDto {
     private String script;
     private String status;
     private LocalDateTime runDate;
+    private Integer latestBuildNumber;
 
     // from : 외부 (entity -> dto)
     public static WorkflowDto from(Workflow workflow) {
@@ -29,7 +30,9 @@ public class WorkflowDto {
                 .workflowPurpose(workflow.getWorkflowPurpose())
                 .ossIdx(workflow.getOss().getOssIdx())
                 .script(workflow.getScript())
+                .status(workflow.getRunStatus())
                 .runDate(workflow.getRunDate())
+                .latestBuildNumber(workflow.getLatestBuildNumber())
                 .build();
     }
 
@@ -41,7 +44,9 @@ public class WorkflowDto {
                 .workflowPurpose(workflowDto.getWorkflowPurpose())
                 .ossIdx(workflowDto.getOssIdx())
                 .script(workflowDto.getScript())
+                .status(workflowDto.getStatus())
                 .runDate(workflowDto.getRunDate())
+                .latestBuildNumber(workflowDto.getLatestBuildNumber())
                 .build();
     }
 
@@ -54,6 +59,8 @@ public class WorkflowDto {
                 .oss(OssDto.toEntity(ossDto, ossTypeDto))
                 .script(workflowDto.getScript())
                 .runDate(workflowDto.getRunDate())
+                .runStatus(workflowDto.getStatus())
+                .latestBuildNumber(workflowDto.getLatestBuildNumber())
                 .build();
     }
 
@@ -67,6 +74,7 @@ public class WorkflowDto {
                 .script(workflowDto.getScript())
                 .status(status) // status 필드 포함
                 .runDate(workflowDto.getRunDate())
+                .latestBuildNumber(workflowDto.getLatestBuildNumber())
                 .build();
     }
 

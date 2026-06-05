@@ -29,7 +29,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
     public List<WorkflowStageTypeDto> getWorkflowStageTypeList() {
         try {
             List<WorkflowStageTypeDto> workflowStageTypeDtoList =
-                    workflowStageTypeRepository.findAll()
+                    workflowStageTypeRepository.findAllByOrderByWorkflowStageTypeIdxAsc()
                             .stream()
                             .map(WorkflowStageTypeDto::from)
                             .collect(Collectors.toList());

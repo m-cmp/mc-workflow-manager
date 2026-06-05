@@ -8,11 +8,13 @@ import kr.co.mcmp.oss.entity.OssType;
 import kr.co.mcmp.oss.repository.OssRepository;
 import kr.co.mcmp.oss.repository.OssTypeRepository;
 import kr.co.mcmp.workflow.Entity.WorkflowHistory;
+import kr.co.mcmp.workflow.Entity.Workflow;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowHistoryDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowRunHistoryResDto;
 import kr.co.mcmp.workflow.repository.WorkflowHistoryRepository;
+import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +39,8 @@ public class WorkflowAsyncExecutor {
 
     private final WorkflowHistoryRepository workflowHistoryRepository;
 
+    private final WorkflowRepository workflowRepository;
+
     private final JenkinsService jenkinsService;
 
     @Async("workflowTaskExecutor")
@@ -44,6 +48,7 @@ public class WorkflowAsyncExecutor {
         try {
             runWorkflowCallback(workflowReqDto);
         } catch (Exception e) {
+            updateWorkflowRunStatus(workflowReqDto, "FAILED", null);
             log.error("Workflow async run failed. workflowIdx: {}, workflowName: {}",
                     workflowReqDto.getWorkflowInfo() != null ? workflowReqDto.getWorkflowInfo().getWorkflowIdx() : null,
                     workflowReqDto.getWorkflowInfo() != null ? workflowReqDto.getWorkflowInfo().getWorkflowName() : null,
@@ -69,6 +74,7 @@ public class WorkflowAsyncExecutor {
 
         int jenkinsBuildId = jenkinsService.buildJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsJobParams);
         int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId);
+        updateWorkflowRunStatus(workflowReqDto, "IN_PROGRESS", buildNumber);
 
         saveWorkflowHistory(
                 workflowReqDto,
@@ -103,6 +109,7 @@ public class WorkflowAsyncExecutor {
 
         BuildInfo buildInfo = jenkinsService.waitJenkinsBuild(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsBuildId, buildNumber);
         log.info("BuildInfo ==> {}", buildInfo.toString());
+        updateWorkflowRunStatus(workflowReqDto, buildInfo.result(), buildInfo.number());
 
         saveWorkflowHistory(
                 workflowReqDto,
@@ -115,6 +122,20 @@ public class WorkflowAsyncExecutor {
 
         WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), buildInfo.number());
         return "SUCCESS".equals(jenkinsBuildHistory.getStatus().toUpperCase());
+    }
+
+    private void updateWorkflowRunStatus(WorkflowReqDto workflowReqDto, String status, Integer buildNumber) {
+        if (workflowReqDto.getWorkflowInfo() == null || workflowReqDto.getWorkflowInfo().getWorkflowIdx() == null) {
+            return;
+        }
+
+        Workflow workflow = workflowRepository.findByWorkflowIdx(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
+        if (workflow == null) {
+            return;
+        }
+
+        workflow.updateRunStatus(status, buildNumber != null ? buildNumber : workflow.getLatestBuildNumber());
+        workflowRepository.save(workflow);
     }
 
     private OssTypeDto getOssTypeDto(Long ossTypeIdx) {

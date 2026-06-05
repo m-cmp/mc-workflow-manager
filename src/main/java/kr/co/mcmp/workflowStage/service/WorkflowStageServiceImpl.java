@@ -31,7 +31,8 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
     @Override
     public List<WorkflowStageDto> getWorkflowStageList() {
         try {
-            List<WorkflowStageDto> workflowStageDtoList = workflowStageRepository.findAll()
+            List<WorkflowStageDto> workflowStageDtoList = workflowStageRepository
+                    .findAllOrderByStageTypeAndStageOrder()
                     .stream()
                     .map(WorkflowStageDto::from)
                     .collect(Collectors.toList());
@@ -129,7 +130,7 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
                         WorkflowStageTypeDto.from(workflowStageTypeRepository.findByWorkflowStageTypeName(workflowStageTypeName));
                 // 2. 스테이지 Dto 조회
                 List<WorkflowStageDto> workflowStageDtoList =
-                        workflowStageRepository.findByWorkflowStageType(WorkflowStageTypeDto.toEntity(workflowStageTypeDto))
+                        workflowStageRepository.findByWorkflowStageTypeOrderByStageOrder(WorkflowStageTypeDto.toEntity(workflowStageTypeDto))
                                 .stream()
                                 .map(WorkflowStageDto::from)
                                 .collect(Collectors.toList());

@@ -12,6 +12,17 @@ import org.springframework.util.StreamUtils;
 
 @Component
 public class DatabaseInitializer implements CommandLineRunner{
+    private static final String IMPORT_SQL = "classpath:import.sql";
+    private static final String STAGE_CATALOG_START_MARKER = "-- Step 4-1: Insert category-managed workflow stages";
+    private static final String STAGE_CATALOG_END_MARKER = "-- Step 5: Insert into workflow";
+    private static final String STAGE_TYPE_INSERT_PREFIX =
+            "INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES";
+    private static final String STAGE_TYPE_MERGE_PREFIX =
+            "MERGE INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) KEY(workflow_stage_type_idx) VALUES";
+    private static final String STAGE_INSERT_PREFIX =
+            "INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES";
+    private static final String STAGE_MERGE_PREFIX =
+            "MERGE INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) KEY(workflow_stage_idx) VALUES";
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -22,14 +33,37 @@ public class DatabaseInitializer implements CommandLineRunner{
     @Override
     public void run(String... args) throws Exception {
         if (isDatabaseEmpty()) {
-            Resource resource = resourceLoader.getResource("classpath:import.sql");
-            String sql = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-            jdbcTemplate.execute(sql);
+            jdbcTemplate.execute(loadImportSql());
+        } else {
+            jdbcTemplate.execute(loadWorkflowStageCatalogMergeSql());
         }
     }
 
     private boolean isDatabaseEmpty() {
         Long count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM workflow", Long.class);
         return count != null && count == 0;
+    }
+
+    private String loadWorkflowStageCatalogSql() throws Exception {
+        String sql = loadImportSql();
+        int start = sql.indexOf(STAGE_CATALOG_START_MARKER);
+        int end = sql.indexOf(STAGE_CATALOG_END_MARKER, start);
+
+        if (start < 0 || end < 0) {
+            throw new IllegalStateException("Workflow stage catalog block was not found in import.sql");
+        }
+
+        return sql.substring(start, end);
+    }
+
+    private String loadWorkflowStageCatalogMergeSql() throws Exception {
+        return loadWorkflowStageCatalogSql()
+                .replace(STAGE_TYPE_INSERT_PREFIX, STAGE_TYPE_MERGE_PREFIX)
+                .replace(STAGE_INSERT_PREFIX, STAGE_MERGE_PREFIX);
+    }
+
+    private String loadImportSql() throws Exception {
+        Resource resource = resourceLoader.getResource(IMPORT_SQL);
+        return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
     }
 }

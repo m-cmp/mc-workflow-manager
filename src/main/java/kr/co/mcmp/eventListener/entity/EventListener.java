@@ -10,7 +10,10 @@ import jakarta.persistence.*;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "event_listener")
+@Table(
+        name = "event_listener",
+        uniqueConstraints = @UniqueConstraint(name = "uk_event_listener_name", columnNames = "event_listener_name")
+)
 public class EventListener {
 
     @Id
@@ -31,4 +34,3 @@ public class EventListener {
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;
 }
-

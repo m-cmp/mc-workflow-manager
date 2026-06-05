@@ -6,6 +6,7 @@ import kr.co.mcmp.oss.entity.Oss;
 import kr.co.mcmp.oss.entity.OssType;
 import kr.co.mcmp.oss.repository.OssRepository;
 import kr.co.mcmp.oss.repository.OssTypeRepository;
+import kr.co.mcmp.eventListener.repository.EventListenerRepository;
 import kr.co.mcmp.workflow.Entity.Workflow;
 import kr.co.mcmp.workflow.Entity.WorkflowHistory;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowDto;
@@ -55,6 +56,8 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final WorkflowStageMappingRepository workflowStageMappingRepository;
 
     private final WorkflowHistoryRepository workflowHistoryRepository;
+
+    private final EventListenerRepository eventListenerRepository;
 
     private final WorkflowStageTypeRepository workflowStageTypeRepository;
 
@@ -112,17 +115,24 @@ public class WorkflowServiceImpl implements WorkflowService {
     public Long registWorkflow(WorkflowReqDto workflowReqDto) {
         Long result = null;
         boolean isCreate = false;
+        List<WorkflowParamDto> workflowParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
+        List<WorkflowStageMappingDto> workflowStageMappings = defaultWorkflowStageMappings(workflowReqDto.getWorkflowStageMappings());
 
         // jenkins 정보 조회
         OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
 
         try {
+            if (workflowRepository.findByWorkflowName(workflowReqDto.getWorkflowInfo().getWorkflowName()) != null) {
+                log.warn("Workflow name already exists: {}", workflowReqDto.getWorkflowInfo().getWorkflowName());
+                return null;
+            }
+
             // jenkins > job 생성
             isCreate = jenkinsService.createJenkinsJob_v2(
                                 ossDto,
                                 workflowReqDto.getWorkflowInfo().getWorkflowName(),
                                 workflowReqDto.getWorkflowInfo().getScript(),
-                                workflowReqDto.getWorkflowParams());
+                                workflowParams);
 
             // DB
             if ( isCreate ) {
@@ -134,15 +144,15 @@ public class WorkflowServiceImpl implements WorkflowService {
                 WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
                 // 2. Workflow Param
-                if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowParams()) ) {
-                    for(WorkflowParamDto param :workflowReqDto.getWorkflowParams()) {
+                if ( !CollectionUtils.isEmpty(workflowParams) ) {
+                    for(WorkflowParamDto param : workflowParams) {
                         workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
                     }
                 }
 
                 // 3. Workflow Stage Mapping
-                if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowStageMappings()) ) {
-                    for(WorkflowStageMappingDto stage :workflowReqDto.getWorkflowStageMappings()) {
+                if ( !CollectionUtils.isEmpty(workflowStageMappings) ) {
+                    for(WorkflowStageMappingDto stage : workflowStageMappings) {
                         workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
                     }
                 }
@@ -168,37 +178,45 @@ public class WorkflowServiceImpl implements WorkflowService {
         Boolean result = false;
         try {
             OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
+            List<WorkflowParamDto> workflowParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
+            List<WorkflowStageMappingDto> workflowStageMappings = defaultWorkflowStageMappings(workflowReqDto.getWorkflowStageMappings());
+            Workflow duplicatedWorkflow = workflowRepository.findByWorkflowName(workflowReqDto.getWorkflowInfo().getWorkflowName());
+            if (duplicatedWorkflow != null && !duplicatedWorkflow.getWorkflowIdx().equals(workflowReqDto.getWorkflowInfo().getWorkflowIdx())) {
+                log.warn("Workflow name already exists: {}", workflowReqDto.getWorkflowInfo().getWorkflowName());
+                return false;
+            }
 
             boolean isUpdate = jenkinsService.updateJenkinsJobPipeline_v2(
                     ossDto,
                     workflowReqDto.getWorkflowInfo().getWorkflowName(),
                     workflowReqDto.getWorkflowInfo().getScript(),
-                    workflowReqDto.getWorkflowParams());
+                    workflowParams);
 
             if ( isUpdate ) {
                 OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
+                Workflow previousWorkflow = workflowRepository.findByWorkflowIdx(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
 
                 // 1. Workflow
                 Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
+                if (previousWorkflow != null && workflowEntity.getRunDate() == null) {
+                    workflowEntity.updateRunDate(previousWorkflow.getRunDate());
+                }
+                if (previousWorkflow != null && workflowEntity.getRunStatus() == null) {
+                    workflowEntity.updateRunStatus(previousWorkflow.getRunStatus(), previousWorkflow.getLatestBuildNumber());
+                }
                 workflowEntity = workflowRepository.save(workflowEntity);
                 WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
                 // 2. Workflow Param (삭제 후 재등록)
-                if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowParams()) ) {
-                    workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-
-                    for (WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
-                        workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
-                    }
+                workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+                for (WorkflowParamDto param : workflowParams) {
+                    workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
                 }
 
                 // 3. Workflow Stage Mapping (삭제 후 재등록)
-                if ( !CollectionUtils.isEmpty(workflowReqDto.getWorkflowStageMappings()) ) {
-                    workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-
-                    for(WorkflowStageMappingDto stage : workflowReqDto.getWorkflowStageMappings()) {
-                        workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
-                    }
+                workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+                for(WorkflowStageMappingDto stage : workflowStageMappings) {
+                    workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
                 }
 
                 result = true;
@@ -222,6 +240,11 @@ public class WorkflowServiceImpl implements WorkflowService {
         boolean result = false;
 
         try {
+            if (eventListenerRepository.existsByWorkflow_WorkflowIdx(workflowIdx)) {
+                log.warn("Workflow {} is connected to an Event Listener. Delete request is blocked.", workflowIdx);
+                return false;
+            }
+
             // Jenkins 삭제
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
             WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
@@ -347,7 +370,7 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Override
     public List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList() {
 
-        List<WorkflowStageTypeDto> workflowStageTypeDtoList = workflowStageTypeRepository.findAll()
+        List<WorkflowStageTypeDto> workflowStageTypeDtoList = workflowStageTypeRepository.findAllByOrderByWorkflowStageTypeIdxAsc()
                                                                 .stream()
                                                                 .map(WorkflowStageTypeDto::from)
                                                                 .collect(Collectors.toList());
@@ -355,7 +378,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         List<WorkflowStageTypeAndStageNameResDto> result = new ArrayList<>();
 
         workflowStageTypeDtoList.forEach(type -> {
-            List<WorkflowStageDto> workflowStageDtoList = workflowStageRepository.findByWorkflowStageType(WorkflowStageTypeDto.toEntity(type))
+            List<WorkflowStageDto> workflowStageDtoList = workflowStageRepository.findByWorkflowStageTypeOrderByStageOrder(WorkflowStageTypeDto.toEntity(type))
                                                             .stream()
                                                             .map(WorkflowStageDto::from)
                                                             .collect(Collectors.toList());
@@ -511,6 +534,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
 
         workflow.updateRunDate(LocalDateTime.now());
+        workflow.updateRunStatus("IN_PROGRESS", null);
         workflowRepository.save(workflow);
     }
 
@@ -575,5 +599,40 @@ public class WorkflowServiceImpl implements WorkflowService {
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
         return jenkinsService.getJenkinsBuildStageLog(ossDto, workflowDto.getWorkflowName(), buildIdx, nodeIdx);
+    }
+
+    private List<WorkflowParamDto> sanitizeWorkflowParams(List<WorkflowParamDto> workflowParams) {
+        if (CollectionUtils.isEmpty(workflowParams)) {
+            return Collections.emptyList();
+        }
+
+        Map<String, WorkflowParamDto> paramsByKey = new LinkedHashMap<>();
+        for (WorkflowParamDto param : workflowParams) {
+            if (param == null || !StringUtils.hasText(param.getParamKey())) {
+                continue;
+            }
+
+            String normalizedKey = param.getParamKey().trim().toUpperCase();
+            if (paramsByKey.containsKey(normalizedKey)) {
+                continue;
+            }
+
+            paramsByKey.put(normalizedKey, WorkflowParamDto.builder()
+                    .paramIdx(param.getParamIdx())
+                    .workflowIdx(param.getWorkflowIdx())
+                    .paramKey(normalizedKey)
+                    .paramValue(param.getParamValue() == null ? "" : param.getParamValue())
+                    .eventListenerYn(StringUtils.hasText(param.getEventListenerYn()) ? param.getEventListenerYn() : "N")
+                    .build());
+        }
+
+        return new ArrayList<>(paramsByKey.values());
+    }
+
+    private List<WorkflowStageMappingDto> defaultWorkflowStageMappings(List<WorkflowStageMappingDto> workflowStageMappings) {
+        if (CollectionUtils.isEmpty(workflowStageMappings)) {
+            return Collections.emptyList();
+        }
+        return workflowStageMappings;
     }
 }

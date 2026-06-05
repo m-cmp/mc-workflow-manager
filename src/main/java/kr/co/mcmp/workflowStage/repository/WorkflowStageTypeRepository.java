@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface WorkflowStageTypeRepository extends JpaRepository<WorkflowStageType, Long> {
     List<WorkflowStageType> findAll();
+    List<WorkflowStageType> findAllByOrderByWorkflowStageTypeIdxAsc();
     WorkflowStageType save(WorkflowStageType workflowStageType);
     void deleteById(Long workflowStageTypeIdx);
     WorkflowStageType findByWorkflowStageTypeIdx(Long workflowStageTypeIdx);

@@ -3,6 +3,8 @@ package kr.co.mcmp.eventListener.service;
 import kr.co.mcmp.eventListener.dto.reqDto.RequestEventListenerDto;
 import kr.co.mcmp.eventListener.dto.resDto.ResponseEventListenerDto;
 import kr.co.mcmp.eventListener.entity.EventListener;
+import kr.co.mcmp.eventListener.entity.EventListenerParam;
+import kr.co.mcmp.eventListener.repository.EventListenerParamRepository;
 import kr.co.mcmp.eventListener.repository.EventListenerRepository;
 import kr.co.mcmp.oss.dto.OssDto;
 import kr.co.mcmp.oss.dto.OssTypeDto;
@@ -29,11 +31,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Log4j2
@@ -42,6 +46,8 @@ import java.util.stream.Collectors;
 public class EventListenerServiceImpl implements EventListenerService {
 
     private final EventListenerRepository eventListenerRepository;
+
+    private final EventListenerParamRepository eventListenerParamRepository;
 
     private final WorkflowRepository workflowRepository;
 
@@ -69,6 +75,11 @@ public class EventListenerServiceImpl implements EventListenerService {
     @Transactional
     public Long registEventListner(RequestEventListenerDto requestEventListenerDto) {
         try {
+            if (eventListenerRepository.existsByEventListenerName(requestEventListenerDto.getEventListenerName())) {
+                log.warn("Event Listener name already exists: {}", requestEventListenerDto.getEventListenerName());
+                return null;
+            }
+
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
             WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
@@ -80,9 +91,7 @@ public class EventListenerServiceImpl implements EventListenerService {
             EventListener eventListenerEntity = RequestEventListenerDto.toEntity(requestEventListenerDto, workflowDto, ossDto, ossTypeDto);
             eventListenerEntity = eventListenerRepository.save(eventListenerEntity);
 
-            for(WorkflowParamDto param : requestEventListenerDto.getWorkflowParams()) {
-                workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
-            }
+            saveEventListenerParams(eventListenerEntity, requestEventListenerDto.getWorkflowParams());
 
             return eventListenerEntity.getEventListenerIdx();
         } catch (Exception e) {
@@ -98,6 +107,11 @@ public class EventListenerServiceImpl implements EventListenerService {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(requestEventListenerDto.getEventListenerIdx());
             RequestEventListenerDto newRequestEventListenerDto = RequestEventListenerDto.from(eventListenerEntity);
+            if (!eventListenerEntity.getEventListenerName().equals(requestEventListenerDto.getEventListenerName())
+                    && eventListenerRepository.existsByEventListenerName(requestEventListenerDto.getEventListenerName())) {
+                log.warn("Event Listener name already exists: {}", requestEventListenerDto.getEventListenerName());
+                return false;
+            }
 
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
@@ -107,11 +121,11 @@ public class EventListenerServiceImpl implements EventListenerService {
 
             OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
-            eventListenerRepository.save(RequestEventListenerDto.toUpdate(newRequestEventListenerDto.getEventListenerIdx(), requestEventListenerDto, workflowDto, ossDto, ossTypeDto));
+            EventListener updatedEventListener =
+                    eventListenerRepository.save(RequestEventListenerDto.toUpdate(newRequestEventListenerDto.getEventListenerIdx(), requestEventListenerDto, workflowDto, ossDto, ossTypeDto));
 
-            for(WorkflowParamDto param : requestEventListenerDto.getWorkflowParams()) {
-                workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
-            }
+            eventListenerParamRepository.deleteByEventListener_EventListenerIdx(updatedEventListener.getEventListenerIdx());
+            saveEventListenerParams(updatedEventListener, requestEventListenerDto.getWorkflowParams());
             result = true;
         } catch (Exception e) {
             log.error(e.getMessage());
@@ -124,6 +138,7 @@ public class EventListenerServiceImpl implements EventListenerService {
     public Boolean deleteEventListener(Long eventListenerIdx) {
         Boolean result = false;
         try {
+            eventListenerParamRepository.deleteByEventListener_EventListenerIdx(eventListenerIdx);
             eventListenerRepository.deleteByEventListenerIdx(eventListenerIdx);
             result = true;
         } catch (Exception e) {
@@ -136,11 +151,9 @@ public class EventListenerServiceImpl implements EventListenerService {
     public ResponseEventListenerDto detailEventListener(Long eventListenerIdx) {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
-            List<WorkflowParamDto> paramList =
-                    workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(eventListenerEntity.getWorkflow().getWorkflowIdx(), "Y")
-                            .stream()
-                            .map(WorkflowParamDto::from)
-                            .collect(Collectors.toList());
+            List<WorkflowParamDto> paramList = getEventListenerParamDtos(
+                    eventListenerEntity.getEventListenerIdx(),
+                    eventListenerEntity.getWorkflow().getWorkflowIdx());
 
             return ResponseEventListenerDto.from(eventListenerEntity, paramList);
         } catch (Exception e) {
@@ -165,7 +178,7 @@ public class EventListenerServiceImpl implements EventListenerService {
         for(WorkflowDto workflow : workflowList) {
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflow.getWorkflowIdx());
             WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
-            String status = getWorkflowRunHistoryStatus(workflowDto.getWorkflowIdx());
+            String status = StringUtils.hasText(workflowDto.getStatus()) ? workflowDto.getStatus() : "-";
             workflowDto = WorkflowDto.ofWithStatus(workflowDto, status);
 
             List<WorkflowParamDto> paramList =
@@ -230,216 +243,113 @@ public class EventListenerServiceImpl implements EventListenerService {
 
     @Override
     public Boolean runEventListener(Long eventListenerIdx, Map<String, String> params) {
-        Boolean result = false;
-
-        try {
-            // 1. 이벤트 리스너 조회
-            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
-            Long workflowIdx = eventListenerEntity.getWorkflow().getWorkflowIdx();
-
-            // 2. 워크플로우 조회
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-
-            // 3. 기존 이벤트 리스너 파라미터 조회
-            List<WorkflowParam> workflowParams = workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "Y");
-
-            // 4. params 로 덮어쓰기 (없으면 추가)
-            if (params != null && !params.isEmpty()) {
-                for (Map.Entry<String, String> entry : params.entrySet()) {
-                    String key = entry.getKey();
-                    String value = entry.getValue();
-
-                    // 기존 key 있는지 확인
-                    Optional<WorkflowParam> existingParam = workflowParams.stream()
-                            .filter(wp -> wp.getParamKey().equals(key))
-                            .findFirst();
-
-                    if (existingParam.isPresent()) {
-                        // 기존 객체 교체 (불변 객체라서 새로 생성)
-                        workflowParams.remove(existingParam.get());
-                        workflowParams.add(
-                                WorkflowParam.builder()
-                                        .workflow(workflowEntity)
-                                        .paramKey(key)
-                                        .paramValue(value)
-                                        .eventListenerYn("Y")
-                                        .build()
-                        );
-                    }
-                }
-            }
-
-            // 5. 워크플로우 스테이지 조회
-            List<WorkflowStageMapping> stages = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx);
-
-            // 6. DTO 생성
-            WorkflowReqDto workflowReqDto = WorkflowReqDto.from(workflowEntity, workflowParams, stages);
-
-            // 7. 워크플로우 실행
-            result = workflowService.runWorkflow(workflowReqDto);
-
-        } catch (Exception e) {
-            log.error("runEventListener error: {}", e.getMessage(), e);
-        }
-        return result;
+        return runEventListenerWithMergedParams(eventListenerIdx, params);
     }
 
 
     @Override
     public Boolean runEventListenerPost(Long eventListenerIdx, Map<String, String> params) {
-        Boolean result = false;
-
-        try {
-            // 1. 이벤트 리스너 조회
-            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
-            Long workflowIdx = eventListenerEntity.getWorkflow().getWorkflowIdx();
-
-            // 2. 워크플로우 조회
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-
-            // 3. DB 에 저장된 eventListenerYn="Y" 파라미터 조회
-            List<WorkflowParam> dbParams =
-                    workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "Y");
-
-            // 4. 최종 WorkflowParam 리스트 생성
-            List<WorkflowParam> workflowParams = new ArrayList<>();
-
-            // DB에 저장된 key 기준으로 순회
-            for (WorkflowParam dbParam : dbParams) {
-                String key = dbParam.getParamKey();
-                String value;
-
-                if (params != null && params.containsKey(key)) {
-                    // params 에 값이 있으면 덮어쓰기
-                    value = params.get(key);
-                } else {
-                    // 없으면 DB 값 사용
-                    value = dbParam.getParamValue();
-                }
-
-                WorkflowParam wp = WorkflowParam.builder()
-                        .workflow(workflowEntity)
-                        .paramKey(key)
-                        .paramValue(value)
-                        .eventListenerYn("Y")
-                        .build();
-
-                workflowParams.add(wp);
-            }
-
-            // 추가로, DB에는 없는데 params 에만 있는 key도 반영 (완전 신규 값)
-//            if (params != null && !params.isEmpty()) {
-//                for (Map.Entry<String, String> entry : params.entrySet()) {
-//                    String key = entry.getKey();
-//                    boolean existsInDb = dbParams.stream()
-//                            .anyMatch(db -> db.getParamKey().equals(key));
-//                    if (!existsInDb) {
-//                        WorkflowParam wp = WorkflowParam.builder()
-//                                .workflow(workflowEntity)
-//                                .paramKey(entry.getKey())
-//                                .paramValue(entry.getValue())
-//                                .eventListenerYn("Y")
-//                                .build();
-//                        workflowParams.add(wp);
-//                    }
-//                }
-//            }
-
-            // 5. 스테이지 매핑 조회
-            List<WorkflowStageMapping> stages =
-                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx);
-
-            // 6. DTO 생성
-            WorkflowReqDto workflowReqDto = WorkflowReqDto.from(workflowEntity, workflowParams, stages);
-
-            // 7. 워크플로우 실행
-            result = workflowService.runWorkflow(workflowReqDto);
-
-        } catch (Exception e) {
-            log.error("runEventListenerPost error: {}", e.getMessage(), e);
-        }
-        return result;
+        return runEventListenerWithMergedParams(eventListenerIdx, params);
     }
 
 
     @Override
     public Boolean runEventListenerPut(Long eventListenerIdx, Map<String, String> params) {
-        Boolean result = false;
-
-        try {
-            // 1. 이벤트 리스너 조회
-            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
-            Long workflowIdx = eventListenerEntity.getWorkflow().getWorkflowIdx();
-
-            // 2. 워크플로우 조회
-            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-
-            // 3. DB 에 저장된 eventListenerYn="Y" 파라미터 조회
-            List<WorkflowParam> dbParams =
-                    workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "Y");
-
-            // 4. 최종 WorkflowParam 리스트 생성
-            List<WorkflowParam> workflowParams = new ArrayList<>();
-
-            // DB에 저장된 key 기준으로 순회
-            for (WorkflowParam dbParam : dbParams) {
-                String key = dbParam.getParamKey();
-                String value;
-
-                if (params != null && params.containsKey(key)) {
-                    // params 에 값이 있으면 덮어쓰기
-                    value = params.get(key);
-                } else {
-                    // 없으면 DB 값 사용
-                    value = dbParam.getParamValue();
-                }
-
-                WorkflowParam wp = WorkflowParam.builder()
-                        .workflow(workflowEntity)
-                        .paramKey(key)
-                        .paramValue(value)
-                        .eventListenerYn("Y")
-                        .build();
-
-                workflowParams.add(wp);
-            }
-
-            // 추가로, DB에는 없는데 params 에만 있는 key도 반영 (완전 신규 값)
-//            if (params != null && !params.isEmpty()) {
-//                for (Map.Entry<String, String> entry : params.entrySet()) {
-//                    String key = entry.getKey();
-//                    boolean existsInDb = dbParams.stream()
-//                            .anyMatch(db -> db.getParamKey().equals(key));
-//                    if (!existsInDb) {
-//                        WorkflowParam wp = WorkflowParam.builder()
-//                                .workflow(workflowEntity)
-//                                .paramKey(entry.getKey())
-//                                .paramValue(entry.getValue())
-//                                .eventListenerYn("Y")
-//                                .build();
-//                        workflowParams.add(wp);
-//                    }
-//                }
-//            }
-
-            // 5. 스테이지 매핑 조회
-            List<WorkflowStageMapping> stages =
-                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx);
-
-            // 6. DTO 생성
-            WorkflowReqDto workflowReqDto = WorkflowReqDto.from(workflowEntity, workflowParams, stages);
-
-            // 7. 워크플로우 실행
-            result = workflowService.runWorkflow(workflowReqDto);
-
-        } catch (Exception e) {
-            log.error("runEventListenerPut error: {}", e.getMessage(), e);
-        }
-        return result;
+        return runEventListenerWithMergedParams(eventListenerIdx, params);
     }
 
 
 
+
+    private Boolean runEventListenerWithMergedParams(Long eventListenerIdx, Map<String, String> params) {
+        try {
+            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
+            Long workflowIdx = eventListenerEntity.getWorkflow().getWorkflowIdx();
+            Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
+
+            List<WorkflowParam> workflowParams = mergeRunParams(workflowEntity, eventListenerIdx, params);
+            List<WorkflowStageMapping> stages = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx);
+            WorkflowReqDto workflowReqDto = WorkflowReqDto.from(workflowEntity, workflowParams, stages);
+
+            return workflowService.runWorkflow(workflowReqDto);
+        } catch (Exception e) {
+            log.error("runEventListener error: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    private List<WorkflowParam> mergeRunParams(Workflow workflowEntity, Long eventListenerIdx, Map<String, String> requestParams) {
+        Map<String, String> paramsByKey = new LinkedHashMap<>();
+        Long workflowIdx = workflowEntity.getWorkflowIdx();
+
+        workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "N")
+                .forEach(param -> putParam(paramsByKey, param.getParamKey(), param.getParamValue()));
+
+        List<EventListenerParam> eventListenerParams = eventListenerParamRepository.findByEventListener_EventListenerIdx(eventListenerIdx);
+        if (CollectionUtils.isEmpty(eventListenerParams)) {
+            workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "Y")
+                    .forEach(param -> putParam(paramsByKey, param.getParamKey(), param.getParamValue()));
+        } else {
+            eventListenerParams.forEach(param -> putParam(paramsByKey, param.getParamKey(), param.getParamValue()));
+        }
+
+        if (requestParams != null) {
+            requestParams.forEach((key, value) -> putParam(paramsByKey, key, value));
+        }
+
+        return paramsByKey.entrySet()
+                .stream()
+                .map(entry -> WorkflowParam.builder()
+                        .workflow(workflowEntity)
+                        .paramKey(entry.getKey())
+                        .paramValue(entry.getValue())
+                        .eventListenerYn("N")
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private void saveEventListenerParams(EventListener eventListener, List<WorkflowParamDto> workflowParams) {
+        if (CollectionUtils.isEmpty(workflowParams)) {
+            return;
+        }
+
+        Map<String, String> paramsByKey = new LinkedHashMap<>();
+        workflowParams.forEach(param -> putParam(paramsByKey, param.getParamKey(), param.getParamValue()));
+
+        paramsByKey.forEach((key, value) ->
+                eventListenerParamRepository.save(EventListenerParam.builder()
+                        .eventListener(eventListener)
+                        .paramKey(key)
+                        .paramValue(value)
+                        .build()));
+    }
+
+    private List<WorkflowParamDto> getEventListenerParamDtos(Long eventListenerIdx, Long workflowIdx) {
+        List<EventListenerParam> eventListenerParams = eventListenerParamRepository.findByEventListener_EventListenerIdx(eventListenerIdx);
+        if (CollectionUtils.isEmpty(eventListenerParams)) {
+            return workflowParamRepository.findByWorkflow_WorkflowIdxAndEventListenerYn(workflowIdx, "Y")
+                    .stream()
+                    .map(WorkflowParamDto::from)
+                    .collect(Collectors.toList());
+        }
+
+        return eventListenerParams.stream()
+                .map(param -> WorkflowParamDto.builder()
+                        .workflowIdx(workflowIdx)
+                        .paramKey(param.getParamKey())
+                        .paramValue(param.getParamValue())
+                        .eventListenerYn("Y")
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    private void putParam(Map<String, String> paramsByKey, String key, String value) {
+        if (!StringUtils.hasText(key)) {
+            return;
+        }
+
+        paramsByKey.put(key.trim().toUpperCase(), value == null ? "" : value);
+    }
 
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);

@@ -15,4 +15,5 @@ public interface EventListenerRepository extends JpaRepository<EventListener, Lo
     void deleteByEventListenerIdx(Long eventListenerIdx);
     EventListener findByEventListenerIdx(Long eventListenerIdx);
     Boolean existsByEventListenerName(String eventlistenerName);
+    Boolean existsByWorkflow_WorkflowIdx(Long workflowIdx);
 }

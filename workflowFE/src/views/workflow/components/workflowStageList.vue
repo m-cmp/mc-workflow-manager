@@ -91,6 +91,8 @@ const onClickPaletteItem = (obj:WorkflowStage) => {
   const transClone: WorkflowStageMappings = {
     stageOrder: clone.workflowStageOrder,
     workflowStageIdx: clone.workflowStageIdx,
+    workflowStageName: clone.workflowStageName,
+    workflowStageTypeName: clone.workflowStageTypeName,
     stageContent: clone.workflowStageContent,
     defaultScriptTag: 'null',
     isDefaultScript: false,

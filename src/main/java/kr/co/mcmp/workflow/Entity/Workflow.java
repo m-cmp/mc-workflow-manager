@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "workflow")
+@Table(
+        name = "workflow",
+        uniqueConstraints = @UniqueConstraint(name = "uk_workflow_name", columnNames = "workflow_name")
+)
 public class Workflow {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,7 +38,18 @@ public class Workflow {
     @Column(name = "run_date")
     private LocalDateTime runDate;
 
+    @Column(name = "run_status")
+    private String runStatus;
+
+    @Column(name = "latest_build_number")
+    private Integer latestBuildNumber;
+
     public void updateRunDate(LocalDateTime runDate) {
         this.runDate = runDate;
+    }
+
+    public void updateRunStatus(String runStatus, Integer latestBuildNumber) {
+        this.runStatus = runStatus;
+        this.latestBuildNumber = latestBuildNumber;
     }
 }
