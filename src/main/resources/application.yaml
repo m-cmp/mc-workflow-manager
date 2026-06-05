@@ -45,7 +45,7 @@ object:
   object-mapper-pretty-print: true
 
 mc-infra-manager:
-  base-url: ${MC_INFRA_MANAGER_URL:http://mc-infra-manager:1323/tumblebug}
+  base-url: ${MC_INFRA_MANAGER_URL:http://210.217.178.130:1323/tumblebug}
   username: ${MC_INFRA_MANAGER_USERNAME:default}
   password: ${MC_INFRA_MANAGER_PASSWORD:default}
 

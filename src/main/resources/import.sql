@@ -4311,3 +4311,339 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 (84, 13, 'USERPASS', 'default', 'N');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+-- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+-- Step 8: Insert scenario workflows
+-- A. vm-mariadb-backup-import-data-init
+-- B. multi-csp-vm-deploy
+-- C. k8s-mariadb-backup-import-data-init
+-- D. multi-csp-k8s-cluster-deploy
+
+DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104);
+DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104);
+ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH (SELECT COALESCE(MAX(param_idx), 0) + 1 FROM workflow_param);
+ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH (SELECT COALESCE(MAX(mapping_idx), 0) + 1 FROM workflow_stage_mapping);
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 101, 'vm-mariadb-backup-import-data-init', 'For Deployment', 1,
+'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 48)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41)
+|| '
+    }
+}
+', NULL;
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (102, 'multi-csp-vm-deploy', 'For Deployment', 1, '
+import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+        stage("multi-csp-vm-deploy") {
+            steps {
+                echo ">>>>> STAGE: multi-csp-vm-deploy"
+                script {
+                    def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                    if (cspList.isEmpty()) {
+                        error "CSP_LIST is required"
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    cspList.each { csp ->
+                        def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
+                        def infraId = (params.INFRA_PREFIX ?: "multi-csp-vm") + "-" + csp
+                        def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
+                        def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
+                        def region = params["${key}_REGION"] ?: params.REGION ?: ""
+                        if (!specId || !imageId) {
+                            error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                        }
+
+                        def payload = JsonOutput.toJson([
+                            name: infraId,
+                            description: "Workflow multi CSP VM deploy - ${csp}",
+                            installMonAgent: params.INSTALL_MON_AGENT ?: "no",
+                            policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
+                            label: [
+                                csp: csp,
+                                region: region
+                            ],
+                            nodeGroups: [[
+                                name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                                nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
+                                specId: specId,
+                                imageId: imageId,
+                                rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                                rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
+                            ]]
+                        ])
+
+                        writeFile file: "infra-create-${csp}.json", text: payload
+                        def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create-${csp}.json ${auth}""", returnStdout: true).trim()
+                        echo response
+                        if (!response.contains("Http_Status_code:2")) {
+                            error "multi-csp-vm-deploy failed for ${csp}: ${response}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+', NULL);
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 103, 'k8s-mariadb-backup-import-data-init', 'For Deployment', 1,
+'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 26)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 33)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 34)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41)
+|| '
+    }
+}
+', NULL;
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (104, 'multi-csp-k8s-cluster-deploy', 'For Deployment', 1, '
+import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+        stage("multi-csp-k8s-cluster-deploy") {
+            steps {
+                echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
+                script {
+                    def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                    if (cspList.isEmpty()) {
+                        error "CSP_LIST is required"
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    cspList.each { csp ->
+                        def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
+                        def clusterId = (params.CLUSTER_PREFIX ?: "multi-csp-k8s") + "-" + csp
+                        def nodeGroupName = (params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp
+                        def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
+                        def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
+                        if (!specId || !imageId) {
+                            error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                        }
+
+                        def payload = JsonOutput.toJson([
+                            name: clusterId,
+                            nodeGroupName: nodeGroupName,
+                            specId: specId,
+                            imageId: imageId,
+                            version: params.K8S_VERSION ?: "",
+                            desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
+                            minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
+                            maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
+                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                        ])
+
+                        writeFile file: "k8s-cluster-create-${csp}.json", text: payload
+                        def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
+                        def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create-${csp}.json ${auth}""", returnStdout: true).trim()
+                        echo response
+                        if (!response.contains("Http_Status_code:2")) {
+                            error "multi-csp-k8s-cluster-deploy failed for ${csp}: ${response}"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+', NULL);
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(101, 'USER', 'default', 'N'),
+(101, 'USERPASS', 'default', 'N'),
+(101, 'NAMESPACE', 'ns01', 'N'),
+(101, 'INFRA_ID', 'vm-mariadb-data-init', 'N'),
+(101, 'REGION', 'ap-northeast-2', 'N'),
+(101, 'IMAGE', 'Ubuntu 22.04', 'N'),
+(101, 'IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(101, 'SPEC', 't2.medium', 'N'),
+(101, 'SPEC_ID', 'aws+ap-northeast-2+t2.medium', 'N'),
+(101, 'SSH_HOST', '', 'N'),
+(101, 'SSH_USER', 'ubuntu', 'N'),
+(101, 'SSH_KEY_FILE', '', 'N'),
+(101, 'DB_HOST', '', 'N'),
+(101, 'DB_PORT', '3306', 'N'),
+(101, 'DB_NAME', 'testdb', 'N'),
+(101, 'DB_USER', 'mariadb_user', 'N'),
+(101, 'DB_PASSWORD', 'mariadb_pass', 'N'),
+(101, 'DB_BACKUP_FILE', 'schema.sql', 'N'),
+(101, 'SCHEMA_SQL_CONTENT', 'CREATE TABLE IF NOT EXISTS sample_data (id INT PRIMARY KEY, name VARCHAR(100));', 'N'),
+(101, 'INSERT_SQL', 'INSERT INTO sample_data (id, name) VALUES (1, ''sample row'');', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(102, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(102, 'USER', 'default', 'N'),
+(102, 'USERPASS', 'default', 'N'),
+(102, 'NAMESPACE', 'ns01', 'N'),
+(102, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt', 'N'),
+(102, 'INFRA_PREFIX', 'multi-csp-vm', 'N'),
+(102, 'INFRA_NODEGROUP_NAME', 'g1', 'N'),
+(102, 'INFRA_NODEGROUP_SIZE', '1', 'N'),
+(102, 'ROOT_DISK_TYPE', 'default', 'N'),
+(102, 'ROOT_DISK_SIZE', '50', 'N'),
+(102, 'AWS_REGION', 'ap-northeast-2', 'N'),
+(102, 'AWS_SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
+(102, 'AWS_IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(102, 'AZURE_REGION', 'koreasouth', 'N'),
+(102, 'AZURE_SPEC_ID', 'azure+koreasouth+standard_b1s', 'N'),
+(102, 'AZURE_IMAGE_ID', 'azure+koreasouth+ubuntu22.04', 'N'),
+(102, 'GCP_REGION', 'asia-northeast3', 'N'),
+(102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+g1-small', 'N'),
+(102, 'GCP_IMAGE_ID', 'gcp+asia-northeast3+ubuntu22.04', 'N'),
+(102, 'NCP_REGION', 'kr', 'N'),
+(102, 'NCP_SPEC_ID', 'ncp+kr+c8-g3a', 'N'),
+(102, 'NCP_IMAGE_ID', 'ncp+kr+ubuntu22.04', 'N'),
+(102, 'NHN_REGION', 'kr1', 'N'),
+(102, 'NHN_SPEC_ID', 'nhn+kr1+r2.c4m16', 'N'),
+(102, 'NHN_IMAGE_ID', 'nhn+kr1+ubuntu22.04', 'N'),
+(102, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
+(102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge', 'N'),
+(102, 'ALIBABA_IMAGE_ID', 'alibaba+ap-northeast-2+ubuntu22.04', 'N'),
+(102, 'TENCENT_REGION', 'ap-shanghai', 'N'),
+(102, 'TENCENT_SPEC_ID', 'tencent+ap-shanghai+m9.medium16', 'N'),
+(102, 'TENCENT_IMAGE_ID', 'tencent+ap-shanghai+ubuntu22.04', 'N'),
+(102, 'IBM_REGION', 'jp-osa', 'N'),
+(102, 'IBM_SPEC_ID', 'ibm+jp-osa+cx2d-2x4', 'N'),
+(102, 'IBM_IMAGE_ID', 'ibm+jp-osa+ubuntu22.04', 'N'),
+(102, 'KT_REGION', 'kr1', 'N'),
+(102, 'KT_SPEC_ID', 'kt+kr1+standard.small', 'N'),
+(102, 'KT_IMAGE_ID', 'kt+kr1+ubuntu22.04', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(103, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(103, 'USER', 'default', 'N'),
+(103, 'USERPASS', 'default', 'N'),
+(103, 'NAMESPACE', 'ns01', 'N'),
+(103, 'K8S_CLUSTER_ID', 'k8s-mariadb-data-init', 'N'),
+(103, 'K8S_NODEGROUP_NAME', 'ng1', 'N'),
+(103, 'SPEC_ID', 'aws+ap-northeast-2+t3a.xlarge', 'N'),
+(103, 'IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(103, 'K8S_VERSION', '', 'N'),
+(103, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
+(103, 'K8S_MIN_NODE_SIZE', '1', 'N'),
+(103, 'K8S_MAX_NODE_SIZE', '3', 'N'),
+(103, 'ROOT_DISK_TYPE', 'default', 'N'),
+(103, 'ROOT_DISK_SIZE', '30', 'N'),
+(103, 'K8S_CREATE_OPTION', '', 'N'),
+(103, 'KUBECONFIG_CONTENT', '', 'N'),
+(103, 'KUBE_NAMESPACE', 'default', 'N'),
+(103, 'RELEASE_NAME', 'mariadb', 'N'),
+(103, 'HELM_CHART', 'oci://registry-1.docker.io/bitnamicharts/mariadb', 'N'),
+(103, 'HELM_VALUES_ARGS', '--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass', 'N'),
+(103, 'DB_HOST', 'mariadb.default.svc.cluster.local', 'N'),
+(103, 'DB_PORT', '3306', 'N'),
+(103, 'DB_NAME', 'testdb', 'N'),
+(103, 'DB_USER', 'mariadb_user', 'N'),
+(103, 'DB_PASSWORD', 'mariadb_pass', 'N'),
+(103, 'DB_BACKUP_FILE', 'schema.sql', 'N'),
+(103, 'SCHEMA_SQL_CONTENT', 'CREATE TABLE IF NOT EXISTS sample_data (id INT PRIMARY KEY, name VARCHAR(100));', 'N'),
+(103, 'INSERT_SQL', 'INSERT INTO sample_data (id, name) VALUES (1, ''sample row'');', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(104, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(104, 'USER', 'default', 'N'),
+(104, 'USERPASS', 'default', 'N'),
+(104, 'NAMESPACE', 'ns01', 'N'),
+(104, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,tencent', 'N'),
+(104, 'CLUSTER_PREFIX', 'multi-csp-k8s', 'N'),
+(104, 'K8S_NODEGROUP_PREFIX', 'ng', 'N'),
+(104, 'K8S_VERSION', '', 'N'),
+(104, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
+(104, 'K8S_MIN_NODE_SIZE', '1', 'N'),
+(104, 'K8S_MAX_NODE_SIZE', '3', 'N'),
+(104, 'ROOT_DISK_TYPE', 'default', 'N'),
+(104, 'ROOT_DISK_SIZE', '30', 'N'),
+(104, 'K8S_CREATE_OPTION', '', 'N'),
+(104, 'AWS_SPEC_ID', 'aws+ap-northeast-2+t3a.xlarge', 'N'),
+(104, 'AWS_IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(104, 'AZURE_SPEC_ID', 'azure+koreacentral+standard_b4ms', 'N'),
+(104, 'AZURE_IMAGE_ID', 'azure+koreacentral+ubuntu22.04', 'N'),
+(104, 'GCP_SPEC_ID', 'gcp+asia-east1+e2-standard-4', 'N'),
+(104, 'GCP_IMAGE_ID', 'gcp+asia-east1+ubuntu22.04', 'N'),
+(104, 'NCP_SPEC_ID', 'ncp+kr1+c4m8', 'N'),
+(104, 'NCP_IMAGE_ID', 'ncp+kr1+ubuntu22.04', 'N'),
+(104, 'NHN_SPEC_ID', 'nhn+kr1+m2.c4m8', 'N'),
+(104, 'NHN_IMAGE_ID', 'nhn+kr1+ubuntu22.04', 'N'),
+(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+s5.medium4', 'N'),
+(104, 'TENCENT_IMAGE_ID', 'tencent+ap-seoul+ubuntu22.04', 'N');
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(101, 1, null, 'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 2, 17, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 3, 25, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 4, 48, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 48;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 5, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 6, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(101, 7, null, '
+    }
+}
+');
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(102, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 102));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(103, 1, null, 'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 2, 26, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 26;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 3, 33, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 33;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 4, 34, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 34;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 5, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 6, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(103, 7, null, '
+    }
+}
+');
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(104, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 104));
+
+-- End Step 8

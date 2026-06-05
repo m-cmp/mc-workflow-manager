@@ -22,11 +22,11 @@ router.beforeEach(async (to, from, next) => {
         },
         projectInfo: {
           id: "1e88f4ea-d052-4314-80a4-9ac3f6691feb",
-          ns_id: "no01",
+          ns_id: "ns01",
           mci_id: "mci01",
           cluster_id: "cluster01",
-          name: "no01",
-          description: "no01 desc",
+          name: "ns01",
+          description: "ns01 desc",
           created_at: "2024-06-18T00:28:57.094105Z",
           updated_at: "2024-06-18T00:28:57.094105Z"
         },

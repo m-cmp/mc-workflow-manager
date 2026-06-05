@@ -54,35 +54,55 @@
 
           <!-- Infra Deployment Setting -->
           <div class="mb-3" v-if="showInfraSettings">
-            <label class="form-label">Infra Deployment Setting</label>
+            <label class="form-label">Tumblebug Parameter Selection</label>
             <div class="grid gap-0 column-gap-3 mb-2">
+              <select class="form-select p-2 g-col-3" v-model="selectedNamespace" @change="onChangeNamespace">
+                <option value="">Namespace</option>
+                <option v-for="option in namespaceOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
               <select class="form-select p-2 g-col-3" v-model="infraProvider" @change="onChangeInfraProvider">
                 <option v-for="provider in infraProviderList" :value="provider" :key="provider">
                   {{ provider }}
                 </option>
               </select>
-              <select class="form-select p-2 g-col-3" v-model="selectedRegion" @change="onChangeInfraSelection">
+              <select class="form-select p-2 g-col-2" v-model="selectedRegion" @change="onChangeInfraSelection">
                 <option value="">Region</option>
                 <option v-for="option in regionOptions" :value="option.value" :key="option.value">
                   {{ option.label }}
                 </option>
               </select>
-              <select class="form-select p-2 g-col-3" v-model="selectedImage" @change="onChangeInfraSelection">
+              <select class="form-select p-2 g-col-2" v-model="selectedImage" @change="onChangeInfraSelection">
                 <option value="">Image</option>
                 <option v-for="option in imageOptions" :value="option.value" :key="option.value">
                   {{ option.label }}
                 </option>
               </select>
-              <select class="form-select p-2 g-col-3" v-model="selectedSpec" @change="onChangeInfraSelection">
+              <select class="form-select p-2 g-col-2" v-model="selectedSpec" @change="onChangeInfraSelection">
                 <option value="">VM Spec</option>
                 <option v-for="option in specOptions" :value="option.value" :key="option.value">
                   {{ option.label }}
                 </option>
               </select>
             </div>
-            <button class="btn btn-outline-primary" @click="onClickRefreshInfraOptions">
-              Refresh
-            </button>
+            <div class="grid gap-0 column-gap-3 mb-2">
+              <select class="form-select p-2 g-col-5" v-model="selectedInfra" @change="onChangeInfra">
+                <option value="">Existing Infra</option>
+                <option v-for="option in infraOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <select class="form-select p-2 g-col-5" v-model="selectedAccessHost" @change="onChangeAccessHost">
+                <option value="">SSH/DB Host</option>
+                <option v-for="option in accessHostOptions" :value="option.value" :key="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+              <button class="btn btn-outline-primary g-col-2" @click="onClickRefreshInfraOptions">
+                Refresh
+              </button>
+            </div>
           </div>
 
           <!-- OSS URL -->
@@ -149,7 +169,7 @@ import type { Workflow, WorkflowPurpose, Oss, WorkflowInfo, WorkflowParams, Work
 import PipelineGenerator from '@/views/workflow/components/PipelineGenerator.vue';
 // @ts-ignore
 import { duplicateCheck, getWorkflowDetailInfo, registWorkflow, updateWorkflow, getTemplateStage } from '@/api/workflow'
-import { getMcInfraRegions, getMcInfraResources } from '@/api/infraManager'
+import { getMcInfra, getMcInfraList, getMcInfraNamespaces, getMcInfraRegions, getMcInfraResources } from '@/api/infraManager'
 import { useToast } from 'vue-toastification';
 // @ts-ignore
 import ParamForm from './components/ParamForm.vue';
@@ -172,6 +192,7 @@ onMounted(async () => {
   await setWorkflowFormData()
   await setOssInfo()
   setWorkflowPurposeList()
+  initTumblebugSelectionValues()
   await loadInfraOptions()
 })
 
@@ -223,6 +244,7 @@ const setWorkflowFormData = async () => {
 interface InfraOption {
   label: string
   value: string
+  meta?: Record<string, any>
 }
 
 const infraProviderList = ['aws', 'azure', 'gcp', 'ncp', 'nhn', 'alibaba', 'tencent', 'ibm']
@@ -230,9 +252,15 @@ const infraProvider = ref('aws')
 const selectedRegion = ref('')
 const selectedImage = ref('')
 const selectedSpec = ref('')
+const selectedNamespace = ref('')
+const selectedInfra = ref('')
+const selectedAccessHost = ref('')
+const namespaceOptions = ref([] as Array<InfraOption>)
 const regionOptions = ref([] as Array<InfraOption>)
 const imageOptions = ref([] as Array<InfraOption>)
 const specOptions = ref([] as Array<InfraOption>)
+const infraOptions = ref([] as Array<InfraOption>)
+const accessHostOptions = ref([] as Array<InfraOption>)
 
 const showInfraSettings = computed(() => {
   return mode.value === 'new' || workflowStageMappingsFormData.value.some((stage) => stage.workflowStageName === 'infra-create')
@@ -242,6 +270,25 @@ watch(selectedRegion, async () => {
   await Promise.all([loadMcInfraImages(), loadMcInfraSpecs()])
   applyInfraSelectionParams()
 })
+
+const initTumblebugSelectionValues = () => {
+  selectedNamespace.value = getNamespaceParamValue()
+  selectedInfra.value = getWorkflowParamValue('INFRA_ID')
+  selectedAccessHost.value = getWorkflowParamValue('SSH_HOST') || getWorkflowParamValue('DB_HOST')
+  selectedRegion.value = getWorkflowParamValue('REGION')
+  selectedImage.value = getWorkflowParamValue('IMAGE_ID') || getWorkflowParamValue('IMAGE')
+  selectedSpec.value = getWorkflowParamValue('SPEC_ID') || getWorkflowParamValue('SPEC')
+}
+
+const onChangeNamespace = async () => {
+  selectedInfra.value = ''
+  selectedAccessHost.value = ''
+  accessHostOptions.value = []
+  if (selectedNamespace.value) {
+    upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
+  }
+  await Promise.all([loadMcInfraImages(), loadMcInfraSpecs(), loadMcInfraInfras()])
+}
 
 const onChangeInfraProvider = async () => {
   selectedRegion.value = ''
@@ -255,12 +302,48 @@ const onChangeInfraSelection = () => {
   applyInfraSelectionParams()
 }
 
+const onChangeInfra = async () => {
+  selectedAccessHost.value = ''
+  accessHostOptions.value = []
+  if (selectedInfra.value) {
+    upsertWorkflowParam('INFRA_ID', selectedInfra.value)
+    await loadMcInfraAccessHosts()
+  }
+}
+
+const onChangeAccessHost = () => {
+  const selectedHostOption = accessHostOptions.value.find((option) => option.value === selectedAccessHost.value)
+  if (!selectedHostOption) return
+
+  upsertWorkflowParam('SSH_HOST', selectedHostOption.value)
+  upsertWorkflowParam('DB_HOST', selectedHostOption.value)
+  if (selectedHostOption.meta?.sshUser) {
+    upsertWorkflowParam('SSH_USER', selectedHostOption.meta.sshUser)
+  }
+}
+
 const onClickRefreshInfraOptions = async () => {
   await loadInfraOptions()
 }
 
 const loadInfraOptions = async () => {
-  await Promise.all([loadMcInfraRegions(), loadMcInfraImages(), loadMcInfraSpecs()])
+  await loadMcInfraNamespaces()
+  await Promise.all([loadMcInfraRegions(), loadMcInfraImages(), loadMcInfraSpecs(), loadMcInfraInfras()])
+  if (selectedInfra.value) {
+    await loadMcInfraAccessHosts()
+  }
+}
+
+const loadMcInfraNamespaces = async () => {
+  try {
+    const { data } = await getMcInfraNamespaces()
+    namespaceOptions.value = normalizeInfraOptions(data)
+    if (!selectedNamespace.value) {
+      selectedNamespace.value = getNamespaceParamValue()
+    }
+  } catch (error) {
+    namespaceOptions.value = []
+  }
 }
 
 const loadMcInfraRegions = async () => {
@@ -274,8 +357,8 @@ const loadMcInfraRegions = async () => {
 
 const loadMcInfraImages = async () => {
   try {
-    const query = selectedRegion.value ? { filterKey: 'region', filterVal: selectedRegion.value } : {}
-    const { data } = await getMcInfraResources(getNamespaceParamValue(), 'image', query)
+    const query = selectedRegion.value ? { filterKey: 'regionName', filterVal: selectedRegion.value } : {}
+    const { data } = await getMcInfraResources(getResourceCatalogNamespace(), 'image', query)
     imageOptions.value = normalizeInfraOptions(data)
   } catch (error) {
     imageOptions.value = []
@@ -284,11 +367,42 @@ const loadMcInfraImages = async () => {
 
 const loadMcInfraSpecs = async () => {
   try {
-    const query = selectedRegion.value ? { filterKey: 'region', filterVal: selectedRegion.value } : {}
-    const { data } = await getMcInfraResources(getNamespaceParamValue(), 'spec', query)
+    const query = {
+      providerName: infraProvider.value,
+      regionName: selectedRegion.value,
+    }
+    const { data } = await getMcInfraResources(getResourceCatalogNamespace(), 'spec', query)
     specOptions.value = normalizeInfraOptions(data)
   } catch (error) {
     specOptions.value = []
+  }
+}
+
+const loadMcInfraInfras = async () => {
+  if (!selectedNamespace.value) {
+    infraOptions.value = []
+    return
+  }
+
+  try {
+    const { data } = await getMcInfraList(selectedNamespace.value, { option: 'simple' })
+    infraOptions.value = normalizeInfraOptions(data)
+  } catch (error) {
+    infraOptions.value = []
+  }
+}
+
+const loadMcInfraAccessHosts = async () => {
+  if (!selectedNamespace.value || !selectedInfra.value) {
+    accessHostOptions.value = []
+    return
+  }
+
+  try {
+    const { data } = await getMcInfra(selectedNamespace.value, selectedInfra.value, { option: 'accessinfo' })
+    accessHostOptions.value = normalizeAccessHostOptions(data)
+  } catch (error) {
+    accessHostOptions.value = []
   }
 }
 
@@ -301,7 +415,9 @@ const normalizeInfraOptions = (response: any): Array<InfraOption> => {
     .map((item: any) => {
       const value = String(
         item?.id ??
+        item?.nsId ??
         item?.name ??
+        item?.infraId ??
         item?.specId ??
         item?.imageId ??
         item?.regionName ??
@@ -313,6 +429,8 @@ const normalizeInfraOptions = (response: any): Array<InfraOption> => {
       const label = String(
         item?.name ??
         item?.id ??
+        item?.nsId ??
+        item?.infraId ??
         item?.specName ??
         item?.imageName ??
         item?.specId ??
@@ -336,9 +454,12 @@ const findFirstArray = (payload: any): Array<any> => {
   if (!payload || typeof payload !== 'object') return []
 
   const preferredKeys = [
+    'ns', 'namespace', 'namespaces', 'namespaceList',
+    'infra', 'infras', 'infraList',
     'regions', 'region', 'regionList',
     'images', 'image', 'imageList',
     'specs', 'spec', 'specList',
+    'idList', 'output',
     'resources', 'resource', 'resourceList',
     'items', 'list', 'result'
   ]
@@ -355,13 +476,64 @@ const findFirstArray = (payload: any): Array<any> => {
   return []
 }
 
+const normalizeAccessHostOptions = (response: any): Array<InfraOption> => {
+  const payload = response?.data ?? response
+  const nodes = [] as Array<any>
+  collectAccessNodes(payload, nodes)
+
+  const seen = new Set<string>()
+  return nodes
+    .map((node: any) => {
+      const host = String(node?.publicIP ?? node?.publicIp ?? node?.privateIP ?? node?.privateIp ?? node?.host ?? '')
+      const nodeId = String(node?.nodeId ?? node?.id ?? node?.name ?? '')
+      const sshUser = String(node?.nodeUserName ?? node?.userName ?? node?.sshUser ?? '')
+      const labelPrefix = nodeId ? `${nodeId} / ` : ''
+      return {
+        label: `${labelPrefix}${host}`,
+        value: host,
+        meta: { sshUser, nodeId },
+      }
+    })
+    .filter((option: InfraOption) => {
+      if (!option.value || seen.has(option.value)) return false
+      seen.add(option.value)
+      return true
+    })
+}
+
+const collectAccessNodes = (value: any, nodes: Array<any>) => {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectAccessNodes(item, nodes))
+    return
+  }
+
+  if (!value || typeof value !== 'object') return
+
+  const hasHost = value.publicIP || value.publicIp || value.privateIP || value.privateIp || value.host
+  if (hasHost) {
+    nodes.push(value)
+  }
+
+  Object.values(value).forEach((nested) => collectAccessNodes(nested, nodes))
+}
+
+const getWorkflowParamValue = (paramKey: string) => {
+  return workflowParamsFormData.value.find((param) => param.paramKey?.toUpperCase() === paramKey.toUpperCase())?.paramValue || ''
+}
+
 const getNamespaceParamValue = () => {
-  const namespaceParam = workflowParamsFormData.value.find((param) => param.paramKey?.toUpperCase() === 'NAMESPACE')
-  return namespaceParam?.paramValue || userInfo.projectInfo.ns_id || 'default'
+  return getWorkflowParamValue('NAMESPACE') || userInfo.projectInfo.ns_id || selectedNamespace.value || ''
+}
+
+const getResourceCatalogNamespace = () => {
+  return selectedNamespace.value || getNamespaceParamValue() || 'system'
 }
 
 const applyInfraSelectionParams = () => {
-  upsertWorkflowParam('NAMESPACE', getNamespaceParamValue())
+  const namespace = getNamespaceParamValue()
+  if (namespace) {
+    upsertWorkflowParam('NAMESPACE', namespace)
+  }
   upsertWorkflowParam('REGION', selectedRegion.value)
   upsertWorkflowParam('IMAGE', selectedImage.value)
   upsertWorkflowParam('IMAGE_ID', selectedImage.value)

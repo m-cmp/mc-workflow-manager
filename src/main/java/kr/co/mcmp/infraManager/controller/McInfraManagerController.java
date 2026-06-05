@@ -19,6 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class McInfraManagerController {
     private final McInfraManagerService mcInfraManagerService;
 
+    @Operation(summary = "Namespace 목록 조회")
+    @GetMapping("/namespaces")
+    public ResponseWrapper<Object> getNamespaces(@RequestParam MultiValueMap<String, String> queryParams) {
+        return new ResponseWrapper<>(mcInfraManagerService.getNamespaces(queryParams));
+    }
+
     @Operation(summary = "CSP Region 목록 조회")
     @GetMapping("/region-from-csp")
     public ResponseWrapper<Object> getRegionFromCsp(@RequestParam MultiValueMap<String, String> queryParams) {

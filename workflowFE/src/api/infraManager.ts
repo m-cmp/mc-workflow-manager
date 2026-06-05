@@ -17,6 +17,10 @@ export const getMcInfraRegions = (providerName: string, params?: QueryParams) =>
   return request.get(`/infra-manager/providers/${providerName}/regions${buildQueryString(params)}`)
 }
 
+export const getMcInfraNamespaces = (params?: QueryParams) => {
+  return request.get(`/infra-manager/namespaces${buildQueryString(params)}`)
+}
+
 export const getMcInfraResources = (nsId: string, resourceType: 'image' | 'spec', params?: QueryParams) => {
   return request.get(`/infra-manager/namespaces/${nsId}/resources/${resourceType}${buildQueryString(params)}`)
 }

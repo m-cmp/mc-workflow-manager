@@ -15,6 +15,8 @@ public class DatabaseInitializer implements CommandLineRunner{
     private static final String IMPORT_SQL = "classpath:import.sql";
     private static final String STAGE_CATALOG_START_MARKER = "-- Step 4-1: Insert category-managed workflow stages";
     private static final String STAGE_CATALOG_END_MARKER = "-- Step 5: Insert into workflow";
+    private static final String SCENARIO_WORKFLOW_START_MARKER = "-- Step 8: Insert scenario workflows";
+    private static final String SCENARIO_WORKFLOW_END_MARKER = "-- End Step 8";
     private static final String STAGE_TYPE_INSERT_PREFIX =
             "INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES";
     private static final String STAGE_TYPE_MERGE_PREFIX =
@@ -36,6 +38,7 @@ public class DatabaseInitializer implements CommandLineRunner{
             jdbcTemplate.execute(loadImportSql());
         } else {
             jdbcTemplate.execute(loadWorkflowStageCatalogMergeSql());
+            jdbcTemplate.execute(loadScenarioWorkflowSeedSql());
         }
     }
 
@@ -60,6 +63,18 @@ public class DatabaseInitializer implements CommandLineRunner{
         return loadWorkflowStageCatalogSql()
                 .replace(STAGE_TYPE_INSERT_PREFIX, STAGE_TYPE_MERGE_PREFIX)
                 .replace(STAGE_INSERT_PREFIX, STAGE_MERGE_PREFIX);
+    }
+
+    private String loadScenarioWorkflowSeedSql() throws Exception {
+        String sql = loadImportSql();
+        int start = sql.indexOf(SCENARIO_WORKFLOW_START_MARKER);
+        int end = sql.indexOf(SCENARIO_WORKFLOW_END_MARKER, start);
+
+        if (start < 0 || end < 0) {
+            throw new IllegalStateException("Scenario workflow seed block was not found in import.sql");
+        }
+
+        return sql.substring(start, end);
     }
 
     private String loadImportSql() throws Exception {
