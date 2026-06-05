@@ -165,7 +165,7 @@ const setColumns = () => {
         selectWorkflowIdx.value = cell.getRow().getData().workflowInfo.workflowIdx
 
         if (btnFlag === 'detail-btn') {
-          router.push('/web/workflow/detail/' + selectWorkflowIdx.value)
+          router.push('/web/workflows/workflow/detail/' + selectWorkflowIdx.value)
         }
         else if (btnFlag === 'delete-btn') {
           selectWorkflowName.value = cell.getRow().getData().workflowInfo.workflowName
@@ -177,7 +177,7 @@ const setColumns = () => {
 }
 
 const onClickNewBtn = () => {
-  router.push('/web/workflow/new')
+  router.push('/web/workflows/workflow/new')
 }
 const paramsCountFomatter = (cell: any) => {
   const paramsCnt = cell._cell.row.data.workflowParams.length

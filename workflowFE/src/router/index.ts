@@ -5,7 +5,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      redirect: '/web/workflow/list'
+      redirect: '/web/workflows/workflow/list'
     },
     {
       path: '/web',
@@ -23,24 +23,48 @@ const router = createRouter({
       component: () => import('@/views/workflowStage/WorkflowStageList.vue' as any)
     },
     {
-      path: '/web/eventListener/list',
-      name: 'eventListenerList',
-      component: () => import('@/views/eventListener/EventListenerList.vue' as any)
+      path: '/web/workflows',
+      name: 'workflows',
+      component: () => import('@/views/workflows/Workflows.vue' as any),
+      redirect: '/web/workflows/workflow/list',
+      children: [
+        {
+          path: 'workflow/list',
+          name: 'workflowList',
+          component: () => import('@/views/workflow/WorkflowList.vue' as any)
+        },
+        {
+          path: 'workflow/new',
+          name: 'workflowNew',
+          component: () => import('@/views/workflow/WorkflowForm.vue' as any)
+        },
+        {
+          path: 'workflow/detail/:workflowIdx',
+          name: 'workflowDetail',
+          component: () => import('@/views/workflow/WorkflowForm.vue' as any)
+        },
+        {
+          path: 'eventListener/list',
+          name: 'eventListenerList',
+          component: () => import('@/views/eventListener/EventListenerList.vue' as any)
+        }
+      ]
     },
     {
       path: '/web/workflow/list',
-      name: 'workflowList',
-      component: () => import('@/views/workflow/WorkflowList.vue' as any)
+      redirect: '/web/workflows/workflow/list'
     },
     {
       path: '/web/workflow/new',
-      name: 'workflowNew',
-      component: () => import('@/views/workflow/WorkflowForm.vue' as any)
+      redirect: '/web/workflows/workflow/new'
     },
     {
       path: `/web/workflow/detail/:workflowIdx`,
-      name: 'workflowDetail',
-      component: () => import('@/views/workflow/WorkflowForm.vue' as any)
+      redirect: to => `/web/workflows/workflow/detail/${to.params.workflowIdx}`
+    },
+    {
+      path: '/web/eventListener/list',
+      redirect: '/web/workflows/eventListener/list'
     }
   ]
 })

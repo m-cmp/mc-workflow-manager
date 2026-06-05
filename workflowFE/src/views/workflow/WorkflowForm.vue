@@ -277,7 +277,7 @@ const _registWorkflow = async () => {
   const { data } = await registWorkflow(param)
   if (data) {
     toast.success('Registered successfully.')
-    router.push('/web/workflow/list')
+    router.push('/web/workflows/workflow/list')
   }
   else {
     toast.error('Failed to register.')
@@ -295,7 +295,7 @@ const _updateWorkflow = async () => {
 
   if (data) {
     toast.success('Updated successfully.')
-    router.push('/web/workflow/list')
+    router.push('/web/workflows/workflow/list')
   }
   else {
     toast.error('Failed to update.')
@@ -337,12 +337,12 @@ const onClickRun = () => {
 
 // ================================================================================= Go to list
 const onClickList = () => {
-  router.push('/web/workflow/list')
+  router.push('/web/workflows/workflow/list')
 }
 
 // ================================================================================= Go back
 const onClickGoBack = () => {
-  router.push('/web/workflow/list')
+  router.push('/web/workflows/workflow/list')
 }
 
 // ================================================================================= PipelineGenerator
