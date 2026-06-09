@@ -3,8 +3,12 @@ package kr.co.mcmp.workflow.dto.entityMappingDto;
 import kr.co.mcmp.oss.dto.OssDto;
 import kr.co.mcmp.oss.dto.OssTypeDto;
 import kr.co.mcmp.workflow.Entity.WorkflowStageMapping;
+import kr.co.mcmp.workflowStage.Entity.WorkflowStage;
+import kr.co.mcmp.workflowStage.dto.WorkflowStageDto;
 import lombok.Builder;
 import lombok.Getter;
+
+import java.util.List;
 
 @Builder
 @Getter
@@ -13,7 +17,10 @@ public class WorkflowStageMappingDto {
     private Long workflowIdx;
     private Integer stageOrder;
     private Long workflowStageIdx;
+    private String workflowStageName;
+    private String workflowStageTypeName;
     private String stageContent;
+    private List<WorkflowParamDto> defaultParams;
 
     // from : 외부 (entity -> dto)
     public static WorkflowStageMappingDto from(WorkflowStageMapping workflowStageMapping) {
@@ -26,6 +33,24 @@ public class WorkflowStageMappingDto {
                 .build();
     }
 
+    public static WorkflowStageMappingDto from(WorkflowStageMapping workflowStageMapping, WorkflowStage workflowStage) {
+        WorkflowStageMappingDtoBuilder builder = WorkflowStageMappingDto.builder()
+                .mappingIdx(workflowStageMapping.getMappingIdx())
+                .workflowIdx(workflowStageMapping.getWorkflow().getWorkflowIdx())
+                .stageOrder(workflowStageMapping.getStageOrder())
+                .workflowStageIdx(workflowStageMapping.getWorkflowStageIdx())
+                .stageContent(workflowStageMapping.getStageContent());
+
+        if (workflowStage != null) {
+            WorkflowStageDto workflowStageDto = WorkflowStageDto.from(workflowStage);
+            builder.workflowStageName(workflowStageDto.getWorkflowStageName())
+                    .workflowStageTypeName(workflowStageDto.getWorkflowStageTypeName())
+                    .defaultParams(workflowStageDto.getDefaultParams());
+        }
+
+        return builder.build();
+    }
+
     // of : 내부 (dto -> dto)
     public static WorkflowStageMappingDto of(WorkflowStageMappingDto workflowStageMappingDto) {
         return WorkflowStageMappingDto.builder()
@@ -33,7 +58,10 @@ public class WorkflowStageMappingDto {
                 .workflowIdx(workflowStageMappingDto.getWorkflowIdx())
                 .stageOrder(workflowStageMappingDto.getStageOrder())
                 .workflowStageIdx(workflowStageMappingDto.getWorkflowStageIdx())
+                .workflowStageName(workflowStageMappingDto.getWorkflowStageName())
+                .workflowStageTypeName(workflowStageMappingDto.getWorkflowStageTypeName())
                 .stageContent(workflowStageMappingDto.getStageContent())
+                .defaultParams(workflowStageMappingDto.getDefaultParams())
                 .build();
     }
 

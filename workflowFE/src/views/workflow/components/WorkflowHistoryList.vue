@@ -1,5 +1,5 @@
 <template>
-  <div class="mt-5 mb-5">
+  <div v-if="hasRunHistory" class="mt-5 mb-5">
     
     <h3 class="card-title mb-3">History</h3>
     <b-overlay
@@ -20,7 +20,8 @@
     </div>
   </div>
 
-  <WorkflowHistoryPopup 
+  <WorkflowHistoryPopup
+    v-if="hasRunHistory"
     :workflow-idx="props.workflowIdx"
     :build-name="selectBuildName"
     :workflow-name="props.workflowName"
@@ -29,7 +30,7 @@
   
 </template>
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 // @ts-ignore
 import { getWorkflowRunHistory } from '@/api/workflow'
 import type { ColumnDefinition } from 'tabulator-tables';
@@ -38,8 +39,6 @@ import type { JenkinsStage } from '@/views/type/type'
 // @ts-ignore
 import Tabulator from '@/components/Table/Tabulator.vue'
 // @ts-ignore
-import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
-// @ts-ignore
 import type { RunHistory } from '@/views/type/type'
 // @ts-ignore
 import _ from 'lodash'
@@ -47,7 +46,6 @@ import _ from 'lodash'
 import WorkflowHistoryPopup from '@/views/workflow/components/WorkflowHistoryPopoup.vue'
 
 const overlayShow = ref(true as Boolean)
-const showComponentFlag = ref(false as Boolean)
 
 interface Props {
   workflowIdx?: number | string | string[]
@@ -56,6 +54,7 @@ interface Props {
 
 const props = defineProps<Props>()
 watch(() => props.workflowIdx, async () => {
+  resetRunHistoryState()
   if(isRunnableWorkflowIdx(props.workflowIdx)) {
     await setRunHistory(props.workflowIdx)
     startRunHistoryPolling()
@@ -63,9 +62,6 @@ watch(() => props.workflowIdx, async () => {
     stopRunHistoryPolling()
   }
 })
-watch(() => showComponentFlag.value, () => {
-})
-
 onMounted(() => {
   setColumns()
   if (isRunnableWorkflowIdx(props.workflowIdx)) {
@@ -80,8 +76,14 @@ onBeforeUnmount(() => {
 
 
 const runHistoryList = ref([] as Array<RunHistory>)
+const hasRunHistory = computed(() => runHistoryList.value.length > 0)
 let runHistoryPollingTimer: ReturnType<typeof setInterval> | undefined
 let runHistoryFetching = false
+function resetRunHistoryState() {
+  runHistoryList.value = []
+  selectBuildName.value = ''
+  selectRunHistoryStage.value = []
+}
 const isRunnableWorkflowIdx = (workflowIdx?: number | string | string[]) => {
   return workflowIdx !== undefined && workflowIdx !== 0 && workflowIdx !== '0'
 }
@@ -108,12 +110,15 @@ const setRunHistory = async (workflowIdx?: number | string | string[], showLoadi
   }
 
   await getWorkflowRunHistory(workflowIdx).then(({ data }) => {
-    data.forEach((runHistoryInfo: RunHistory) => {
+    const historyList = Array.isArray(data) ? data : []
+    historyList.forEach((runHistoryInfo: RunHistory) => {
       runHistoryInfo.startTimeMillis = new Date(runHistoryInfo.startTimeMillis).toLocaleString();
       runHistoryInfo.user = 'ADMIN';
     })
-    runHistoryList.value = _.sortBy(data, 'name').reverse()
-    showComponentFlag.value = true
+    runHistoryList.value = _.sortBy(historyList, 'name').reverse()
+    if (!runHistoryList.value.length) {
+      resetRunHistoryState()
+    }
   }).catch((error) => {
     console.log(error)
   }).finally(() => {
@@ -161,8 +166,12 @@ const setColumns = () => {
       width: "20%",
       formatter: detailButtonFormatter,
       cellClick: function (e, cell) {
-        selectBuildName.value = cell.getRow().getData().name.replace('#', '')
-        selectRunHistoryStage.value = cell.getRow().getData().stages
+        const rowData = cell.getRow().getData()
+        if (!rowData.stages || rowData.stages.length === 0) {
+          return
+        }
+        selectBuildName.value = rowData.name.replace('#', '')
+        selectRunHistoryStage.value = rowData.stages
       }
     }
   ]
@@ -190,7 +199,12 @@ const statusFormatter = (cell: any) => {
  * @Title editButtonFormatter
  * @Desc 수정 / 삭제 버튼 Formatter
  */
-const detailButtonFormatter = () => {
+const detailButtonFormatter = (cell: any) => {
+  const rowData = cell.getRow().getData()
+  if (!rowData.stages || rowData.stages.length === 0) {
+    return `<span class="text-secondary">LOG</span>`
+  }
+
   return `
   <div>
     <button

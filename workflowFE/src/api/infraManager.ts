@@ -14,21 +14,37 @@ const buildQueryString = (params?: QueryParams) => {
 }
 
 export const getMcInfraRegions = (providerName: string, params?: QueryParams) => {
-  return request.get(`/infra-manager/providers/${providerName}/regions${buildQueryString(params)}`)
+  return request.get(`/infra-manager/providers/${encodeURIComponent(providerName)}/regions${buildQueryString(params)}`)
+}
+
+export const getMcInfraProviders = (params?: QueryParams) => {
+  return request.get(`/infra-manager/providers${buildQueryString(params)}`)
 }
 
 export const getMcInfraNamespaces = (params?: QueryParams) => {
   return request.get(`/infra-manager/namespaces${buildQueryString(params)}`)
 }
 
+export const getMcInfraConnConfigs = (params?: QueryParams) => {
+  return request.get(`/infra-manager/conn-configs${buildQueryString(params)}`)
+}
+
+export const getMcInfraAvailableZones = (params?: QueryParams) => {
+  return request.get(`/infra-manager/available-zones${buildQueryString(params)}`)
+}
+
 export const getMcInfraResources = (nsId: string, resourceType: 'image' | 'spec', params?: QueryParams) => {
-  return request.get(`/infra-manager/namespaces/${nsId}/resources/${resourceType}${buildQueryString(params)}`)
+  return request.get(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/resources/${resourceType}${buildQueryString(params)}`)
+}
+
+export const reviewMcInfraDynamic = (nsId: string, payload: Record<string, any>, params?: QueryParams) => {
+  return request.post(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/infra-dynamic-review${buildQueryString(params)}`, payload)
 }
 
 export const getMcInfraList = (nsId: string, params?: QueryParams) => {
-  return request.get(`/infra-manager/namespaces/${nsId}/infra${buildQueryString(params)}`)
+  return request.get(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/infra${buildQueryString(params)}`)
 }
 
 export const getMcInfra = (nsId: string, infraId: string, params?: QueryParams) => {
-  return request.get(`/infra-manager/namespaces/${nsId}/infra/${infraId}${buildQueryString(params)}`)
+  return request.get(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/infra/${encodeURIComponent(infraId)}${buildQueryString(params)}`)
 }

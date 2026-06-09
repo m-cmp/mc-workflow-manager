@@ -13,7 +13,7 @@
             <div class="row mb-3">
               <label class="form-label required">Event Listener Name</label>
               <div class="grid gap-0 column-gap-3">
-                <input type="text" class="form-control p-2 g-col-11" placeholder="Enter Event Listener Name" v-model="eventListenerFormData.eventListenerName" @focus="onfocusEventListenerName"/>
+                <input type="text" class="form-control p-2 g-col-11" placeholder="Enter Event Listener Name" v-model="eventListenerFormData.eventListenerName" @input="onChangeEventListenerName"/>
 
                 <button
                   v-if="!duplicatedEventListener"
@@ -46,6 +46,12 @@
               </select>
             </div>
             <!-- Params -->
+            <TumblebugParamSelector
+              v-if="setParamFlag && eventListenerFormData.workflowParams"
+              :workflow-name="selectedWorkflowName"
+              :workflow-param-data="eventListenerFormData.workflowParams"
+              :workflow-stage-mappings="selectedWorkflow?.workflowStageMappings || []"
+            />
             <ParamForm 
               v-if="setParamFlag"
               :popup="false"
@@ -72,18 +78,20 @@
 
 <script setup lang="ts">
 // @ts-ignore
-import type { EventListener, Workflow } from '@/views/type/type';
+import type { EventListener, Workflow, WorkflowParams } from '@/views/type/type';
 import { ref } from 'vue';
 import { useToast } from 'vue-toastification';
 // @ts-ignore
 import { duplicateCheck, getEventListenerDetailInfo, registEventListener, updateEventListener } from '@/api/eventListener';
 // @ts-ignore
 import { getWorkflowList } from '@/api/workflow';
-import { onMounted } from 'vue';
+import { onBeforeUnmount, onMounted } from 'vue';
 import { computed } from 'vue';
 import { watch } from 'vue';
 // @ts-ignore
 import ParamForm from '@/views/workflow/components/ParamForm.vue';
+// @ts-ignore
+import TumblebugParamSelector from '@/views/workflow/components/TumblebugParamSelector.vue';
 import { Modal } from 'bootstrap'
 
 const toast = useToast()
@@ -117,11 +125,21 @@ onMounted(async () => {
   // Modal 인스턴스 초기화
   if (modalElement.value) {
     modalInstance.value = new Modal(modalElement.value)
+    modalElement.value.addEventListener('show.bs.modal', onShowModal)
   }
   
   await setInit()
   await _getWorkflowList()
 })
+
+onBeforeUnmount(() => {
+  modalElement.value?.removeEventListener('show.bs.modal', onShowModal)
+})
+
+const onShowModal = async () => {
+  await setInit()
+  await _getWorkflowList()
+}
 
 /**
  * @Title formData 
@@ -145,6 +163,8 @@ const setInit = async () => {
     eventListenerFormData.value.workflowParams = []
 
     duplicatedEventListener.value = false
+    checkedEventListenerName.value = ''
+    originalEventListenerName.value = ''
     setParamFlag.value = true
   }
   else {
@@ -152,6 +172,8 @@ const setInit = async () => {
     eventListenerFormData.value = data
 
     duplicatedEventListener.value = true
+    checkedEventListenerName.value = normalizeEventListenerName(data.eventListenerName)
+    originalEventListenerName.value = normalizeEventListenerName(data.eventListenerName)
     setParamFlag.value = true
   }
 }
@@ -161,6 +183,12 @@ const _getWorkflowList = async () => {
   const { data } = await getWorkflowList("N")
   workflowList.value = data;
 }
+const selectedWorkflow = computed(() => {
+  return workflowList.value.find((workflow) => Number(workflow.workflowInfo.workflowIdx) === Number(eventListenerFormData.value.workflowIdx))
+})
+const selectedWorkflowName = computed(() => {
+  return selectedWorkflow.value?.workflowInfo.workflowName || eventListenerFormData.value.workflowName || ''
+})
 
 /**
  * @Title duplicatedEventListener / onClickDuplicatEventListenerName
@@ -169,14 +197,36 @@ const _getWorkflowList = async () => {
  *    onClickDuplicatEventListenerName : Event Listener 명으로 중복검사 API 호출
  */
 const duplicatedEventListener = ref(false as boolean)
+const checkedEventListenerName = ref('')
+const originalEventListenerName = ref('')
+const normalizeEventListenerName = (eventListenerName?: string) => (eventListenerName || '').trim()
+const onChangeEventListenerName = () => {
+  const currentEventListenerName = normalizeEventListenerName(eventListenerFormData.value.eventListenerName)
+  duplicatedEventListener.value = Boolean(currentEventListenerName && currentEventListenerName === checkedEventListenerName.value)
+}
 const onClickDuplicatEventListenerName = async () => {
-  const { data } = await duplicateCheck(eventListenerFormData.value.eventListenerName)
+  const currentEventListenerName = normalizeEventListenerName(eventListenerFormData.value.eventListenerName)
+  if (!currentEventListenerName) {
+    toast.error('Please enter Event Listener name.')
+    return
+  }
+  if (props.mode !== 'new' && currentEventListenerName === originalEventListenerName.value) {
+    toast.success('Name is available.')
+    duplicatedEventListener.value = true
+    checkedEventListenerName.value = currentEventListenerName
+    return
+  }
+
+  const { data } = await duplicateCheck(currentEventListenerName)
   if (!data) {
     toast.success('Name is available.')
     duplicatedEventListener.value = true
+    checkedEventListenerName.value = currentEventListenerName
   }
-  else
+  else {
     toast.error('Name is already in use.')
+    duplicatedEventListener.value = false
+  }
 }
 
 
@@ -193,7 +243,7 @@ const onClickSubmit = async () => {
     return;
   }
 
-  if (!duplicatedEventListener.value) {
+  if (!duplicatedEventListener.value || checkedEventListenerName.value !== normalizeEventListenerName(eventListenerFormData.value.eventListenerName)) {
     toast.error('Please perform duplicate check for the name.');
     return;
   }
@@ -277,21 +327,20 @@ const _updateEventListener = async (): Promise<boolean> => {
     return false
   }
 }
-
-
-
-
-
-const onfocusEventListenerName = () => {
-  duplicatedEventListener.value = false
-}
-
 const onSelectWorkflow = (selectedWorkflowIdx:number) => {
   workflowList.value.forEach((workflow) => {
     if (workflow.workflowInfo.workflowIdx === selectedWorkflowIdx) {
-      eventListenerFormData.value.workflowParams = workflow.workflowParams
+      eventListenerFormData.value.workflowParams = cloneWorkflowParams(workflow.workflowParams)
     }
   })
+}
+
+const cloneWorkflowParams = (params: Array<WorkflowParams> = []) => {
+  return params.map((param) => ({
+    ...param,
+    paramIdx: 0,
+    eventListenerYn: 'Y',
+  }))
 }
 
 </script>

@@ -1,14 +1,20 @@
 package kr.co.mcmp.workflowStage.dto;
 
+import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import kr.co.mcmp.workflowStage.Entity.WorkflowStage;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Getter
 @Builder
 public class WorkflowStageDto {
+    private static final String DEFAULT_SCHEMA_SQL_CONTENT = "CREATE TABLE IF NOT EXISTS sample_data (id INT PRIMARY KEY, name VARCHAR(100));";
+    private static final String DEFAULT_INSERT_SQL = "INSERT INTO sample_data (id, name) VALUES (1, 'sample row');";
+
     private Long workflowStageIdx;
     private Long workflowStageTypeIdx;
     private String workflowStageTypeName;
@@ -16,6 +22,7 @@ public class WorkflowStageDto {
     private String workflowStageName;
     private String workflowStageDesc;
     private String workflowStageContent;
+    private List<WorkflowParamDto> defaultParams;
 
 
     // from : 외부 (entity -> dto)
@@ -28,6 +35,7 @@ public class WorkflowStageDto {
                 .workflowStageName(workflowStage.getWorkflowStageName())
                 .workflowStageDesc(workflowStage.getWorkflowStageDesc())
                 .workflowStageContent(workflowStage.getWorkflowStageContent())
+                .defaultParams(defaultParamsFor(workflowStage.getWorkflowStageName()))
                 .build();
     }
 
@@ -41,6 +49,7 @@ public class WorkflowStageDto {
                 .workflowStageName(workflowStageDto.getWorkflowStageName())
                 .workflowStageDesc(workflowStageDto.getWorkflowStageDesc())
                 .workflowStageContent(workflowStageDto.getWorkflowStageContent())
+                .defaultParams(workflowStageDto.getDefaultParams())
                 .build();
     }
 
@@ -53,6 +62,327 @@ public class WorkflowStageDto {
                 .workflowStageName(workflowStageDto.getWorkflowStageName())
                 .workflowStageDesc(workflowStageDto.getWorkflowStageDesc())
                 .workflowStageContent(workflowStageDto.getWorkflowStageContent())
+                .build();
+    }
+
+    private static List<WorkflowParamDto> defaultParamsFor(String stageName) {
+        if (stageName == null) {
+            return List.of();
+        }
+
+        return switch (stageName) {
+            case "infra-create" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("PROVIDER", ""),
+                    param("CSP", ""),
+                    param("REGION", ""),
+                    param("CONNECTION_NAME", ""),
+                    param("ZONE", ""),
+                    param("INFRA_ID", ""),
+                    param("IMAGE", ""),
+                    param("IMAGE_ID", ""),
+                    param("SPEC", ""),
+                    param("SPEC_ID", ""),
+                    param("SSH_USER", "cb-user"),
+                    param("INFRA_NODEGROUP_NAME", "g1"),
+                    param("INFRA_NODEGROUP_SIZE", "1"),
+                    param("ROOT_DISK_TYPE", "default"),
+                    param("ROOT_DISK_SIZE", "50"),
+                    param("INSTALL_MON_AGENT", "no"),
+                    param("POLICY_ON_PARTIAL_FAILURE", "continue"),
+                    param("INFRA_ACCESS_INFO_MAX_ATTEMPTS", "30"),
+                    param("INFRA_ACCESS_INFO_INTERVAL_SECONDS", "10"));
+            case "multi-csp-vm-deploy" -> multiCspVmParams();
+            case "multi-csp-vm-delete" -> multiCspVmDeleteParams();
+            case "infra-get" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("INFRA_GET_OPTION", ""));
+            case "infra-list" -> tumblebugParams(
+                    param("NAMESPACE", ""));
+            case "infra-update" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("INFRA_UPDATE_METHOD", "PUT"),
+                    param("INFRA_UPDATE_PATH", ""),
+                    param("INFRA_UPDATE_PAYLOAD", "{}"));
+            case "infra-delete" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("INFRA_DELETE_OPTION", "terminate"));
+            case "infra-start", "infra-stop", "infra-reboot" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("INFRA_CONTROL_FORCE", "false"));
+            case "infra-ssh-connect-check" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("SSH_HOST", ""),
+                    param("SSH_USER", "cb-user"),
+                    param("SSH_KEY_FILE", ""));
+            case "k8s-cluster-create" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("PROVIDER", ""),
+                    param("CSP", ""),
+                    param("REGION", ""),
+                    param("CONNECTION_NAME", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_NODEGROUP_NAME", "ng1"),
+                    param("IMAGE", ""),
+                    param("IMAGE_ID", ""),
+                    param("SPEC", ""),
+                    param("SPEC_ID", ""),
+                    param("K8S_VERSION", ""),
+                    param("K8S_DESIRED_NODE_SIZE", "1"),
+                    param("K8S_MIN_NODE_SIZE", "1"),
+                    param("K8S_MAX_NODE_SIZE", "3"),
+                    param("ROOT_DISK_TYPE", "default"),
+                    param("ROOT_DISK_SIZE", "30"),
+                    param("K8S_CREATE_OPTION", ""),
+                    param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                    param("K8S_STATUS_INTERVAL_SECONDS", "10"),
+                    param("K8S_READY_STATUS", "Active,Running"));
+            case "multi-csp-k8s-cluster-deploy" -> multiCspK8sParams();
+            case "k8s-cluster-get" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""));
+            case "k8s-cluster-list" -> tumblebugParams(
+                    param("NAMESPACE", ""));
+            case "k8s-cluster-update" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_UPDATE_METHOD", "PUT"),
+                    param("K8S_UPDATE_PATH", ""),
+                    param("K8S_UPDATE_PAYLOAD", "{}"),
+                    param("K8S_SKIP_VERSION_CHECK", "false"));
+            case "k8s-cluster-delete" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""));
+            case "k8s-nodegroup-add" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("PROVIDER", ""),
+                    param("CSP", ""),
+                    param("REGION", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_NODEGROUP_NAME", "ng1"),
+                    param("IMAGE", ""),
+                    param("IMAGE_ID", ""),
+                    param("SPEC", ""),
+                    param("SPEC_ID", ""),
+                    param("K8S_DESIRED_NODE_SIZE", "1"),
+                    param("K8S_MIN_NODE_SIZE", "1"),
+                    param("K8S_MAX_NODE_SIZE", "3"),
+                    param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                    param("K8S_STATUS_INTERVAL_SECONDS", "10"),
+                    param("K8S_READY_STATUS", "Active,Running"));
+            case "k8s-nodegroup-remove" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_NODEGROUP_NAME", "ng1"));
+            case "k8s-kubeconfig-get" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_KUBECONFIG_MAX_ATTEMPTS", "30"),
+                    param("K8S_KUBECONFIG_INTERVAL_SECONDS", "10"),
+                    param("KUBECONFIG_CONTENT", ""));
+            case "app-deploy-helm" -> params(
+                    param("KUBECONFIG_CONTENT", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("HELM_CHART", "oci://registry-1.docker.io/bitnamicharts/mariadb"),
+                    param("HELM_VALUES_ARGS", "--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass --wait --timeout 10m"),
+                    param("DB_EXEC_MODE", "k8s"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "app-deploy-manifest" -> params(
+                    param("KUBECONFIG_CONTENT", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("K8S_MANIFEST", ""));
+            case "app-deploy-status-check" -> params(
+                    param("KUBECONFIG_CONTENT", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("DEPLOYMENT_NAME", ""),
+                    param("ROLLOUT_TIMEOUT", "300s"));
+            case "app-undeploy" -> params(
+                    param("KUBECONFIG_CONTENT", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("APP_DEPLOY_TYPE", "helm"),
+                    param("RELEASE_NAME", ""),
+                    param("K8S_MANIFEST", ""));
+            case "app-rollback" -> params(
+                    param("KUBECONFIG_CONTENT", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", ""),
+                    param("HELM_REVISION", ""));
+            case "mariadb-install" -> params(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("DB_EXEC_MODE", "ssh"),
+                    param("DB_HOST", ""),
+                    param("DB_PORT", "3306"),
+                    param("DB_NAME", "testdb"),
+                    param("DB_USER", "mariadb_user"),
+                    param("DB_PASSWORD", "mariadb_pass"),
+                    param("SSH_HOST", ""),
+                    param("SSH_USER", "cb-user"),
+                    param("SSH_KEY_FILE", ""));
+            case "db-backup-export" -> databaseParams(
+                    param("DB_BACKUP_FILE", ""),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "db-backup-import" -> databaseParams(
+                    param("DB_BACKUP_FILE", "schema.sql"),
+                    param("SCHEMA_SQL_CONTENT", DEFAULT_SCHEMA_SQL_CONTENT),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "db-schema-import" -> databaseParams(
+                    param("SCHEMA_SQL_FILE", "schema.sql"),
+                    param("SCHEMA_SQL_CONTENT", DEFAULT_SCHEMA_SQL_CONTENT),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "db-data-insert" -> databaseParams(
+                    param("INSERT_SQL", DEFAULT_INSERT_SQL),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "db-data-verify" -> databaseParams(
+                    param("VERIFY_SQL", "SELECT 1"),
+                    param("KUBE_NAMESPACE", "default"),
+                    param("RELEASE_NAME", "mariadb"),
+                    param("DB_POD_SELECTOR", "app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb"));
+            case "ssh-command-exec" -> params(
+                    param("SSH_HOST", ""),
+                    param("SSH_USER", "cb-user"),
+                    param("SSH_KEY_FILE", ""),
+                    param("SSH_COMMAND", ""));
+            case "http-request" -> params(
+                    param("HTTP_METHOD", "GET"),
+                    param("HTTP_URL", ""),
+                    param("HTTP_HEADERS", ""),
+                    param("HTTP_BODY", ""));
+            case "wait-for-condition" -> params(
+                    param("WAIT_METHOD", "GET"),
+                    param("WAIT_URL", ""),
+                    param("WAIT_HTTP_STATUS", "200"),
+                    param("WAIT_CONTAINS", ""),
+                    param("WAIT_MAX_ATTEMPTS", "30"),
+                    param("WAIT_INTERVAL_SECONDS", "10"));
+            case "notification-send" -> params(
+                    param("NOTIFICATION_WEBHOOK_URL", ""),
+                    param("NOTIFICATION_MESSAGE", "Workflow finished"),
+                    param("NOTIFICATION_PAYLOAD", ""));
+            case "script-exec" -> params(
+                    param("SCRIPT_CONTENT", "echo no script"));
+            default -> List.of();
+        };
+    }
+
+    private static List<WorkflowParamDto> tumblebugParams(WorkflowParamDto... additionalParams) {
+        List<WorkflowParamDto> result = new ArrayList<>();
+        result.add(param("TUMBLEBUG", "http://mc-infra-manager:1323"));
+        result.add(param("USER", "default"));
+        result.add(param("USERPASS", "default"));
+        result.addAll(Arrays.asList(additionalParams));
+        return result;
+    }
+
+    private static List<WorkflowParamDto> databaseParams(WorkflowParamDto... additionalParams) {
+        List<WorkflowParamDto> result = new ArrayList<>();
+        result.add(param("DB_EXEC_MODE", "auto"));
+        result.add(param("DB_HOST", ""));
+        result.add(param("DB_PORT", "3306"));
+        result.add(param("DB_NAME", "testdb"));
+        result.add(param("DB_USER", "mariadb_user"));
+        result.add(param("DB_PASSWORD", "mariadb_pass"));
+        result.addAll(Arrays.asList(additionalParams));
+        return result;
+    }
+
+    private static List<WorkflowParamDto> multiCspVmParams() {
+        List<WorkflowParamDto> result = tumblebugParams(
+                param("NAMESPACE", ""),
+                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt"),
+                param("INFRA_PREFIX", "multi-csp-vm"),
+                param("INFRA_NODEGROUP_NAME", "g1"),
+                param("INFRA_NODEGROUP_SIZE", "1"),
+                param("ROOT_DISK_TYPE", "default"),
+                param("ROOT_DISK_SIZE", "50"),
+                param("INSTALL_MON_AGENT", "no"),
+                param("POLICY_ON_PARTIAL_FAILURE", "continue"));
+
+        addCspVmParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2");
+        addCspVmParams(result, "AZURE", "koreasouth", "azure-koreasouth");
+        addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3");
+        addCspVmParams(result, "NCP", "kr", "ncp-kr");
+        addCspVmParams(result, "NHN", "kr1", "nhn-kr1");
+        addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2");
+        addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul");
+        addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa");
+        addCspVmParams(result, "KT", "kr1", "kt-kr1");
+        return result;
+    }
+
+    private static List<WorkflowParamDto> multiCspVmDeleteParams() {
+        return tumblebugParams(
+                param("NAMESPACE", ""),
+                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt"),
+                param("INFRA_PREFIX", "multi-csp-vm"),
+                param("INFRA_ID_LIST", ""),
+                param("INFRA_DELETE_OPTION", "terminate"));
+    }
+
+    private static List<WorkflowParamDto> multiCspK8sParams() {
+        List<WorkflowParamDto> result = tumblebugParams(
+                param("NAMESPACE", ""),
+                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,tencent"),
+                param("CLUSTER_PREFIX", "multi-csp-k8s"),
+                param("K8S_NODEGROUP_PREFIX", "ng"),
+                param("K8S_VERSION", ""),
+                param("K8S_DESIRED_NODE_SIZE", "1"),
+                param("K8S_MIN_NODE_SIZE", "1"),
+                param("K8S_MAX_NODE_SIZE", "3"),
+                param("ROOT_DISK_TYPE", "default"),
+                param("ROOT_DISK_SIZE", "30"),
+                param("K8S_CREATE_OPTION", ""),
+                param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                param("K8S_STATUS_INTERVAL_SECONDS", "10"),
+                param("K8S_READY_STATUS", "Active,Running"));
+
+        addCspK8sParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2");
+        addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral");
+        addCspK8sParams(result, "GCP", "asia-east1", "gcp-asia-east1");
+        addCspK8sParams(result, "NCP", "kr1", "ncp-kr1");
+        addCspK8sParams(result, "NHN", "kr1", "nhn-kr1");
+        addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul");
+        return result;
+    }
+
+    private static void addCspVmParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
+        result.add(param(prefix + "_REGION", region));
+        result.add(param(prefix + "_CONNECTION_NAME", connectionName));
+        result.add(param(prefix + "_ZONE", ""));
+        result.add(param(prefix + "_SPEC_ID", ""));
+        result.add(param(prefix + "_IMAGE_ID", ""));
+    }
+
+    private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
+        result.add(param(prefix + "_REGION", region));
+        result.add(param(prefix + "_CONNECTION_NAME", connectionName));
+        result.add(param(prefix + "_SPEC_ID", ""));
+        result.add(param(prefix + "_IMAGE_ID", ""));
+    }
+
+    private static List<WorkflowParamDto> params(WorkflowParamDto... params) {
+        return Arrays.asList(params);
+    }
+
+    private static WorkflowParamDto param(String key, String value) {
+        return WorkflowParamDto.builder()
+                .paramKey(key)
+                .paramValue(value)
+                .eventListenerYn("N")
                 .build();
     }
 

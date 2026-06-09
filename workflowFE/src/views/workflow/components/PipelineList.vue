@@ -6,18 +6,18 @@
     <div v-for="(pipelineScript, idx) in pipelineScriptList" :key="idx">
       <div v-for="(test, index) in pipelineScript.list" :key="index">
         <p v-if="pipelineInfo.workflowStageIdx > 0 && pipelineInfo.workflowStageIdx === test.workflowStageIdx" style="margin-bottom: 0px !important;">
-          {{ test.workflowStageTypeName }} ({{ test.workflowStageName }})
+          {{ getStageTypeLabel(test.workflowStageTypeName) }} ({{ test.workflowStageName }})
         </p>
       </div>
     </div>
     <!-- {{ pipelineInfo.defaultScriptTag && pipelineInfo.defaultScriptTag !== 'null' ? pipelineInfo.defaultScriptTag : "" }} -->
   </span>
-  <span class="col-2">
-    <button 
-      v-if="pipelineInfo.workflowStageIdx !== null" 
-      class="btn btn-danger btn"
-      @click="onDeletePipeline(props.idx)">
-      delete
+	<span class="col-2">
+	  <button
+	    v-if="!pipelineInfo.isDefaultScript && pipelineInfo.workflowStageIdx !== null"
+	    class="btn btn-danger btn"
+	    @click="onDeletePipeline(props.idx)">
+	    delete
     </button>
   </span>
   <VAceEditor
@@ -68,6 +68,21 @@ const { pipelineInfo } = toRefs(props)
 const emit = defineEmits(['on-delete-pipeline'])
 const onDeletePipeline = (idx:number) => {
   emit('on-delete-pipeline', idx)
+}
+
+const getStageTypeLabel = (stageTypeName: string) => {
+  const labels: Record<string, string> = {
+    infra: 'Infra',
+    k8s: 'K8s',
+    app: 'App',
+    database: 'Database',
+    utility: 'Utility',
+    'app-deploy': 'App',
+    'db-backup-restore': 'Database',
+    'common-util': 'Utility',
+  }
+
+  return labels[stageTypeName] || stageTypeName
 }
 
 // const preSrcipt = ref('')

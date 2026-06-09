@@ -10,13 +10,30 @@ import java.util.List;
 @Getter
 public class WorkflowStageTypeAndStageNameResDto {
     private String title;
+    private String label;
     private List<WorkflowStageDto> list;
 
     // from : 외부 (entity -> dto)
     public static WorkflowStageTypeAndStageNameResDto of(String title, List<WorkflowStageDto> list) {
         return WorkflowStageTypeAndStageNameResDto.builder()
                 .title(title)
+                .label(toDisplayLabel(title))
                 .list(list)
                 .build();
+    }
+
+    private static String toDisplayLabel(String title) {
+        if (title == null) {
+            return "";
+        }
+
+        return switch (title) {
+            case "infra" -> "Infra";
+            case "k8s" -> "K8s";
+            case "app", "app-deploy" -> "App";
+            case "database", "db-backup-restore" -> "Database";
+            case "utility", "common-util" -> "Utility";
+            default -> title;
+        };
     }
 }

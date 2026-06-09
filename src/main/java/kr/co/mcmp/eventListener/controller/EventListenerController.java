@@ -11,10 +11,12 @@ import kr.co.mcmp.workflow.dto.resDto.WorkflowDetailResDto;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowListResDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Tag(name = "event Listener", description = "이벤트 리스너 관리")
 @Slf4j
@@ -34,16 +36,30 @@ public class EventListenerController {
     @Operation(summary="Event Listener 등록")
     @PostMapping
     public ResponseWrapper<Long> registEventListner(@RequestBody RequestEventListenerDto requestEventListenerDto) {
+        ResponseWrapper<Long> invalidResponse = validateEventListenerRequest(requestEventListenerDto);
+        if (invalidResponse != null) {
+            return invalidResponse;
+        }
+
         return new ResponseWrapper<>(eventListenerService.registEventListner(requestEventListenerDto));
     }
 
     @Operation(summary = "Event Listener 수정", description = "Event Listener 수정")
     @PatchMapping("/{eventListenerIdx}")
     public ResponseWrapper<Boolean> updateEventListner(@PathVariable Long eventListenerIdx, @RequestBody RequestEventListenerDto requestEventListenerDto) {
-        if ( eventListenerIdx != 0 || requestEventListenerDto.getEventListenerIdx() != 0 ) {
-            return new ResponseWrapper<>(eventListenerService.updateEventListener(requestEventListenerDto));
+        if (eventListenerIdx == null
+                || eventListenerIdx == 0
+                || requestEventListenerDto.getEventListenerIdx() == null
+                || requestEventListenerDto.getEventListenerIdx() == 0
+                || !Objects.equals(eventListenerIdx, requestEventListenerDto.getEventListenerIdx())) {
+            return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "EventListnerIdx");
         }
-        return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "EventListnerIdx");
+        ResponseWrapper<Boolean> invalidResponse = validateEventListenerRequest(requestEventListenerDto);
+        if (invalidResponse != null) {
+            return invalidResponse;
+        }
+
+        return new ResponseWrapper<>(eventListenerService.updateEventListener(requestEventListenerDto));
     }
 
     @Operation(summary = "Event Listener 삭제", description = "Event Listener 삭제")
@@ -94,6 +110,20 @@ public class EventListenerController {
     @GetMapping("/workflowDetail/{workflowIdx}/{evnetListenerYn}")
     public ResponseWrapper<WorkflowDetailResDto> getWorkflowDetail(@PathVariable Long workflowIdx, @PathVariable String evnetListenerYn) {
         return new ResponseWrapper<>(eventListenerService.getWorkflowDetail(workflowIdx, evnetListenerYn));
+    }
+
+    private <T> ResponseWrapper<T> validateEventListenerRequest(RequestEventListenerDto requestEventListenerDto) {
+        if (requestEventListenerDto == null || StringUtils.isBlank(requestEventListenerDto.getEventListenerName())) {
+            return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "EventListenerName");
+        }
+        if (StringUtils.isBlank(requestEventListenerDto.getEventListenerDesc())) {
+            return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "EventListenerDesc");
+        }
+        if (requestEventListenerDto.getWorkflowIdx() == null || requestEventListenerDto.getWorkflowIdx() == 0) {
+            return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "WorkflowIdx");
+        }
+
+        return null;
     }
 
 }

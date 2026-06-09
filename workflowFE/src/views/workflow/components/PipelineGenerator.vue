@@ -21,11 +21,11 @@
             <div v-for="(pipeline, idx) in workflowStageMappingsFormData" :key="idx">
               <PipelineList
                 :idx="idx"
-                :pipeline-info="pipeline"
-                :pipeline-script-list="pipelineScriptList"
-                :drag-flag="dragFlag"
-                @onDeletePipeline="onDeletePipeline"
-              />
+	                :pipeline-info="pipeline"
+	                :pipeline-script-list="pipelineScriptList"
+	                :drag-flag="dragFlag"
+	                @on-delete-pipeline="onDeletePipeline"
+	              />
             </div>
           </VueDraggableNext>
         </div>
@@ -111,7 +111,7 @@ const onCheckDraggableEditor = (e:any) => {
   // checkoutBuild / fileUpload 위치 고정 위해 사용
   let check = true;
   if (isDefaultScript) check = false;
-  if (idx < 1 || idx > pipelineScriptList.value.length - 2) check = false;
+  if (idx < 1 || idx > workflowStageMappingsFormData.value.length - 1) check = false;
 
   return check;
 }
@@ -129,20 +129,15 @@ const onFinishDrag = (e: any) => {
 // =================================================================================  파이프라인 순서 set
 const setPipelineOrder = () => {
   let cnt = 1;
-  const keys = Object.keys(pipelineScriptList.value);
-  keys.forEach(key => {
-    pipelineScriptList.value[key].list.forEach((stage:WorkflowStageMappings) => {
-      if (stage.defaultScriptTag) {
-        if (stage.defaultScriptTag == "DEFAULT_START")
-          stage.stageOrder = 0;
-        else if (stage.defaultScriptTag == "DEFAULT_EMD")
-          stage.stageOrder = pipelineScriptList.value.length - 1
-        else {
-          stage.stageOrder = cnt;
-          cnt += 1;
-        }
-      }
-    });
+  workflowStageMappingsFormData.value.forEach((stage:WorkflowStageMappings) => {
+    if (stage.defaultScriptTag == "DEFAULT_START") {
+      stage.stageOrder = 0;
+    } else if (stage.defaultScriptTag == "DEFAULT_END") {
+      stage.stageOrder = workflowStageMappingsFormData.value.length - 1
+    } else {
+      stage.stageOrder = cnt;
+      cnt += 1;
+    }
   });
 }
 

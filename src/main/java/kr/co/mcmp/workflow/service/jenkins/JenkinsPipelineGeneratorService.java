@@ -37,8 +37,7 @@ public class JenkinsPipelineGeneratorService {
 
 		JenkinsPipelineUtil.appendLine(sb,
 			"import groovy.json.JsonOutput\n" +
-				"import groovy.json.JsonSlurper\n" +
-				"import groovy.json.JsonSlurperClassic");
+				"import groovy.json.JsonSlurper");
 
 		JenkinsPipelineUtil.appendLine(sb, "\n");
 

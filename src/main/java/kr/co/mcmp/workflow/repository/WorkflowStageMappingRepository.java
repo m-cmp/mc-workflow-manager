@@ -10,6 +10,7 @@ import java.util.List;
 public interface WorkflowStageMappingRepository extends JpaRepository<WorkflowStageMapping, Long> {
     void deleteByWorkflow_WorkflowIdx(Long workflowIdx);
     List<WorkflowStageMapping> findByWorkflow_WorkflowIdx(Long workflowIdx);
+    List<WorkflowStageMapping> findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(Long workflowIdx);
 
     Boolean existsByWorkflowStageIdx(Long workflowStageIdx);
 }

@@ -3,9 +3,8 @@
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, watch} from 'vue';
-import {TabulatorFull as Tabulator, type ColumnDefinition, type OptionsData} from 'tabulator-tables';
-import { type Workflow } from '@/views/type/type'
+import {ref, onBeforeUnmount, onMounted, watch} from 'vue';
+import {TabulatorFull as Tabulator, type ColumnDefinition} from 'tabulator-tables';
 
 interface Props {
   columns: Array<ColumnDefinition>
@@ -19,17 +18,37 @@ const table = ref(null) as any;
 const tabulator = ref(null) as any;
 
 watch(()=> props.columns, () => {
+  if (!hasColumns()) {
+    return
+  }
+
+  if (tabulator.value) {
+    tabulator.value.destroy()
+    tabulator.value = null
+  }
+
   makeTable()
 })
 watch(()=> props.tableData, () => {
-  makeTable()
+  updateTableData()
 })
 
 onMounted(() => {
   makeTable()
 })
 
+onBeforeUnmount(() => {
+  if (tabulator.value) {
+    tabulator.value.destroy()
+    tabulator.value = null
+  }
+})
+
 const makeTable = () => {
+  if (tabulator.value || !table.value || !hasColumns()) {
+    return
+  }
+
   tabulator.value = new Tabulator(table.value, {
     data: props.tableData,
     reactiveData:true,
@@ -40,6 +59,39 @@ const makeTable = () => {
     movableColumns:true,
     paginationCounter:"rows",
   });
+}
+
+const hasColumns = () => {
+  return Array.isArray(props.columns) && props.columns.length > 0
+}
+
+const updateTableData = async () => {
+  if (!tabulator.value) {
+    makeTable()
+    return
+  }
+
+  const currentPage = tabulator.value.getPage()
+  const currentPageSize = tabulator.value.getPageSize()
+  const currentSorters = tabulator.value.getSorters()
+  const currentFilters = tabulator.value.getFilters()
+
+  await tabulator.value.replaceData(props.tableData || [])
+
+  if (currentSorters.length > 0) {
+    tabulator.value.setSort(currentSorters)
+  }
+  if (currentFilters.length > 0) {
+    tabulator.value.setFilter(currentFilters)
+  }
+  if (currentPageSize) {
+    tabulator.value.setPageSize(currentPageSize)
+  }
+
+  const maxPage = tabulator.value.getPageMax()
+  if (currentPage && maxPage) {
+    tabulator.value.setPage(Math.min(currentPage, maxPage))
+  }
 }
 
 </script>

@@ -31,7 +31,7 @@
 <script setup lang="ts">
 import { useToast } from 'vue-toastification';
 // @ts-ignore
-import { deleteWorkflow } from '@/api/workflow';
+import { deleteWorkflow, existEventListener } from '@/api/workflow';
 
 const toast = useToast()
 /**
@@ -49,6 +49,13 @@ const emit = defineEmits(['get-workflow-list'])
  * @Desc 삭제 버튼 클릭시 동작 / 삭제 api 호출
  */
 const onClickDelete = async () => {
+  const { data: hasEventListener } = await existEventListener(props.workflowIdx)
+  if (hasEventListener) {
+    toast.error('Event Listener가 연결된 Workflow는 삭제할 수 없습니다.')
+    emit('get-workflow-list')
+    return
+  }
+
   const { data } = await deleteWorkflow(props.workflowIdx)
   if (data)
     toast.success('삭제되었습니다.')

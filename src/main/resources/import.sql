@@ -595,13 +595,13 @@ docker stop k8s-tools
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Step 4-1: Insert category-managed workflow stages
--- category: infra, k8s, app-deploy, db-backup-restore, common-util
+-- category: infra, k8s, app, database, utility
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
 (17, 'infra', '인프라'),
 (18, 'k8s', '인프라 - K8s'),
-(19, 'app-deploy', '앱 배포'),
-(20, 'db-backup-restore', '데이터 - Backup / Restore'),
-(21, 'common-util', '공통 / 유틸');
+(19, 'app', '앱 배포'),
+(20, 'database', '데이터 - Backup / Restore'),
+(21, 'utility', '공통 / 유틸');
 
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (17, 17, 1, 'infra-create', 'INFRA 생성 (CSP별 spec 기반)', '
     stage("infra-create") {
@@ -612,22 +612,33 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!payload) {
                     def specId = params.SPEC_ID ?: params.SPEC
                     def imageId = params.IMAGE_ID ?: params.IMAGE
+                    def provider = params.CSP ?: params.PROVIDER ?: ""
+                    def region = params.REGION ?: ""
+                    def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
+                    def nodeGroup = [
+                        name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                        nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
+                        specId: specId,
+                        imageId: imageId,
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
+                    ]
+                    if (connectionName) {
+                        nodeGroup.connectionName = connectionName
+                    }
+                    if (params.ZONE) {
+                        nodeGroup.zone = params.ZONE
+                    }
                     payload = JsonOutput.toJson([
                         name: params.INFRA_ID,
                         description: params.INFRA_DESC ?: "Workflow created infra",
                         installMonAgent: params.INSTALL_MON_AGENT ?: "no",
                         policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
                         label: [
-                            region: params.REGION ?: ""
+                            provider: provider,
+                            region: region
                         ],
-                        nodeGroups: [[
-                            name: params.INFRA_NODEGROUP_NAME ?: "g1",
-                            nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
-                            specId: specId,
-                            imageId: imageId,
-                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
-                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
-                        ]]
+                        nodeGroups: [nodeGroup]
                     ])
                 }
                 writeFile file: "infra-create.json", text: payload
@@ -637,6 +648,66 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!response.contains("Http_Status_code:2")) {
                     error "infra-create failed: ${response}"
                 }
+                def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                writeFile file: "infra-create-response.json", text: body
+
+                def accessInfoResponse = ""
+                def accessInfoAttempts = (params.INFRA_ACCESS_INFO_MAX_ATTEMPTS ?: "30").toInteger()
+                def accessInfoIntervalSeconds = (params.INFRA_ACCESS_INFO_INTERVAL_SECONDS ?: "10").toInteger()
+                for (int attempt = 1; attempt <= accessInfoAttempts; attempt++) {
+                    accessInfoResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=accessinfo&accessInfoOption=showSshKey" ${auth}""", returnStdout: true).trim()
+                    if (accessInfoResponse.contains("Http_Status_code:2")) {
+                        break
+                    }
+                    echo "infra accessInfo is not ready. attempt ${attempt}/${accessInfoAttempts}: ${accessInfoResponse}"
+                    sleep time: accessInfoIntervalSeconds, unit: "SECONDS"
+                }
+                if (!accessInfoResponse.contains("Http_Status_code:2")) {
+                    error "infra accessInfo lookup failed: ${accessInfoResponse}"
+                }
+
+                def accessInfoBody = accessInfoResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                writeFile file: "infra-access-info.json", text: accessInfoBody
+                def accessInfo = new groovy.json.JsonSlurper().parseText(accessInfoBody)
+                def accessNodes = []
+                def resolvedPrivateKey = ""
+                def collectAccessInfo
+                collectAccessInfo = { value ->
+                    if (value instanceof Map) {
+                        if (!resolvedPrivateKey && value.privateKey) {
+                            resolvedPrivateKey = value.privateKey.toString()
+                        }
+                        if (value.publicIP || value.publicIp || value.privateIP || value.privateIp || value.host) {
+                            accessNodes << value
+                        }
+                        value.values().each { collectAccessInfo(it) }
+                    } else if (value instanceof List) {
+                        value.each { collectAccessInfo(it) }
+                    }
+                }
+                collectAccessInfo(accessInfo)
+
+                def firstNode = accessNodes.find { it.publicIP || it.publicIp || it.privateIP || it.privateIp || it.host }
+                if (!firstNode) {
+                    error "No VM access host was found in infra accessInfo"
+                }
+                def resolvedSshHost = (firstNode.publicIP ?: firstNode.publicIp ?: firstNode.privateIP ?: firstNode.privateIp ?: firstNode.host).toString()
+                def resolvedSshUser = (firstNode.nodeUserName ?: firstNode.userName ?: firstNode.sshUser ?: params.SSH_USER ?: "cb-user").toString()
+                accessInfo = null
+                accessNodes = null
+                firstNode = null
+                collectAccessInfo = null
+
+                env.SSH_HOST = resolvedSshHost
+                env.DB_HOST = env.SSH_HOST
+                env.SSH_USER = resolvedSshUser
+                if (resolvedPrivateKey) {
+                    def pemName = params.INFRA_ID ?: "infra"
+                    env.SSH_KEY_FILE = "${pemName}.pem"
+                    writeFile file: env.SSH_KEY_FILE, text: resolvedPrivateKey
+                    sh """chmod 600 "${env.SSH_KEY_FILE}" """
+                }
+                echo "Resolved infra access host. SSH_HOST=${env.SSH_HOST}, SSH_USER=${env.SSH_USER}, SSH_KEY_FILE=${env.SSH_KEY_FILE ?: ""}"
             }
         }
     }');
@@ -753,14 +824,197 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: infra-ssh-connect-check"
             script {
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=accessInfo" ${auth}""", returnStdout: true).trim()
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=accessinfo" ${auth}""", returnStdout: true).trim()
                 echo response
                 if (!response.contains("Http_Status_code:2")) {
                     error "infra accessInfo lookup failed: ${response}"
                 }
-                if (params.SSH_HOST && params.SSH_USER) {
-                    def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
-                    sh """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" "echo ssh-ok" """
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+
+                if (!sshHost || !sshUser) {
+                    def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                    def accessInfo = new groovy.json.JsonSlurper().parseText(body)
+                    def accessNodes = []
+                    def resolvedPrivateKey = ""
+                    def collectAccessInfo
+                    collectAccessInfo = { value ->
+                        if (value instanceof Map) {
+                            if (!resolvedPrivateKey && value.privateKey) {
+                                resolvedPrivateKey = value.privateKey.toString()
+                            }
+                            if (value.publicIP || value.publicIp || value.privateIP || value.privateIp || value.host) {
+                                accessNodes << value
+                            }
+                            value.values().each { collectAccessInfo(it) }
+                        } else if (value instanceof List) {
+                            value.each { collectAccessInfo(it) }
+                        }
+                    }
+                    collectAccessInfo(accessInfo)
+
+                    def firstNode = accessNodes.find { it.publicIP || it.publicIp || it.privateIP || it.privateIp || it.host }
+                    def resolvedSshHost = ""
+                    def resolvedSshUser = ""
+                    if (firstNode) {
+                        resolvedSshHost = (firstNode.publicIP ?: firstNode.publicIp ?: firstNode.privateIP ?: firstNode.privateIp ?: firstNode.host).toString()
+                        resolvedSshUser = (firstNode.nodeUserName ?: firstNode.userName ?: firstNode.sshUser ?: params.SSH_USER ?: "cb-user").toString()
+                    }
+                    accessInfo = null
+                    accessNodes = null
+                    firstNode = null
+                    collectAccessInfo = null
+
+                    if (resolvedSshHost) {
+                        sshHost = resolvedSshHost
+                        sshUser = resolvedSshUser
+                        env.SSH_HOST = sshHost
+                        env.DB_HOST = sshHost
+                        env.SSH_USER = sshUser
+                    }
+
+                    if (resolvedPrivateKey && !sshKeyFile) {
+                        def pemName = params.INFRA_ID ?: "infra"
+                        sshKeyFile = "${pemName}.pem"
+                        writeFile file: sshKeyFile, text: resolvedPrivateKey
+                        sh """chmod 600 "${sshKeyFile}" """
+                        env.SSH_KEY_FILE = sshKeyFile
+                    }
+                }
+
+                if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    sh """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${keyOpt} "${sshUser}@${sshHost}" "echo ssh-ok" """
+                } else {
+                    error "SSH_HOST and SSH_USER are required for infra-ssh-connect-check"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (50, 17, 10, 'multi-csp-vm-deploy', '9종 CSP 대상 INFRA(VM) 배포', '
+    stage("multi-csp-vm-deploy") {
+        steps {
+            echo ">>>>> STAGE: multi-csp-vm-deploy"
+            script {
+                def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                if (cspList.isEmpty()) {
+                    error "CSP_LIST is required"
+                }
+
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                cspList.each { csp ->
+                    def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
+                    def infraId = (params.INFRA_PREFIX ?: "multi-csp-vm") + "-" + csp
+                    def specId = params["${key}_SPEC_ID"]
+                    def imageId = params["${key}_IMAGE_ID"]
+                    def region = params["${key}_REGION"] ?: params.REGION ?: ""
+                    def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                    def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
+                    if (!specId || !imageId) {
+                        error "${key}_SPEC_ID and ${key}_IMAGE_ID are required for ${csp}"
+                    }
+
+                    def nodeGroup = [
+                        name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                        nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
+                        specId: specId,
+                        imageId: imageId,
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
+                    ]
+                    if (connectionName) {
+                        nodeGroup.connectionName = connectionName
+                    }
+                    if (zone) {
+                        nodeGroup.zone = zone
+                    }
+
+                    def payload = JsonOutput.toJson([
+                        name: infraId,
+                        description: "Workflow multi CSP VM deploy - ${csp}",
+                        installMonAgent: params.INSTALL_MON_AGENT ?: "no",
+                        policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
+                        label: [
+                            csp: csp,
+                            region: region
+                        ],
+                        nodeGroups: [nodeGroup]
+                    ])
+
+                    writeFile file: "infra-create-${csp}.json", text: payload
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create-${csp}.json ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (!response.contains("Http_Status_code:2")) {
+                        error "multi-csp-vm-deploy failed for ${csp}: ${response}"
+                    }
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (52, 17, 11, 'multi-csp-vm-delete', 'multi-csp-vm-deploy로 생성된 INFRA(VM) 일괄 삭제', '
+    stage("multi-csp-vm-delete") {
+        steps {
+            echo ">>>>> STAGE: multi-csp-vm-delete"
+            script {
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+
+                def explicitInfraIds = (params.INFRA_ID_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                def targetInfraIds = []
+
+                if (!explicitInfraIds.isEmpty()) {
+                    explicitInfraIds.each { infraId ->
+                        if (!targetInfraIds.contains(infraId)) {
+                            targetInfraIds << infraId
+                        }
+                    }
+                } else {
+                    if (cspList.isEmpty()) {
+                        error "CSP_LIST or INFRA_ID_LIST is required"
+                    }
+
+                    def infraPrefix = params.INFRA_PREFIX ?: "multi-csp-vm"
+                    cspList.each { csp ->
+                        def infraId = "${infraPrefix}-${csp}"
+                        if (!targetInfraIds.contains(infraId)) {
+                            targetInfraIds << infraId
+                        }
+                    }
+                }
+
+                def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def deletedInfra = []
+                def skippedInfra = []
+                def failedDeletes = []
+
+                targetInfraIds.each { infraId ->
+                    echo "Deleting infra ${infraId}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${infraId}?option=${option}" ${auth}""", returnStdout: true).trim()
+                    echo response
+
+                    if (response.contains("Http_Status_code:404")) {
+                        skippedInfra << infraId
+                        echo "Infra ${infraId} is already absent. Skip."
+                    } else if (response.contains("Http_Status_code:2")) {
+                        deletedInfra << infraId
+                        echo "Infra ${infraId} delete requested."
+                    } else {
+                        failedDeletes << "${infraId}: ${response}"
+                        echo "Infra ${infraId} delete failed, continuing cleanup."
+                    }
+                }
+
+                echo "Deleted infra: ${deletedInfra.join(", ")}"
+                echo "Skipped absent infra: ${skippedInfra.join(", ")}"
+                if (!failedDeletes.isEmpty()) {
+                    error "multi-csp-vm-delete completed with failures: ${failedDeletes.join(" | ")}"
                 }
             }
         }
@@ -772,18 +1026,29 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.K8S_CREATE_PAYLOAD?.trim()
                 if (!payload) {
-                    payload = JsonOutput.toJson([
+                    def provider = params.CSP ?: params.PROVIDER ?: ""
+                    def region = params.REGION ?: ""
+                    def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
+                    def payloadMap = [
                         name: params.K8S_CLUSTER_ID,
                         nodeGroupName: params.K8S_NODEGROUP_NAME ?: "ng1",
                         specId: params.SPEC_ID,
                         imageId: params.IMAGE_ID,
+                        label: [
+                            provider: provider,
+                            region: region
+                        ],
                         version: params.K8S_VERSION ?: "",
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                         rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
-                    ])
+                    ]
+                    if (connectionName) {
+                        payloadMap.connectionName = connectionName
+                    }
+                    payload = JsonOutput.toJson(payloadMap)
                 }
                 writeFile file: "k8s-cluster-create.json", text: payload
                 def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
@@ -792,6 +1057,23 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 echo response
                 if (!response.contains("Http_Status_code:2")) {
                     error "k8s-cluster-create failed: ${response}"
+                }
+                def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
+                def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
+                def statusResponse = ""
+                for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                    statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
+                    def normalizedStatusResponse = statusResponse.toLowerCase()
+                    if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                        break
+                    }
+                    echo "k8s cluster is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                    sleep time: statusIntervalSeconds, unit: "SECONDS"
+                }
+                def normalizedFinalStatusResponse = statusResponse.toLowerCase()
+                if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                    error "k8s-cluster-create status check failed: ${statusResponse}"
                 }
             }
         }
@@ -835,8 +1117,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 }
                 writeFile file: "k8s-cluster-update.json", text: payload
                 def skipVersionCheck = params.K8S_SKIP_VERSION_CHECK ?: "false"
+                def method = params.K8S_UPDATE_METHOD ?: "PUT"
+                def path = params.K8S_UPDATE_PATH ?: "/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/upgrade?skipVersionCheck=${skipVersionCheck}"
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X PUT "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/upgrade?skipVersionCheck=${skipVersionCheck}" -H "Content-Type: application/json" -d @k8s-cluster-update.json ${auth}""", returnStdout: true).trim()
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X "${method}" "${params.TUMBLEBUG}${path}" -H "Content-Type: application/json" -d @k8s-cluster-update.json ${auth}""", returnStdout: true).trim()
                 echo response
                 if (!response.contains("Http_Status_code:2")) {
                     error "k8s-cluster-update failed: ${response}"
@@ -907,13 +1191,136 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: k8s-kubeconfig-get"
             script {
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/kubeconfig" ${auth}""", returnStdout: true).trim()
+                def response = ""
+                def kubeconfigAttempts = (params.K8S_KUBECONFIG_MAX_ATTEMPTS ?: "30").toInteger()
+                def kubeconfigIntervalSeconds = (params.K8S_KUBECONFIG_INTERVAL_SECONDS ?: "10").toInteger()
+                for (int attempt = 1; attempt <= kubeconfigAttempts; attempt++) {
+                    response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/kubeconfig" ${auth}""", returnStdout: true).trim()
+                    if (response.contains("Http_Status_code:2")) {
+                        break
+                    }
+                    echo "kubeconfig is not ready. attempt ${attempt}/${kubeconfigAttempts}: ${response}"
+                    sleep time: kubeconfigIntervalSeconds, unit: "SECONDS"
+                }
                 echo response
                 if (!response.contains("Http_Status_code:2")) {
                     error "k8s-kubeconfig-get failed: ${response}"
                 }
                 def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
                 writeFile file: "kubeconfig-response.json", text: body
+                def kubeconfig = null
+                if (body.contains("apiVersion") && body.contains("clusters:")) {
+                    kubeconfig = body
+                } else {
+                    def parsed = new groovy.json.JsonSlurper().parseText(body)
+                    def findKubeconfig
+                    findKubeconfig = { value ->
+                        if (value instanceof Map) {
+                            def direct = value.Kubeconfig ?: value.kubeconfig ?: value.config
+                            if (direct) {
+                                return direct.toString()
+                            }
+                            for (def child : value.values()) {
+                                def found = findKubeconfig(child)
+                                if (found) {
+                                    return found
+                                }
+                            }
+                        } else if (value instanceof List) {
+                            for (def child : value) {
+                                def found = findKubeconfig(child)
+                                if (found) {
+                                    return found
+                                }
+                            }
+                        } else if (value instanceof String && value.contains("apiVersion") && value.contains("clusters:")) {
+                            return value
+                        }
+                        return null
+                    }
+                    def resolvedKubeconfig = findKubeconfig(parsed)
+                    parsed = null
+                    findKubeconfig = null
+                    kubeconfig = resolvedKubeconfig
+                }
+                if (!kubeconfig) {
+                    error "kubeconfig content was not found in response"
+                }
+                writeFile file: "kubeconfig", text: kubeconfig
+                env.KUBECONFIG_FILE = "kubeconfig"
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (51, 18, 9, 'multi-csp-k8s-cluster-deploy', '6종 CSP 대상 K8s Cluster 배포', '
+    stage("multi-csp-k8s-cluster-deploy") {
+        steps {
+            echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
+            script {
+                def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                if (cspList.isEmpty()) {
+                    error "CSP_LIST is required"
+                }
+
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                cspList.each { csp ->
+                    def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
+                    def clusterId = (params.CLUSTER_PREFIX ?: "multi-csp-k8s") + "-" + csp
+                    def nodeGroupName = (params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp
+                    def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
+                    def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
+                    def region = params["${key}_REGION"] ?: params.REGION ?: ""
+                    def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                    if (!specId || !imageId) {
+                        error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                    }
+
+                    def payloadMap = [
+                        name: clusterId,
+                        nodeGroupName: nodeGroupName,
+                        specId: specId,
+                        imageId: imageId,
+                        label: [
+                            csp: csp,
+                            region: region
+                        ],
+                        version: params.K8S_VERSION ?: "",
+                        desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
+                        minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
+                        maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                    ]
+                    if (connectionName) {
+                        payloadMap.connectionName = connectionName
+                    }
+
+                    def payload = JsonOutput.toJson(payloadMap)
+
+                    writeFile file: "k8s-cluster-create-${csp}.json", text: payload
+                    def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create-${csp}.json ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (!response.contains("Http_Status_code:2")) {
+                        error "multi-csp-k8s-cluster-deploy failed for ${csp}: ${response}"
+                    }
+                    def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
+                    def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                    def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
+                    def statusResponse = ""
+                    for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
+                        def normalizedStatusResponse = statusResponse.toLowerCase()
+                        if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                            break
+                        }
+                        echo "k8s cluster ${clusterId} is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        sleep time: statusIntervalSeconds, unit: "SECONDS"
+                    }
+                    def normalizedFinalStatusResponse = statusResponse.toLowerCase()
+                    if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                        error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
+                    }
+                }
             }
         }
     }');
@@ -922,10 +1329,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-deploy-helm"
             script {
-                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                if (params.KUBECONFIG_CONTENT?.trim()) {
+                    writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                }
+                if (!fileExists(kubeconfigFile)) {
+                    error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-deploy-helm"
+                }
                 def namespace = params.KUBE_NAMESPACE ?: "default"
                 def valuesArgs = params.HELM_VALUES_ARGS ?: ""
-                sh """helm upgrade --install "${params.RELEASE_NAME}" "${params.HELM_CHART}" --namespace "${namespace}" --create-namespace --kubeconfig kubeconfig ${valuesArgs}"""
+                sh """helm upgrade --install "${params.RELEASE_NAME}" "${params.HELM_CHART}" --namespace "${namespace}" --create-namespace --kubeconfig "${kubeconfigFile}" ${valuesArgs}"""
             }
         }
     }');
@@ -934,10 +1347,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-deploy-manifest"
             script {
-                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                if (params.KUBECONFIG_CONTENT?.trim()) {
+                    writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                }
+                if (!fileExists(kubeconfigFile)) {
+                    error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-deploy-manifest"
+                }
                 writeFile file: "manifest.yaml", text: params.K8S_MANIFEST ?: ""
                 def namespace = params.KUBE_NAMESPACE ?: "default"
-                sh """kubectl apply -f manifest.yaml --namespace "${namespace}" --kubeconfig kubeconfig"""
+                sh """kubectl apply -f manifest.yaml --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" """
             }
         }
     }');
@@ -946,13 +1365,19 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-deploy-status-check"
             script {
-                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                if (params.KUBECONFIG_CONTENT?.trim()) {
+                    writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                }
+                if (!fileExists(kubeconfigFile)) {
+                    error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-deploy-status-check"
+                }
                 def namespace = params.KUBE_NAMESPACE ?: "default"
                 def deployment = params.DEPLOYMENT_NAME
                 if (deployment) {
-                    sh """kubectl rollout status deployment/${deployment} --namespace "${namespace}" --kubeconfig kubeconfig --timeout="${params.ROLLOUT_TIMEOUT ?: "300s"}" """
+                    sh """kubectl rollout status deployment/${deployment} --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --timeout="${params.ROLLOUT_TIMEOUT ?: "300s"}" """
                 } else {
-                    sh """kubectl get pods --namespace "${namespace}" --kubeconfig kubeconfig"""
+                    sh """kubectl get pods --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" """
                 }
             }
         }
@@ -962,14 +1387,20 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-undeploy"
             script {
-                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                if (params.KUBECONFIG_CONTENT?.trim()) {
+                    writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                }
+                if (!fileExists(kubeconfigFile)) {
+                    error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-undeploy"
+                }
                 def namespace = params.KUBE_NAMESPACE ?: "default"
                 def deployType = params.APP_DEPLOY_TYPE ?: "helm"
                 if (deployType == "manifest") {
                     writeFile file: "manifest.yaml", text: params.K8S_MANIFEST ?: ""
-                    sh """kubectl delete -f manifest.yaml --namespace "${namespace}" --kubeconfig kubeconfig --ignore-not-found=true"""
+                    sh """kubectl delete -f manifest.yaml --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true"""
                 } else {
-                    sh """helm uninstall "${params.RELEASE_NAME}" --namespace "${namespace}" --kubeconfig kubeconfig || true"""
+                    sh """helm uninstall "${params.RELEASE_NAME}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" || true"""
                 }
             }
         }
@@ -979,10 +1410,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-rollback"
             script {
-                writeFile file: "kubeconfig", text: params.KUBECONFIG_CONTENT ?: ""
+                def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                if (params.KUBECONFIG_CONTENT?.trim()) {
+                    writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                }
+                if (!fileExists(kubeconfigFile)) {
+                    error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-rollback"
+                }
                 def namespace = params.KUBE_NAMESPACE ?: "default"
-                def revision = params.HELM_REVISION ?: ""
-                sh """helm rollback "${params.RELEASE_NAME}" ${revision} --namespace "${namespace}" --kubeconfig kubeconfig"""
+                def revision = params.HELM_REVISION ?: params.ROLLBACK_REVISION ?: ""
+                sh """helm rollback "${params.RELEASE_NAME}" ${revision} --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" """
             }
         }
     }');
@@ -992,13 +1429,23 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: mariadb-install"
             script {
                 def dbName = params.DB_NAME ?: "testdb"
+                def safeDbName = dbName.replaceAll(/[^A-Za-z0-9_]/, "_")
                 def dbUser = params.DB_USER ?: "mariadb_user"
                 def dbPassword = params.DB_PASSWORD ?: "mariadb_pass"
-                def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
-                if (!params.SSH_HOST || !params.SSH_USER) {
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                if (!sshHost || !sshUser) {
                     error "SSH_HOST and SSH_USER are required for mariadb-install"
                 }
-                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" << "EOF"
+                env.SSH_HOST = sshHost
+                env.SSH_USER = sshUser
+                env.DB_HOST = env.DB_HOST ?: params.DB_HOST ?: sshHost
+                if (sshKeyFile) {
+                    env.SSH_KEY_FILE = sshKeyFile
+                }
+                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" << "EOF"
 set -e
 if command -v apt-get >/dev/null 2>&1; then
   sudo apt-get update
@@ -1010,9 +1457,9 @@ else
   exit 1
 fi
 sudo systemctl enable --now mariadb || sudo systemctl enable --now mysql
-sudo mariadb -e "CREATE DATABASE IF NOT EXISTS \`${dbName}\`;"
+sudo mariadb -e "CREATE DATABASE IF NOT EXISTS ${safeDbName};"
 sudo mariadb -e "CREATE USER IF NOT EXISTS ''${dbUser}''@''%'' IDENTIFIED BY ''${dbPassword}'';"
-sudo mariadb -e "GRANT ALL PRIVILEGES ON \`${dbName}\`.* TO ''${dbUser}''@''%'';"
+sudo mariadb -e "GRANT ALL PRIVILEGES ON ${safeDbName}.* TO ''${dbUser}''@''%'';"
 sudo mariadb -e "FLUSH PRIVILEGES;"
 EOF"""
             }
@@ -1024,8 +1471,34 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: db-backup-export"
             script {
                 def dbPort = params.DB_PORT ?: "3306"
+                def dbHost = env.DB_HOST ?: params.DB_HOST ?: "127.0.0.1"
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def useK8s = (params.DB_EXEC_MODE ?: "").equalsIgnoreCase("k8s") || ((env.KUBECONFIG_FILE || params.KUBECONFIG_CONTENT?.trim()) && !sshHost)
                 def backupFile = params.DB_BACKUP_FILE ?: "${params.DB_NAME}.sql"
-                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb-dump -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" > "${backupFile}" """
+                if (useK8s) {
+                    def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                    if (params.KUBECONFIG_CONTENT?.trim() && !fileExists(kubeconfigFile)) {
+                        writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                    }
+                    if (!fileExists(kubeconfigFile)) {
+                        error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before db-backup-export"
+                    }
+                    def namespace = params.KUBE_NAMESPACE ?: "default"
+                    def releaseName = params.RELEASE_NAME ?: "mariadb"
+                    def podSelector = params.DB_POD_SELECTOR ?: "app.kubernetes.io/instance=${releaseName},app.kubernetes.io/name=mariadb"
+                    def podName = sh(script: """kubectl get pod --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" -l "${podSelector}" -o jsonpath="{.items[0].metadata.name}" """, returnStdout: true).trim()
+                    if (!podName) {
+                        error "MariaDB pod was not found. selector=${podSelector}"
+                    }
+                    sh """kubectl exec --namespace "${namespace}" "${podName}" --kubeconfig "${kubeconfigFile}" -- sh -c "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb-dump -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" > "${backupFile}" """
+                } else if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb-dump -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" > "${backupFile}" """
+                } else {
+                    sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb-dump -h "${dbHost}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" > "${backupFile}" """
+                }
                 archiveArtifacts artifacts: backupFile, allowEmptyArchive: false
             }
         }
@@ -1036,11 +1509,39 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: db-backup-import"
             script {
                 def dbPort = params.DB_PORT ?: "3306"
+                def dbHost = env.DB_HOST ?: params.DB_HOST ?: "127.0.0.1"
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def useK8s = (params.DB_EXEC_MODE ?: "").equalsIgnoreCase("k8s") || ((env.KUBECONFIG_FILE || params.KUBECONFIG_CONTENT?.trim()) && !sshHost)
                 def backupFile = params.DB_BACKUP_FILE ?: "${params.DB_NAME}.sql"
                 if (params.SCHEMA_SQL_CONTENT?.trim()) {
                     writeFile file: backupFile, text: params.SCHEMA_SQL_CONTENT
                 }
-                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${backupFile}" """
+                if (useK8s) {
+                    def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                    if (params.KUBECONFIG_CONTENT?.trim() && !fileExists(kubeconfigFile)) {
+                        writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                    }
+                    if (!fileExists(kubeconfigFile)) {
+                        error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before db-backup-import"
+                    }
+                    def namespace = params.KUBE_NAMESPACE ?: "default"
+                    def releaseName = params.RELEASE_NAME ?: "mariadb"
+                    def podSelector = params.DB_POD_SELECTOR ?: "app.kubernetes.io/instance=${releaseName},app.kubernetes.io/name=mariadb"
+                    def podName = sh(script: """kubectl get pod --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" -l "${podSelector}" -o jsonpath="{.items[0].metadata.name}" """, returnStdout: true).trim()
+                    if (!podName) {
+                        error "MariaDB pod was not found. selector=${podSelector}"
+                    }
+                    sh """cat "${backupFile}" | kubectl exec -i --namespace "${namespace}" "${podName}" --kubeconfig "${kubeconfigFile}" -- sh -c "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" """
+                } else if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    def remoteFile = "/tmp/${backupFile}"
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "${backupFile}" "${sshUser}@${sshHost}:${remoteFile}" """
+                    sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\" < \"${remoteFile}\"" """
+                } else {
+                    sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${dbHost}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${backupFile}" """
+                }
             }
         }
     }');
@@ -1050,11 +1551,39 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: db-schema-import"
             script {
                 def dbPort = params.DB_PORT ?: "3306"
+                def dbHost = env.DB_HOST ?: params.DB_HOST ?: "127.0.0.1"
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def useK8s = (params.DB_EXEC_MODE ?: "").equalsIgnoreCase("k8s") || ((env.KUBECONFIG_FILE || params.KUBECONFIG_CONTENT?.trim()) && !sshHost)
                 def schemaFile = params.SCHEMA_SQL_FILE ?: "schema.sql"
                 if (params.SCHEMA_SQL_CONTENT?.trim()) {
                     writeFile file: schemaFile, text: params.SCHEMA_SQL_CONTENT
                 }
-                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${schemaFile}" """
+                if (useK8s) {
+                    def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                    if (params.KUBECONFIG_CONTENT?.trim() && !fileExists(kubeconfigFile)) {
+                        writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                    }
+                    if (!fileExists(kubeconfigFile)) {
+                        error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before db-schema-import"
+                    }
+                    def namespace = params.KUBE_NAMESPACE ?: "default"
+                    def releaseName = params.RELEASE_NAME ?: "mariadb"
+                    def podSelector = params.DB_POD_SELECTOR ?: "app.kubernetes.io/instance=${releaseName},app.kubernetes.io/name=mariadb"
+                    def podName = sh(script: """kubectl get pod --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" -l "${podSelector}" -o jsonpath="{.items[0].metadata.name}" """, returnStdout: true).trim()
+                    if (!podName) {
+                        error "MariaDB pod was not found. selector=${podSelector}"
+                    }
+                    sh """cat "${schemaFile}" | kubectl exec -i --namespace "${namespace}" "${podName}" --kubeconfig "${kubeconfigFile}" -- sh -c "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" """
+                } else if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    def remoteFile = "/tmp/${schemaFile}"
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "${schemaFile}" "${sshUser}@${sshHost}:${remoteFile}" """
+                    sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\" < \"${remoteFile}\"" """
+                } else {
+                    sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${dbHost}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < "${schemaFile}" """
+                }
             }
         }
     }');
@@ -1064,8 +1593,35 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: db-data-insert"
             script {
                 def dbPort = params.DB_PORT ?: "3306"
+                def dbHost = env.DB_HOST ?: params.DB_HOST ?: "127.0.0.1"
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def useK8s = (params.DB_EXEC_MODE ?: "").equalsIgnoreCase("k8s") || ((env.KUBECONFIG_FILE || params.KUBECONFIG_CONTENT?.trim()) && !sshHost)
                 writeFile file: "insert.sql", text: params.INSERT_SQL ?: ""
-                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < insert.sql"""
+                if (useK8s) {
+                    def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                    if (params.KUBECONFIG_CONTENT?.trim() && !fileExists(kubeconfigFile)) {
+                        writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                    }
+                    if (!fileExists(kubeconfigFile)) {
+                        error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before db-data-insert"
+                    }
+                    def namespace = params.KUBE_NAMESPACE ?: "default"
+                    def releaseName = params.RELEASE_NAME ?: "mariadb"
+                    def podSelector = params.DB_POD_SELECTOR ?: "app.kubernetes.io/instance=${releaseName},app.kubernetes.io/name=mariadb"
+                    def podName = sh(script: """kubectl get pod --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" -l "${podSelector}" -o jsonpath="{.items[0].metadata.name}" """, returnStdout: true).trim()
+                    if (!podName) {
+                        error "MariaDB pod was not found. selector=${podSelector}"
+                    }
+                    sh """cat "insert.sql" | kubectl exec -i --namespace "${namespace}" "${podName}" --kubeconfig "${kubeconfigFile}" -- sh -c "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" """
+                } else if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "insert.sql" "${sshUser}@${sshHost}:/tmp/insert.sql" """
+                    sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\" < \"/tmp/insert.sql\"" """
+                } else {
+                    sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${dbHost}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < insert.sql"""
+                }
             }
         }
     }');
@@ -1075,8 +1631,35 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: db-data-verify"
             script {
                 def dbPort = params.DB_PORT ?: "3306"
+                def dbHost = env.DB_HOST ?: params.DB_HOST ?: "127.0.0.1"
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def useK8s = (params.DB_EXEC_MODE ?: "").equalsIgnoreCase("k8s") || ((env.KUBECONFIG_FILE || params.KUBECONFIG_CONTENT?.trim()) && !sshHost)
                 writeFile file: "verify.sql", text: params.VERIFY_SQL ?: "SELECT 1"
-                sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${params.DB_HOST}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < verify.sql"""
+                if (useK8s) {
+                    def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
+                    if (params.KUBECONFIG_CONTENT?.trim() && !fileExists(kubeconfigFile)) {
+                        writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
+                    }
+                    if (!fileExists(kubeconfigFile)) {
+                        error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before db-data-verify"
+                    }
+                    def namespace = params.KUBE_NAMESPACE ?: "default"
+                    def releaseName = params.RELEASE_NAME ?: "mariadb"
+                    def podSelector = params.DB_POD_SELECTOR ?: "app.kubernetes.io/instance=${releaseName},app.kubernetes.io/name=mariadb"
+                    def podName = sh(script: """kubectl get pod --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" -l "${podSelector}" -o jsonpath="{.items[0].metadata.name}" """, returnStdout: true).trim()
+                    if (!podName) {
+                        error "MariaDB pod was not found. selector=${podSelector}"
+                    }
+                    sh """cat "verify.sql" | kubectl exec -i --namespace "${namespace}" "${podName}" --kubeconfig "${kubeconfigFile}" -- sh -c "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\"" """
+                } else if (sshHost && sshUser) {
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "verify.sql" "${sshUser}@${sshHost}:/tmp/verify.sql" """
+                    sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "MYSQL_PWD=\"${params.DB_PASSWORD}\" mariadb -h \"127.0.0.1\" -P \"${dbPort}\" -u \"${params.DB_USER}\" \"${params.DB_NAME}\" < \"/tmp/verify.sql\"" """
+                } else {
+                    sh """MYSQL_PWD="${params.DB_PASSWORD}" mariadb -h "${dbHost}" -P "${dbPort}" -u "${params.DB_USER}" "${params.DB_NAME}" < verify.sql"""
+                }
             }
         }
     }');
@@ -1085,8 +1668,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: ssh-command-exec"
             script {
-                def keyOpt = params.SSH_KEY_FILE ? "-i \"${params.SSH_KEY_FILE}\"" : ""
-                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${params.SSH_USER}@${params.SSH_HOST}" "${params.SSH_COMMAND}" """
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                if (!sshHost || !sshUser) {
+                    error "SSH_HOST and SSH_USER are required for ssh-command-exec"
+                }
+                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                sh """ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "${params.SSH_COMMAND}" """
             }
         }
     }');
@@ -1315,7 +1904,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (3, 'create-ns', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 
 pipeline {
   agent any
@@ -1384,7 +1973,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (4, 'create-mci', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 
 pipeline {
   agent any
@@ -1518,7 +2107,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (5, 'delete-mci', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -1576,7 +2165,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (6, 'k8s pre-installation tasks', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 
@@ -1805,7 +2394,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (7, 'create-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 
@@ -2070,7 +2659,7 @@ pipeline {
 INSERT INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) VALUES (8, 'delete-k8s-cluster', 'test', 1, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -2911,7 +3500,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (12, 3, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 
 pipeline {
   agent any
@@ -2985,7 +3574,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (18, 4, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 
 pipeline {
   agent any
@@ -3120,7 +3709,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (23, 5, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -3180,7 +3769,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (28, 6, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -3424,7 +4013,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (36, 7, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -3691,7 +4280,7 @@ INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, work
 INSERT INTO workflow_stage_mapping (mapping_idx, workflow_idx, stage_order, workflow_stage_idx, stage) VALUES (41, 8, 1, null, '
 import groovy.json.JsonOutput
 import groovy.json.JsonSlurper
-import groovy.json.JsonSlurperClassic
+import groovy.json.JsonSlurper
 import groovy.json.JsonSlurper
 
 pipeline {
@@ -4319,11 +4908,13 @@ INSERT INTO workflow_param (param_idx, workflow_idx, param_key, param_value, eve
 -- B. multi-csp-vm-deploy
 -- C. k8s-mariadb-backup-import-data-init
 -- D. multi-csp-k8s-cluster-deploy
+-- E. vm-mariadb-data-init-cleanup
+-- F. multi-csp-vm-cleanup
 
-DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104);
-DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104);
-ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH (SELECT COALESCE(MAX(param_idx), 0) + 1 FROM workflow_param);
-ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH (SELECT COALESCE(MAX(mapping_idx), 0) + 1 FROM workflow_stage_mapping);
+DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106);
+DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106);
+ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH 10000;
+ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH 10000;
 
 MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
 SELECT 101, 'vm-mariadb-backup-import-data-init', 'For Deployment', 1,
@@ -4362,11 +4953,28 @@ pipeline {
                     cspList.each { csp ->
                         def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
                         def infraId = (params.INFRA_PREFIX ?: "multi-csp-vm") + "-" + csp
-                        def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
-                        def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
+                        def specId = params["${key}_SPEC_ID"]
+                        def imageId = params["${key}_IMAGE_ID"]
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
+                        def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                        def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                         if (!specId || !imageId) {
-                            error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                            error "${key}_SPEC_ID and ${key}_IMAGE_ID are required for ${csp}"
+                        }
+
+                        def nodeGroup = [
+                            name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                            nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
+                            specId: specId,
+                            imageId: imageId,
+                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
+                        ]
+                        if (connectionName) {
+                            nodeGroup.connectionName = connectionName
+                        }
+                        if (zone) {
+                            nodeGroup.zone = zone
                         }
 
                         def payload = JsonOutput.toJson([
@@ -4378,14 +4986,7 @@ pipeline {
                                 csp: csp,
                                 region: region
                             ],
-                            nodeGroups: [[
-                                name: params.INFRA_NODEGROUP_NAME ?: "g1",
-                                nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
-                                specId: specId,
-                                imageId: imageId,
-                                rootDiskType: params.ROOT_DISK_TYPE ?: "default",
-                                rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
-                            ]]
+                            nodeGroups: [nodeGroup]
                         ])
 
                         writeFile file: "infra-create-${csp}.json", text: payload
@@ -4442,22 +5043,33 @@ pipeline {
                         def nodeGroupName = (params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp
                         def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
                         def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
+                        def region = params["${key}_REGION"] ?: params.REGION ?: ""
+                        def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
                         if (!specId || !imageId) {
                             error "SPEC_ID and IMAGE_ID are required for ${csp}"
                         }
 
-                        def payload = JsonOutput.toJson([
+                        def payloadMap = [
                             name: clusterId,
                             nodeGroupName: nodeGroupName,
                             specId: specId,
                             imageId: imageId,
+                            label: [
+                                csp: csp,
+                                region: region
+                            ],
                             version: params.K8S_VERSION ?: "",
                             desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                             minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                             maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                             rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                             rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
-                        ])
+                        ]
+                        if (connectionName) {
+                            payloadMap.connectionName = connectionName
+                        }
+
+                        def payload = JsonOutput.toJson(payloadMap)
 
                         writeFile file: "k8s-cluster-create-${csp}.json", text: payload
                         def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
@@ -4465,6 +5077,23 @@ pipeline {
                         echo response
                         if (!response.contains("Http_Status_code:2")) {
                             error "multi-csp-k8s-cluster-deploy failed for ${csp}: ${response}"
+                        }
+                        def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
+                        def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                        def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
+                        def statusResponse = ""
+                        for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                            statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
+                            def normalizedStatusResponse = statusResponse.toLowerCase()
+                            if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                                break
+                            }
+                            echo "k8s cluster ${clusterId} is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                            sleep time: statusIntervalSeconds, unit: "SECONDS"
+                        }
+                        def normalizedFinalStatusResponse = statusResponse.toLowerCase()
+                        if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                            error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
                         }
                     }
                 }
@@ -4474,6 +5103,55 @@ pipeline {
 }
 ', NULL);
 
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (105, 'vm-mariadb-data-init-cleanup', 'For Cleanup', 1, '
+pipeline {
+    agent any
+    stages {
+        stage("infra-cleanup") {
+            steps {
+                echo ">>>>> STAGE: infra-cleanup"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+                    if (!params.INFRA_ID?.trim()) {
+                        error "INFRA_ID is required"
+                    }
+
+                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (response.contains("Http_Status_code:404")) {
+                        echo "Infra ${params.INFRA_ID} is already absent."
+                    } else if (!response.contains("Http_Status_code:2")) {
+                        error "infra-cleanup failed: ${response}"
+                    } else {
+                        echo "Infra ${params.INFRA_ID} cleanup requested."
+                    }
+                }
+            }
+        }
+    }
+}
+', NULL);
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 106, 'multi-csp-vm-cleanup', 'For Cleanup', 1,
+'pipeline {
+    agent any
+    stages {
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 52)
+|| '
+    }
+}
+', NULL;
+
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (101, 'USER', 'default', 'N'),
@@ -4481,13 +5159,16 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (101, 'NAMESPACE', 'ns01', 'N'),
 (101, 'INFRA_ID', 'vm-mariadb-data-init', 'N'),
 (101, 'REGION', 'ap-northeast-2', 'N'),
-(101, 'IMAGE', 'Ubuntu 22.04', 'N'),
-(101, 'IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
-(101, 'SPEC', 't2.medium', 'N'),
-(101, 'SPEC_ID', 'aws+ap-northeast-2+t2.medium', 'N'),
+(101, 'CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
+(101, 'ZONE', '', 'N'),
+(101, 'IMAGE', '', 'N'),
+(101, 'IMAGE_ID', '', 'N'),
+(101, 'SPEC', '', 'N'),
+(101, 'SPEC_ID', '', 'N'),
 (101, 'SSH_HOST', '', 'N'),
-(101, 'SSH_USER', 'ubuntu', 'N'),
+(101, 'SSH_USER', 'cb-user', 'N'),
 (101, 'SSH_KEY_FILE', '', 'N'),
+(101, 'DB_EXEC_MODE', 'ssh', 'N'),
 (101, 'DB_HOST', '', 'N'),
 (101, 'DB_PORT', '3306', 'N'),
 (101, 'DB_NAME', 'testdb', 'N'),
@@ -4509,42 +5190,66 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'ROOT_DISK_TYPE', 'default', 'N'),
 (102, 'ROOT_DISK_SIZE', '50', 'N'),
 (102, 'AWS_REGION', 'ap-northeast-2', 'N'),
-(102, 'AWS_SPEC_ID', 'aws+ap-northeast-2+t2.small', 'N'),
-(102, 'AWS_IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(102, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
+(102, 'AWS_ZONE', '', 'N'),
+(102, 'AWS_SPEC_ID', '', 'N'),
+(102, 'AWS_IMAGE_ID', '', 'N'),
 (102, 'AZURE_REGION', 'koreasouth', 'N'),
-(102, 'AZURE_SPEC_ID', 'azure+koreasouth+standard_b1s', 'N'),
-(102, 'AZURE_IMAGE_ID', 'azure+koreasouth+ubuntu22.04', 'N'),
+(102, 'AZURE_CONNECTION_NAME', 'azure-koreasouth', 'N'),
+(102, 'AZURE_ZONE', '', 'N'),
+(102, 'AZURE_SPEC_ID', '', 'N'),
+(102, 'AZURE_IMAGE_ID', '', 'N'),
 (102, 'GCP_REGION', 'asia-northeast3', 'N'),
-(102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+g1-small', 'N'),
-(102, 'GCP_IMAGE_ID', 'gcp+asia-northeast3+ubuntu22.04', 'N'),
+(102, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
+(102, 'GCP_ZONE', '', 'N'),
+(102, 'GCP_SPEC_ID', '', 'N'),
+(102, 'GCP_IMAGE_ID', '', 'N'),
 (102, 'NCP_REGION', 'kr', 'N'),
-(102, 'NCP_SPEC_ID', 'ncp+kr+c8-g3a', 'N'),
-(102, 'NCP_IMAGE_ID', 'ncp+kr+ubuntu22.04', 'N'),
+(102, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
+(102, 'NCP_ZONE', '', 'N'),
+(102, 'NCP_SPEC_ID', 'ncp+kr+mi1-g3', 'N'),
+(102, 'NCP_IMAGE_ID', '104630229', 'N'),
 (102, 'NHN_REGION', 'kr1', 'N'),
-(102, 'NHN_SPEC_ID', 'nhn+kr1+r2.c4m16', 'N'),
-(102, 'NHN_IMAGE_ID', 'nhn+kr1+ubuntu22.04', 'N'),
+(102, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
+(102, 'NHN_ZONE', '', 'N'),
+(102, 'NHN_SPEC_ID', '', 'N'),
+(102, 'NHN_IMAGE_ID', '', 'N'),
 (102, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
-(102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-2+ecs.t6-c1m4.xlarge', 'N'),
-(102, 'ALIBABA_IMAGE_ID', 'alibaba+ap-northeast-2+ubuntu22.04', 'N'),
-(102, 'TENCENT_REGION', 'ap-shanghai', 'N'),
-(102, 'TENCENT_SPEC_ID', 'tencent+ap-shanghai+m9.medium16', 'N'),
-(102, 'TENCENT_IMAGE_ID', 'tencent+ap-shanghai+ubuntu22.04', 'N'),
+(102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
+(102, 'ALIBABA_ZONE', '', 'N'),
+(102, 'ALIBABA_SPEC_ID', '', 'N'),
+(102, 'ALIBABA_IMAGE_ID', '', 'N'),
+(102, 'TENCENT_REGION', 'ap-seoul', 'N'),
+(102, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
+(102, 'TENCENT_ZONE', '', 'N'),
+(102, 'TENCENT_SPEC_ID', '', 'N'),
+(102, 'TENCENT_IMAGE_ID', '', 'N'),
 (102, 'IBM_REGION', 'jp-osa', 'N'),
-(102, 'IBM_SPEC_ID', 'ibm+jp-osa+cx2d-2x4', 'N'),
-(102, 'IBM_IMAGE_ID', 'ibm+jp-osa+ubuntu22.04', 'N'),
+(102, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
+(102, 'IBM_ZONE', '', 'N'),
+(102, 'IBM_SPEC_ID', '', 'N'),
+(102, 'IBM_IMAGE_ID', '', 'N'),
 (102, 'KT_REGION', 'kr1', 'N'),
-(102, 'KT_SPEC_ID', 'kt+kr1+standard.small', 'N'),
-(102, 'KT_IMAGE_ID', 'kt+kr1+ubuntu22.04', 'N');
+(102, 'KT_CONNECTION_NAME', 'kt-kr1', 'N'),
+(102, 'KT_ZONE', '', 'N'),
+(102, 'KT_SPEC_ID', '', 'N'),
+(102, 'KT_IMAGE_ID', '', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (103, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (103, 'USER', 'default', 'N'),
 (103, 'USERPASS', 'default', 'N'),
 (103, 'NAMESPACE', 'ns01', 'N'),
+(103, 'PROVIDER', 'aws', 'N'),
+(103, 'CSP', 'aws', 'N'),
+(103, 'REGION', 'ap-northeast-2', 'N'),
+(103, 'CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
 (103, 'K8S_CLUSTER_ID', 'k8s-mariadb-data-init', 'N'),
 (103, 'K8S_NODEGROUP_NAME', 'ng1', 'N'),
-(103, 'SPEC_ID', 'aws+ap-northeast-2+t3a.xlarge', 'N'),
-(103, 'IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
+(103, 'IMAGE', '', 'N'),
+(103, 'SPEC_ID', '', 'N'),
+(103, 'SPEC', '', 'N'),
+(103, 'IMAGE_ID', '', 'N'),
 (103, 'K8S_VERSION', '', 'N'),
 (103, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MIN_NODE_SIZE', '1', 'N'),
@@ -4552,11 +5257,16 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'ROOT_DISK_TYPE', 'default', 'N'),
 (103, 'ROOT_DISK_SIZE', '30', 'N'),
 (103, 'K8S_CREATE_OPTION', '', 'N'),
+(103, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
+(103, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
+(103, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (103, 'KUBECONFIG_CONTENT', '', 'N'),
 (103, 'KUBE_NAMESPACE', 'default', 'N'),
 (103, 'RELEASE_NAME', 'mariadb', 'N'),
 (103, 'HELM_CHART', 'oci://registry-1.docker.io/bitnamicharts/mariadb', 'N'),
-(103, 'HELM_VALUES_ARGS', '--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass', 'N'),
+(103, 'HELM_VALUES_ARGS', '--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass --wait --timeout 10m', 'N'),
+(103, 'DB_EXEC_MODE', 'k8s', 'N'),
+(103, 'DB_POD_SELECTOR', 'app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb', 'N'),
 (103, 'DB_HOST', 'mariadb.default.svc.cluster.local', 'N'),
 (103, 'DB_PORT', '3306', 'N'),
 (103, 'DB_NAME', 'testdb', 'N'),
@@ -4581,18 +5291,51 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'ROOT_DISK_TYPE', 'default', 'N'),
 (104, 'ROOT_DISK_SIZE', '30', 'N'),
 (104, 'K8S_CREATE_OPTION', '', 'N'),
-(104, 'AWS_SPEC_ID', 'aws+ap-northeast-2+t3a.xlarge', 'N'),
-(104, 'AWS_IMAGE_ID', 'aws+ap-northeast-2+ubuntu22.04', 'N'),
-(104, 'AZURE_SPEC_ID', 'azure+koreacentral+standard_b4ms', 'N'),
-(104, 'AZURE_IMAGE_ID', 'azure+koreacentral+ubuntu22.04', 'N'),
-(104, 'GCP_SPEC_ID', 'gcp+asia-east1+e2-standard-4', 'N'),
-(104, 'GCP_IMAGE_ID', 'gcp+asia-east1+ubuntu22.04', 'N'),
-(104, 'NCP_SPEC_ID', 'ncp+kr1+c4m8', 'N'),
-(104, 'NCP_IMAGE_ID', 'ncp+kr1+ubuntu22.04', 'N'),
-(104, 'NHN_SPEC_ID', 'nhn+kr1+m2.c4m8', 'N'),
-(104, 'NHN_IMAGE_ID', 'nhn+kr1+ubuntu22.04', 'N'),
-(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+s5.medium4', 'N'),
-(104, 'TENCENT_IMAGE_ID', 'tencent+ap-seoul+ubuntu22.04', 'N');
+(104, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
+(104, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
+(104, 'K8S_READY_STATUS', 'Active,Running', 'N'),
+(104, 'AWS_REGION', 'ap-northeast-2', 'N'),
+(104, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
+(104, 'AWS_SPEC_ID', '', 'N'),
+(104, 'AWS_IMAGE_ID', '', 'N'),
+(104, 'AZURE_REGION', 'koreacentral', 'N'),
+(104, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
+(104, 'AZURE_SPEC_ID', '', 'N'),
+(104, 'AZURE_IMAGE_ID', '', 'N'),
+(104, 'GCP_REGION', 'asia-east1', 'N'),
+(104, 'GCP_CONNECTION_NAME', 'gcp-asia-east1', 'N'),
+(104, 'GCP_SPEC_ID', '', 'N'),
+(104, 'GCP_IMAGE_ID', '', 'N'),
+(104, 'NCP_REGION', 'kr1', 'N'),
+(104, 'NCP_CONNECTION_NAME', 'ncp-kr1', 'N'),
+(104, 'NCP_SPEC_ID', '', 'N'),
+(104, 'NCP_IMAGE_ID', '', 'N'),
+(104, 'NHN_REGION', 'kr1', 'N'),
+(104, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
+(104, 'NHN_SPEC_ID', '', 'N'),
+(104, 'NHN_IMAGE_ID', '', 'N'),
+(104, 'TENCENT_REGION', 'ap-seoul', 'N'),
+(104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
+(104, 'TENCENT_SPEC_ID', '', 'N'),
+(104, 'TENCENT_IMAGE_ID', '', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(105, 'TUMBLEBUG', 'http://210.217.178.130:1323', 'N'),
+(105, 'USER', 'default', 'N'),
+(105, 'USERPASS', 'default', 'N'),
+(105, 'NAMESPACE', 'ns01', 'N'),
+(105, 'INFRA_ID', 'vm-mariadb-data-init', 'N'),
+(105, 'INFRA_DELETE_OPTION', 'terminate', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(106, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(106, 'USER', 'default', 'N'),
+(106, 'USERPASS', 'default', 'N'),
+(106, 'NAMESPACE', 'ns01', 'N'),
+(106, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt', 'N'),
+(106, 'INFRA_PREFIX', 'multi-csp-vm', 'N'),
+(106, 'INFRA_ID_LIST', '', 'N'),
+(106, 'INFRA_DELETE_OPTION', 'terminate', 'N');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
@@ -4618,7 +5361,7 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(102, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 102));
+(102, 1, 50, (SELECT script FROM workflow WHERE workflow_idx = 102));
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (103, 1, null, 'import groovy.json.JsonOutput
@@ -4644,6 +5387,12 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(104, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 104));
+(104, 1, 51, (SELECT script FROM workflow WHERE workflow_idx = 104));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(105, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 105));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(106, 1, 52, (SELECT script FROM workflow WHERE workflow_idx = 106));
 
 -- End Step 8

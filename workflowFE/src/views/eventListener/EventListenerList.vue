@@ -4,8 +4,8 @@
     <TableHeader
       :header-title="'Event Listener'"
       :new-btn-title="'New Event Listener'"
-      :popup-flag="true"
-      :popup-target="'#eventListenerForm'"
+      :popup-flag="false"
+      :popup-target="''"
       class="mb-3"
       @click-new-btn="onClickNewBtn"
     />
@@ -40,7 +40,7 @@ import TableHeader from '../../components/Table/TableHeader.vue'
 import Tabulator from '@/components/Table/Tabulator.vue'
 // @ts-ignore
 import { getEventListenerList } from '@/api/eventListener'
-import { onMounted } from 'vue';
+import { nextTick, onMounted } from 'vue';
 import { ref } from 'vue';
 // @ts-ignore
 import { type EventListener } from '@/views/type/type'
@@ -50,6 +50,7 @@ import { useToast } from 'vue-toastification';
 import EventListenerForm from './components/eventListenerForm.vue';
 // @ts-ignore
 import DeleteEventListener from './components/deleteEventListener.vue';
+import { Modal } from 'bootstrap'
 
 const toast = useToast()
 /**
@@ -129,20 +130,30 @@ const setColumns = () => {
       title: "Action",
       width: '20%',
       formatter: editDeleteButtonFormatter,
-      cellClick: function (e, cell) {
+      cellClick: async function (e, cell) {
         const target = e.target as HTMLElement;
         const btnFlag = target?.getAttribute('id')
         selectEventListenerIdx.value = cell.getRow().getData().eventListenerIdx
 
         if (btnFlag === 'edit-btn') {
           formMode.value = 'edit'
+          await showModal('eventListenerForm')
         }
-        else {
+        else if (btnFlag === 'delete-btn') {
           selectEventListenerName.value = cell.getRow().getData().eventListenerName
+          await showModal('deleteEventListener')
         }
       }
     }
   ]
+}
+
+const showModal = async (modalId: string) => {
+  await nextTick()
+  const modalElement = document.getElementById(modalId)
+  if (modalElement) {
+    Modal.getOrCreateInstance(modalElement).show()
+  }
 }
 
 /**
@@ -154,16 +165,12 @@ const editDeleteButtonFormatter = () => {
   <div>
     <button
       class='btn btn-primary d-none d-sm-inline-block mr-5'
-      id='edit-btn'
-      data-bs-toggle='modal' 
-      data-bs-target='#eventListenerForm'>
+      id='edit-btn'>
       수정
     </button>
     <button
       class='btn btn-danger d-none d-sm-inline-block'
-      id='delete-btn'
-      data-bs-toggle='modal' 
-      data-bs-target='#deleteEventListener'>
+      id='delete-btn'>
       삭제
     </button>
   </div>`;
@@ -179,9 +186,10 @@ const formMode = ref('new')
  * @Title onClickNewBtn
  * @Desc EventListener 생성버튼 클릭시 동작하는 함수 (eventListnerIdx / formMode set)
  */
-const onClickNewBtn = () => {
+const onClickNewBtn = async () => {
   selectEventListenerIdx.value = 0
   formMode.value = 'new'
+  await showModal('eventListenerForm')
 }
 
 

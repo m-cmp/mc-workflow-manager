@@ -26,6 +26,9 @@ public interface WorkflowService {
     // Workflow 삭제
     Boolean deleteWorkflow(Long workflowIdx);
 
+    // Workflow 연결 Event Listener 존재 여부
+    Boolean existEventListener(Long workflowIdx);
+
     // Workflow 상세
     WorkflowDetailResDto getWorkflow(Long workflowIdx);
 

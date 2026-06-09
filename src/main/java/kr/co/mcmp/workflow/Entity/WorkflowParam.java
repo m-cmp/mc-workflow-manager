@@ -24,7 +24,8 @@ public class WorkflowParam {
     @Column(name = "param_key")
     private String paramKey;
 
-    @Column(name = "param_value")
+    @Lob
+    @Column(name = "param_value", columnDefinition = "CLOB")
     private String paramValue;
 
     @Column(name = "event_listener_yn")

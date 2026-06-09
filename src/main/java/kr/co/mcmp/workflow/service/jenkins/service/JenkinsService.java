@@ -29,6 +29,8 @@ import org.w3c.dom.NodeList;
 import javax.xml.xpath.XPathExpressionException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,7 +57,12 @@ public class JenkinsService {
      * job 존재 여부 확인
      */
     public boolean isExistJobName(OssDto jenkins, String jobName) {
-        return Optional.ofNullable(api.getJenkinsJob(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName)).isPresent();
+        try {
+            return Optional.ofNullable(api.getJenkinsJob(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName)).isPresent();
+        } catch (Exception e) {
+            log.warn("Jenkins Job lookup failed or job does not exist. jobName: {}, message: {}", jobName, e.getMessage());
+            return false;
+        }
     }
 
     /*****
@@ -343,7 +350,22 @@ public class JenkinsService {
         NodeList parameterDefinitionsList = parameterDefinitionProperties.getElementsByTagName("parameterDefinitions");
 
         if (parameterDefinitionsList.getLength() > 0) {
-            params.forEach(item -> {
+            Map<String, WorkflowParamDto> paramsByKey = new LinkedHashMap<>();
+            for (WorkflowParamDto item : params) {
+                if (item == null || item.getParamKey() == null || item.getParamKey().trim().isEmpty()) {
+                    continue;
+                }
+                String normalizedKey = item.getParamKey().trim().toUpperCase();
+                paramsByKey.put(normalizedKey, WorkflowParamDto.builder()
+                        .paramIdx(item.getParamIdx())
+                        .workflowIdx(item.getWorkflowIdx())
+                        .paramKey(normalizedKey)
+                        .paramValue(item.getParamValue() == null ? "" : item.getParamValue())
+                        .eventListenerYn(item.getEventListenerYn())
+                        .build());
+            }
+
+            new ArrayList<>(paramsByKey.values()).forEach(item -> {
 
                 Element parameterDefinitions = (Element) parameterDefinitionsList.item(0);
 
@@ -395,6 +417,14 @@ public class JenkinsService {
      */
     public int getQueueExecutableNumber(OssDto jenkins, int jenkinsBuildId) {
     	return api.getQueueExecutableNumber(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jenkinsBuildId);
+    }
+
+    public int getQueueExecutableNumber(OssDto jenkins, int jenkinsBuildId, int fallbackBuildNumber) {
+        return api.getQueueExecutableNumber(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jenkinsBuildId, fallbackBuildNumber);
+    }
+
+    public int getNextBuildNumber(OssDto jenkins, String jobName) {
+        return api.getNextBuildNumber(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName);
     }
 
     /*******

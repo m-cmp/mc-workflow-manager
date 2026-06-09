@@ -13,6 +13,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
@@ -35,6 +36,7 @@ public class EventListenerParam {
     @Column(name = "param_key", nullable = false)
     private String paramKey;
 
-    @Column(name = "param_value")
+    @Lob
+    @Column(name = "param_value", columnDefinition = "CLOB")
     private String paramValue;
 }

@@ -11,7 +11,7 @@
             :data-bs-target="'#collapse' + idx" 
             aria-expanded="false" 
             :aria-controls="'collapse' + idx">
-            {{ pipelineCd.title }} 
+            {{ pipelineCd.label || getStageTypeLabel(pipelineCd.title) }}
           </button>
         </h2>
         <div 
@@ -60,6 +60,21 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['on-start-drag', 'on-finish-drag', 'splice-workflow-stage-mappings-form-data', 'set-pipeline-order'])
 
+const getStageTypeLabel = (stageTypeName: string) => {
+  const labels: Record<string, string> = {
+    infra: 'Infra',
+    k8s: 'K8s',
+    app: 'App',
+    database: 'Database',
+    utility: 'Utility',
+    'app-deploy': 'App',
+    'db-backup-restore': 'Database',
+    'common-util': 'Utility',
+  }
+
+  return labels[stageTypeName] || stageTypeName
+}
+
 // Palette 옵션 (Pipeline stage)
 const onCheckDraggablePalette = (e:any) => {
   let idx = e.draggedContext.futureIndex;
@@ -77,27 +92,26 @@ const onCheckDraggablePalette = (e:any) => {
   return check;
 }
 
+const toWorkflowStageMapping = (stage: WorkflowStage): WorkflowStageMappings => ({
+  stageOrder: stage.workflowStageOrder,
+  workflowStageIdx: stage.workflowStageIdx,
+  workflowStageName: stage.workflowStageName,
+  workflowStageTypeName: stage.workflowStageTypeName,
+  stageContent: stage.workflowStageContent,
+  defaultParams: (stage.defaultParams || []).map((param) => ({ ...param })),
+  defaultScriptTag: 'null',
+  isDefaultScript: false,
+})
+
 // Palette 옵션
-const onClonePipeline = (obj:any) => {
-  const newObj = obj;
-  return newObj;
+const onClonePipeline = (obj: WorkflowStage) => {
+  return toWorkflowStageMapping(obj)
 }
 
 // 선택된 Palette 아이템
 const onClickPaletteItem = (obj:WorkflowStage) => {
   if (props.workflowStageMappingsFormData.length < 1) return;
-  const clone: WorkflowStage = obj;
-  // @ts-ignore
-  const transClone: WorkflowStageMappings = {
-    stageOrder: clone.workflowStageOrder,
-    workflowStageIdx: clone.workflowStageIdx,
-    workflowStageName: clone.workflowStageName,
-    workflowStageTypeName: clone.workflowStageTypeName,
-    stageContent: clone.workflowStageContent,
-    defaultScriptTag: 'null',
-    isDefaultScript: false,
-  }
-  emit('splice-workflow-stage-mappings-form-data', transClone)
+  emit('splice-workflow-stage-mappings-form-data', toWorkflowStageMapping(obj))
   emit('set-pipeline-order')
 }
 

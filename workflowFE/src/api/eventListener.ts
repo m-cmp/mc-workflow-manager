@@ -14,7 +14,7 @@ export function getEventListenerDetailInfo(eventlistenerIdx:number) {
 
 // 중복확인
 export function duplicateCheck(eventListenerName:string) {
-  return request.get(`/eventlistener/duplicate?eventlistenerName=${eventListenerName}`)
+  return request.get(`/eventlistener/duplicate?eventlistenerName=${encodeURIComponent(eventListenerName)}`)
 }
 
 // Event Listener 등록
@@ -31,7 +31,6 @@ export function updateEventListener(param: EventListener) {
 export function deleteEventListener(eventlistenerIdx: number) {
   return request.delete(`/eventlistener/${eventlistenerIdx}`)
 }
-
 
 
 

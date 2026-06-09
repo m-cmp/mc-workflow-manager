@@ -11,7 +11,7 @@ export const getWorkflowList = (eventlistenerYn:String) => {
 
 // 중복확인
 export function duplicateCheck(workflowName:string) {
-  return request.get(`/workflow/name/duplicate?workflowName=${workflowName}`)
+  return request.get(`/workflow/name/duplicate?workflowName=${encodeURIComponent(workflowName)}`)
 }
 
 // default 스크립트

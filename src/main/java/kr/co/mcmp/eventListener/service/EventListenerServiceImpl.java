@@ -27,6 +27,8 @@ import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.repository.WorkflowStageMappingRepository;
 import kr.co.mcmp.workflow.service.WorkflowService;
 import kr.co.mcmp.workflow.service.jenkins.service.JenkinsService;
+import kr.co.mcmp.workflowStage.Entity.WorkflowStage;
+import kr.co.mcmp.workflowStage.repository.WorkflowStageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
@@ -61,13 +63,19 @@ public class EventListenerServiceImpl implements EventListenerService {
 
     private final WorkflowStageMappingRepository workflowStageMappingRepository;
 
+    private final WorkflowStageRepository workflowStageRepository;
+
     private final JenkinsService jenkinsService;
 
     @Override
     public List<ResponseEventListenerDto> getEventListenerList() {
         return eventListenerRepository.findAll()
                 .stream()
-                .map(ResponseEventListenerDto::fromGetList)
+                .map(eventListener -> ResponseEventListenerDto.from(
+                        eventListener,
+                        getEventListenerParamDtos(
+                                eventListener.getEventListenerIdx(),
+                                eventListener.getWorkflow().getWorkflowIdx())))
                 .collect(Collectors.toList());
     }
 
@@ -83,6 +91,9 @@ public class EventListenerServiceImpl implements EventListenerService {
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
             WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+            if (workflowDto == null) {
+                return null;
+            }
 
             OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
@@ -106,6 +117,9 @@ public class EventListenerServiceImpl implements EventListenerService {
         Boolean result = false;
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(requestEventListenerDto.getEventListenerIdx());
+            if (eventListenerEntity == null) {
+                return false;
+            }
             RequestEventListenerDto newRequestEventListenerDto = RequestEventListenerDto.from(eventListenerEntity);
             if (!eventListenerEntity.getEventListenerName().equals(requestEventListenerDto.getEventListenerName())
                     && eventListenerRepository.existsByEventListenerName(requestEventListenerDto.getEventListenerName())) {
@@ -116,6 +130,9 @@ public class EventListenerServiceImpl implements EventListenerService {
             Long workflowIdx = requestEventListenerDto.getWorkflowIdx();
 
             WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+            if (workflowDto == null) {
+                return false;
+            }
 
             OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
@@ -138,6 +155,9 @@ public class EventListenerServiceImpl implements EventListenerService {
     public Boolean deleteEventListener(Long eventListenerIdx) {
         Boolean result = false;
         try {
+            if (!eventListenerRepository.existsById(eventListenerIdx)) {
+                return false;
+            }
             eventListenerParamRepository.deleteByEventListener_EventListenerIdx(eventListenerIdx);
             eventListenerRepository.deleteByEventListenerIdx(eventListenerIdx);
             result = true;
@@ -151,6 +171,9 @@ public class EventListenerServiceImpl implements EventListenerService {
     public ResponseEventListenerDto detailEventListener(Long eventListenerIdx) {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
+            if (eventListenerEntity == null) {
+                return null;
+            }
             List<WorkflowParamDto> paramList = getEventListenerParamDtos(
                     eventListenerEntity.getEventListenerIdx(),
                     eventListenerEntity.getWorkflow().getWorkflowIdx());
@@ -187,11 +210,7 @@ public class EventListenerServiceImpl implements EventListenerService {
                             .map(WorkflowParamDto::from)
                             .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList =
-                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx())
-                            .stream()
-                            .map(WorkflowStageMappingDto::from)
-                            .collect(Collectors.toList());
+            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflow.getWorkflowIdx());
 
             WorkflowListResDto workflowListData = WorkflowListResDto.of(workflowDto, paramList, stageList);
 
@@ -216,10 +235,7 @@ public class EventListenerServiceImpl implements EventListenerService {
                     .map(WorkflowParamDto::from)
                     .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx)
-                    .stream()
-                    .map(WorkflowStageMappingDto::from)
-                    .collect(Collectors.toList());
+            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflowIdx);
 
             WorkflowDetailResDto workflowDetail = WorkflowDetailResDto.of(workflowDto, paramList, stageList);
 
@@ -264,11 +280,17 @@ public class EventListenerServiceImpl implements EventListenerService {
     private Boolean runEventListenerWithMergedParams(Long eventListenerIdx, Map<String, String> params) {
         try {
             EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
+            if (eventListenerEntity == null) {
+                return false;
+            }
             Long workflowIdx = eventListenerEntity.getWorkflow().getWorkflowIdx();
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
+            if (workflowEntity == null) {
+                return false;
+            }
 
             List<WorkflowParam> workflowParams = mergeRunParams(workflowEntity, eventListenerIdx, params);
-            List<WorkflowStageMapping> stages = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx);
+            List<WorkflowStageMapping> stages = workflowStageMappingRepository.findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(workflowIdx);
             WorkflowReqDto workflowReqDto = WorkflowReqDto.from(workflowEntity, workflowParams, stages);
 
             return workflowService.runWorkflow(workflowReqDto);
@@ -343,6 +365,28 @@ public class EventListenerServiceImpl implements EventListenerService {
                 .collect(Collectors.toList());
     }
 
+    private List<WorkflowStageMappingDto> getWorkflowStageMappingDtos(Long workflowIdx) {
+        List<WorkflowStageMapping> workflowStageMappings =
+                workflowStageMappingRepository.findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(workflowIdx);
+        if (CollectionUtils.isEmpty(workflowStageMappings)) {
+            return List.of();
+        }
+
+        Map<Long, WorkflowStage> workflowStagesByIdx = new LinkedHashMap<>();
+        return workflowStageMappings.stream()
+                .map(stageMapping -> {
+                    WorkflowStage workflowStage = null;
+                    Long workflowStageIdx = stageMapping.getWorkflowStageIdx();
+                    if (workflowStageIdx != null) {
+                        workflowStage = workflowStagesByIdx.computeIfAbsent(
+                                workflowStageIdx,
+                                workflowStageRepository::findByWorkflowStageIdx);
+                    }
+                    return WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                })
+                .collect(Collectors.toList());
+    }
+
     private void putParam(Map<String, String> paramsByKey, String key, String value) {
         if (!StringUtils.hasText(key)) {
             return;
@@ -353,6 +397,9 @@ public class EventListenerServiceImpl implements EventListenerService {
 
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
+        if (workflowEntity == null) {
+            return null;
+        }
         return WorkflowDto.from(workflowEntity);
     }
 
@@ -375,35 +422,27 @@ public class EventListenerServiceImpl implements EventListenerService {
 
         // jenkins job Name 조회
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
-
-        // oss 조회
-        OssDto ossDto = getOssDto(workflowDto.getOssIdx());
-
-        List<WorkflowLogResDto> buildList = WorkflowLogResDto.createList();
-
-        int buildNumber = 1;
-
-        while (true) {
-            try {
-                String log = jenkinsService.getJenkinsLog(
-                        ossDto.getOssUrl(),
-                        ossDto.getOssUsername(),
-                        ossDto.getOssPassword(),
-                        workflowDto.getWorkflowName(),
-                        buildNumber
-                );
-                buildList = WorkflowLogResDto.addToList(buildList, buildNumber, log);
-
-                buildNumber++;
-            } catch (Exception e) {
-                break; // 더 이상 빌드가 없으면 루프 종료
-            }
+        if (workflowDto == null) {
+            return "-";
         }
 
-        buildNumber -= 1;
-        if (buildNumber > 0)
-            return jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), buildNumber).getStatus();
-        else
+        if (StringUtils.hasText(workflowDto.getStatus())) {
+            return workflowDto.getStatus();
+        }
+
+        Integer latestBuildNumber = workflowDto.getLatestBuildNumber();
+        if (latestBuildNumber == null || latestBuildNumber <= 0) {
             return "-";
+        }
+
+        try {
+            // oss 조회
+            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+            return jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), latestBuildNumber).getStatus();
+        } catch (Exception e) {
+            log.warn("Jenkins build status lookup failed. workflowName: {}, buildNumber: {}",
+                    workflowDto.getWorkflowName(), latestBuildNumber, e);
+            return "-";
+        }
     }
 }

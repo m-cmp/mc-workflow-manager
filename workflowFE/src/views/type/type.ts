@@ -20,6 +20,7 @@ export interface WorkflowStage {
   workflowStageDesc: string
   workflowStageContent: string
   workflowStageOrder: number
+  defaultParams?: Array<WorkflowParams>
 }
 
 export interface WorkflowStageType {
@@ -41,7 +42,9 @@ export interface WorkflowInfo {
   workflowPurpose: string
   ossIdx: number
   script: string | string[]
+  status?: string
   runDate?: string
+  latestBuildNumber?: number
 }
 
 export interface WorkflowParams {
@@ -58,6 +61,7 @@ export interface WorkflowStageMappings {
   workflowStageName?: string
   workflowStageTypeName?: string
   stageContent: string
+  defaultParams?: Array<WorkflowParams>
 
   defaultScriptTag: string
   isDefaultScript: boolean
@@ -74,8 +78,10 @@ export interface EventListener {
   eventListenerDesc: string
   eventListenerUrl: string
   workflowIdx: number
+  workflowName?: string
   eventListenerCallUrl: string
   workflowParams: Array<WorkflowParams>
+  workflowStageMappings?: Array<WorkflowStageMappings>
 }
 
 export interface WorkflowLog {

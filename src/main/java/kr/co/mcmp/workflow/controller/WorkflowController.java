@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 @Tag(name = "Workflow", description = "워크플로우 배포 관리")
 @RequiredArgsConstructor
@@ -54,7 +55,12 @@ public class WorkflowController {
     @Operation(summary="워크플로우 수정")
     @PatchMapping("/{workflowIdx}")
     public ResponseWrapper<Boolean> updateWorkflow(@PathVariable Long workflowIdx, @RequestBody WorkflowReqDto workflowReqDto) {
-        if ( workflowIdx == 0 || workflowReqDto.getWorkflowInfo().getWorkflowIdx() == 0) {
+        if (workflowIdx == null
+                || workflowIdx == 0
+                || workflowReqDto.getWorkflowInfo() == null
+                || workflowReqDto.getWorkflowInfo().getWorkflowIdx() == null
+                || workflowReqDto.getWorkflowInfo().getWorkflowIdx() == 0
+                || !Objects.equals(workflowIdx, workflowReqDto.getWorkflowInfo().getWorkflowIdx())) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "WorkflowIdx");
         }
 
@@ -68,6 +74,11 @@ public class WorkflowController {
         return new ResponseWrapper<>(workflowService.deleteWorkflow(workflowIdx));
     }
 
+    @Operation(summary="워크플로우 연결 Event Listener 존재 여부")
+    @GetMapping("/existEventListener/{workflowIdx}")
+    public ResponseWrapper<Boolean> existEventListener(@PathVariable Long workflowIdx) {
+        return new ResponseWrapper<>(workflowService.existEventListener(workflowIdx));
+    }
 
     @Operation(summary="워크플로우 상세 조회")
     @GetMapping("/{workflowIdx}")

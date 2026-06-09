@@ -22,7 +22,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -32,6 +39,10 @@ import java.util.Map;
 public class JenkinsRestApi {
 	
 	private static final int DEFAULT_RETRY_INTERVAL = 3000;
+
+	private static final long QUEUE_BUILD_NUMBER_TIMEOUT_MILLIS = 300000;
+
+	private static final Duration JENKINS_CONNECT_TIMEOUT = Duration.ofSeconds(2);
 
 	private final JenkinsRestClient client;
 
@@ -50,24 +61,33 @@ public class JenkinsRestApi {
      * Jenkins 연결 확인
      */
     public boolean isConnect(String url, String id, String password) {
-        boolean isRunning = false;
         try {
-        	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
-        	
-            JenkinsClient jenkinsClient = JenkinsClient.builder().endPoint(url)
-                    									.credentials(id + ":" + plainTextPassword).build();
-            
-            String jenkinsSessionStr = jenkinsClient.api().systemApi().systemInfo().jenkinsSession();
-            log.info("jenkinsSessionStr >>> {}", jenkinsSessionStr);
-            if (!jenkinsSessionStr.equals("-1") && !jenkinsSessionStr.isEmpty()) {
-                isRunning = true;
-            }
+            String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
+            String auth = Base64.getEncoder()
+                    .encodeToString((id + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(toJenkinsApiUrl(url)))
+                    .timeout(JENKINS_CONNECT_TIMEOUT)
+                    .header("Authorization", "Basic " + auth)
+                    .GET()
+                    .build();
+
+            HttpResponse<Void> response = HttpClient.newBuilder()
+                    .connectTimeout(JENKINS_CONNECT_TIMEOUT)
+                    .build()
+                    .send(request, HttpResponse.BodyHandlers.discarding());
+
+            return response.statusCode() >= 200 && response.statusCode() < 300;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.warn("Jenkins connection check failed. url: {}, message: {}", url, e.getMessage());
             return false;
         }
+    }
 
-        return isRunning;
+    private String toJenkinsApiUrl(String url) {
+        String normalizedUrl = url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+        return normalizedUrl + "/api/json";
     }
 
     /**
@@ -97,13 +117,18 @@ public class JenkinsRestApi {
         return jobsApi.jobInfo("/",jobName);
     }
 
+    public int getNextBuildNumber(String url, String id, String password, String jobName) {
+        JobInfo jobInfo = getJenkinsJob(url, id, password, jobName);
+        return jobInfo != null ? jobInfo.nextBuildNumber() : 0;
+    }
+
     /**
      * Jenkins Job 생성
      * @throws UnsupportedEncodingException
      */
     public RequestStatus createJenkinsJob(String url, String id, String password, String jobName, String configXml) throws UnsupportedEncodingException {
         configXml = URLEncoder.encode(configXml, "UTF-8");
-        log.info("[JenkinsRestApi.createJenkinsJob] configXml >>> {}", configXml);
+        log.debug("[JenkinsRestApi.createJenkinsJob] jobName: {}, configXmlLength: {}", jobName, configXml.length());
 
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
         JobsApi jobsApi = jenkinsClient.api().jobsApi();
@@ -150,35 +175,21 @@ public class JenkinsRestApi {
      * @return
      */
     public int getQueueExecutableNumber(String url, String id, String password, int jenkinsBuildId) {
+        return getQueueExecutableNumber(url, id, password, jenkinsBuildId, 0);
+    }
+
+    public int getQueueExecutableNumber(String url, String id, String password, int jenkinsBuildId, int fallbackBuildNumber) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
 
         QueueApi queueApi = jenkinsClient.api().queueApi();
 
-        List<QueueItem> queueItemList = queueApi.queue();
-
-        QueueItem currentQueueItem = null;
-        if (queueItemList.size() > 0) {
-            currentQueueItem = queueApi.queueItem(jenkinsBuildId);
-        }
-
-        int buildNumber = 0;
         try {
-	        if (currentQueueItem != null) {
-	            while (currentQueueItem.executable() == null && !currentQueueItem.cancelled()) {
-	                log.info("[ 빌드 큐에서 대기중... ] / queue id:{} / url:{}", currentQueueItem.id(), currentQueueItem.url());
-
-	                Thread.sleep(DEFAULT_RETRY_INTERVAL);
-
-	                currentQueueItem = queueApi.queueItem(jenkinsBuildId);
-	            }
-
-	            buildNumber = currentQueueItem.executable().number();
-	        }
+            return resolveQueueExecutableNumber(queueApi, jenkinsBuildId, fallbackBuildNumber);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("[getQueueExecutableNumber] InterruptedException >>>>", e);
+            throw new IllegalStateException("Interrupted while waiting Jenkins queue executable number.", e);
         }
-
-        return buildNumber;
     }
 
     /**
@@ -193,27 +204,10 @@ public class JenkinsRestApi {
         JobsApi jobsApi = jenkinsApi.jobsApi();
         QueueApi queueApi = jenkinsApi.queueApi();
 
-        List<QueueItem> queueItemList = queueApi.queue();
-
-        QueueItem currentQueueItem = null;
-
-        if (queueItemList.size() > 0) {
-            currentQueueItem = queueApi.queueItem(jenkinsBuildId);
-        }
-
         try {
-            if (currentQueueItem != null) {
-            	buildNumber = currentQueueItem.executable().number();
-                while (currentQueueItem.executable() == null && !currentQueueItem.cancelled()) {
-                    log.info("[ 빌드 큐에서 대기중... ] / queue id:{} / url:{}", currentQueueItem.id(), currentQueueItem.url());
+            buildNumber = resolveQueueExecutableNumber(queueApi, jenkinsBuildId, buildNumber);
 
-                    Thread.sleep(DEFAULT_RETRY_INTERVAL);
-
-                    currentQueueItem = queueApi.queueItem(jenkinsBuildId);
-                }
-            }
-
-            buildInfo = jobsApi.buildInfo(null, jobName, buildNumber);
+            buildInfo = waitBuildInfoAvailable(jobsApi, jobName, buildNumber);
             while (buildInfo.building()) {
                 log.info("[ 빌드 진행 중... ] / jobName:{} / jenkins build id:{} / build queue number:{}", jobName, jenkinsBuildId, buildNumber);
 
@@ -227,9 +221,89 @@ public class JenkinsRestApi {
                     buildInfo.displayName(), buildInfo.fullDisplayName(), buildInfo.queueId());
 
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("[waitJenkinsBuild] InterruptedException >>>>", e);
+            throw new IllegalStateException("Interrupted while waiting Jenkins build.", e);
         }
         return buildInfo;
+    }
+
+    private int resolveQueueExecutableNumber(QueueApi queueApi, int jenkinsBuildId, int fallbackBuildNumber) throws InterruptedException {
+        if (jenkinsBuildId <= 0 && fallbackBuildNumber > 0) {
+            log.warn("[ 빌드 큐 ID 없음. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+                    jenkinsBuildId, fallbackBuildNumber);
+            return fallbackBuildNumber;
+        }
+
+        long deadline = System.currentTimeMillis() + QUEUE_BUILD_NUMBER_TIMEOUT_MILLIS;
+
+        while (System.currentTimeMillis() <= deadline) {
+            QueueItem currentQueueItem = getQueueItemSafely(queueApi, jenkinsBuildId);
+
+            if (currentQueueItem == null) {
+                if (fallbackBuildNumber > 0) {
+                    log.info("[ 빌드 큐 정보 없음. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+                            jenkinsBuildId, fallbackBuildNumber);
+                    return fallbackBuildNumber;
+                }
+
+                log.info("[ 빌드 큐 조회 대기중... ] / queue id:{}", jenkinsBuildId);
+            } else if (currentQueueItem.cancelled()) {
+                throw new IllegalStateException("Jenkins build queue was cancelled. queue id: " + jenkinsBuildId);
+            } else if (currentQueueItem.executable() != null && currentQueueItem.executable().number() > 0) {
+                return currentQueueItem.executable().number();
+            } else {
+                log.info("[ 빌드 큐에서 대기중... ] / queue id:{} / url:{}", currentQueueItem.id(), currentQueueItem.url());
+            }
+
+            Thread.sleep(DEFAULT_RETRY_INTERVAL);
+        }
+
+        if (fallbackBuildNumber > 0) {
+            log.warn("[ 빌드 큐 대기 시간 초과. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+                    jenkinsBuildId, fallbackBuildNumber);
+            return fallbackBuildNumber;
+        }
+
+        throw new IllegalStateException("Timed out waiting Jenkins queue executable number. queue id: " + jenkinsBuildId);
+    }
+
+    private QueueItem getQueueItemSafely(QueueApi queueApi, int jenkinsBuildId) {
+        try {
+            return queueApi.queueItem(jenkinsBuildId);
+        } catch (RuntimeException e) {
+            log.debug("Jenkins queue item is not available yet. queue id: {}", jenkinsBuildId, e);
+            return null;
+        }
+    }
+
+    private BuildInfo waitBuildInfoAvailable(JobsApi jobsApi, String jobName, int buildNumber) throws InterruptedException {
+        if (buildNumber <= 0) {
+            throw new IllegalStateException("Jenkins build number is not resolved. jobName: " + jobName);
+        }
+
+        RuntimeException lastException = null;
+        long deadline = System.currentTimeMillis() + QUEUE_BUILD_NUMBER_TIMEOUT_MILLIS;
+
+        while (System.currentTimeMillis() <= deadline) {
+            try {
+                BuildInfo buildInfo = jobsApi.buildInfo(null, jobName, buildNumber);
+                if (buildInfo != null && buildInfo.number() > 0) {
+                    return buildInfo;
+                }
+            } catch (RuntimeException e) {
+                lastException = e;
+                log.info("[ 빌드 정보 조회 대기중... ] / jobName:{} / build number:{}", jobName, buildNumber);
+            }
+
+            Thread.sleep(DEFAULT_RETRY_INTERVAL);
+        }
+
+        if (lastException != null) {
+            throw new IllegalStateException("Timed out waiting Jenkins build info. jobName: " + jobName + ", build number: " + buildNumber, lastException);
+        }
+
+        throw new IllegalStateException("Timed out waiting Jenkins build info. jobName: " + jobName + ", build number: " + buildNumber);
     }
 
     /**

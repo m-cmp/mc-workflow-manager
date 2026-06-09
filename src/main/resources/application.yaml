@@ -26,16 +26,11 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        show_sql: true
+        show_sql: false
         hbm2ddl:
-          import_files: classpath:import.sql
+          import_files: ""
           connection:
             charSet: UTF-8
-          sql:
-            init:
-              data-locations: classpath:import.sql
-              mode: always # ${SQL_DATA_INIT:never}
-              platform: h2
 
   servlet:
     multipart:

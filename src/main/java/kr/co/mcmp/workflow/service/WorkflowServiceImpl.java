@@ -7,6 +7,9 @@ import kr.co.mcmp.oss.entity.OssType;
 import kr.co.mcmp.oss.repository.OssRepository;
 import kr.co.mcmp.oss.repository.OssTypeRepository;
 import kr.co.mcmp.eventListener.repository.EventListenerRepository;
+import kr.co.mcmp.api.response.ResponseCode;
+import kr.co.mcmp.exception.McmpException;
+import kr.co.mcmp.infraManager.service.McInfraManagerService;
 import kr.co.mcmp.workflow.Entity.Workflow;
 import kr.co.mcmp.workflow.Entity.WorkflowHistory;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowDto;
@@ -15,6 +18,7 @@ import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowParamDto;
 import kr.co.mcmp.workflow.dto.entityMappingDto.WorkflowStageMappingDto;
 import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.*;
+import kr.co.mcmp.workflowStage.Entity.WorkflowStage;
 import kr.co.mcmp.workflow.repository.WorkflowHistoryRepository;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
@@ -33,8 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,6 +46,15 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Service
 public class WorkflowServiceImpl implements WorkflowService {
+
+    private static final int MAX_JENKINS_BUILD_LOOKUP_COUNT = 200;
+    private static final Set<String> WORKFLOW_STAGE_CATEGORIES = Set.of(
+            "infra",
+            "k8s",
+            "app",
+            "database",
+            "utility"
+    );
 
     private final OssRepository ossRepository;
 
@@ -69,6 +80,8 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     private final WorkflowAsyncExecutor workflowAsyncExecutor;
 
+    private final McInfraManagerService mcInfraManagerService;
+
     /**
      * 워크플로우 목록 조회
      * @return
@@ -84,6 +97,8 @@ public class WorkflowServiceImpl implements WorkflowService {
         List<WorkflowListResDto> list = new ArrayList<>();
         workflowList.forEach((workflow)-> {
             WorkflowDto workflowDto = getWorkflowDto(workflow.getWorkflowIdx());
+            String status = StringUtils.hasText(workflowDto.getStatus()) ? workflowDto.getStatus() : "-";
+            workflowDto = WorkflowDto.ofWithStatus(workflowDto, status);
 
             List<WorkflowParamDto> paramList =
                     workflowParamRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx())
@@ -91,11 +106,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                                             .map(WorkflowParamDto::from)
                                             .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList =
-                    workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflow.getWorkflowIdx())
-                                            .stream()
-                                            .map(WorkflowStageMappingDto::from)
-                                            .collect(Collectors.toList());
+            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflow.getWorkflowIdx());
 
             WorkflowListResDto workflowListData = WorkflowListResDto.of(workflowDto, paramList, stageList);
 
@@ -114,7 +125,6 @@ public class WorkflowServiceImpl implements WorkflowService {
     @Transactional(rollbackFor = { RuntimeException.class })
     public Long registWorkflow(WorkflowReqDto workflowReqDto) {
         Long result = null;
-        boolean isCreate = false;
         List<WorkflowParamDto> workflowParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
         List<WorkflowStageMappingDto> workflowStageMappings = defaultWorkflowStageMappings(workflowReqDto.getWorkflowStageMappings());
 
@@ -127,41 +137,37 @@ public class WorkflowServiceImpl implements WorkflowService {
                 return null;
             }
 
-            // jenkins > job 생성
-            isCreate = jenkinsService.createJenkinsJob_v2(
-                                ossDto,
-                                workflowReqDto.getWorkflowInfo().getWorkflowName(),
-                                workflowReqDto.getWorkflowInfo().getScript(),
-                                workflowParams);
-
             // DB
-            if ( isCreate ) {
-                OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
+            OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
 
-                // 1. Workflow
-                Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
-                workflowEntity = workflowRepository.save(workflowEntity);
-                WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
+            // 1. Workflow
+            Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
+            workflowEntity = workflowRepository.save(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
-                // 2. Workflow Param
-                if ( !CollectionUtils.isEmpty(workflowParams) ) {
-                    for(WorkflowParamDto param : workflowParams) {
-                        workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
-                    }
+            // 2. Workflow Param
+            if ( !CollectionUtils.isEmpty(workflowParams) ) {
+                for(WorkflowParamDto param : workflowParams) {
+                    workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
                 }
-
-                // 3. Workflow Stage Mapping
-                if ( !CollectionUtils.isEmpty(workflowStageMappings) ) {
-                    for(WorkflowStageMappingDto stage : workflowStageMappings) {
-                        workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
-                    }
-                }
-
-                result = workflowEntity.getWorkflowIdx();
             }
-        } catch (IOException e) {
-            if(isCreate) jenkinsService.deleteJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName());
-            log.error(e.getMessage());
+
+            // 3. Workflow Stage Mapping
+            if ( !CollectionUtils.isEmpty(workflowStageMappings) ) {
+                for(WorkflowStageMappingDto stage : workflowStageMappings) {
+                    workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
+                }
+            }
+
+            synchronizeJenkinsJobIfAvailable(
+                    ossDto,
+                    workflowDto.getWorkflowName(),
+                    workflowDto.getScript(),
+                    workflowParams);
+
+            result = workflowEntity.getWorkflowIdx();
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
         return result;
     }
@@ -180,53 +186,82 @@ public class WorkflowServiceImpl implements WorkflowService {
             OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
             List<WorkflowParamDto> workflowParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
             List<WorkflowStageMappingDto> workflowStageMappings = defaultWorkflowStageMappings(workflowReqDto.getWorkflowStageMappings());
+            Workflow previousWorkflow = workflowRepository.findByWorkflowIdx(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
+            if (previousWorkflow == null) {
+                return false;
+            }
+
             Workflow duplicatedWorkflow = workflowRepository.findByWorkflowName(workflowReqDto.getWorkflowInfo().getWorkflowName());
             if (duplicatedWorkflow != null && !duplicatedWorkflow.getWorkflowIdx().equals(workflowReqDto.getWorkflowInfo().getWorkflowIdx())) {
                 log.warn("Workflow name already exists: {}", workflowReqDto.getWorkflowInfo().getWorkflowName());
                 return false;
             }
 
-            boolean isUpdate = jenkinsService.updateJenkinsJobPipeline_v2(
+            OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
+
+            // 1. Workflow
+            Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
+            if (workflowEntity.getRunDate() == null) {
+                workflowEntity.updateRunDate(previousWorkflow.getRunDate());
+            }
+            if (workflowEntity.getRunStatus() == null) {
+                workflowEntity.updateRunStatus(previousWorkflow.getRunStatus(), previousWorkflow.getLatestBuildNumber());
+            }
+            workflowEntity = workflowRepository.save(workflowEntity);
+            WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
+
+            // 2. Workflow Param (삭제 후 재등록)
+            workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+            for (WorkflowParamDto param : workflowParams) {
+                workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
+            }
+
+            // 3. Workflow Stage Mapping (삭제 후 재등록)
+            workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
+            for(WorkflowStageMappingDto stage : workflowStageMappings) {
+                workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
+            }
+
+            synchronizeJenkinsJobIfAvailable(
                     ossDto,
-                    workflowReqDto.getWorkflowInfo().getWorkflowName(),
-                    workflowReqDto.getWorkflowInfo().getScript(),
+                    workflowDto.getWorkflowName(),
+                    workflowDto.getScript(),
                     workflowParams);
 
-            if ( isUpdate ) {
-                OssTypeDto ossTypeDto = getOssTypeDto(ossDto.getOssTypeIdx());
-                Workflow previousWorkflow = workflowRepository.findByWorkflowIdx(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
-
-                // 1. Workflow
-                Workflow workflowEntity = WorkflowDto.toEntity(workflowReqDto.getWorkflowInfo(), ossDto, ossTypeDto);
-                if (previousWorkflow != null && workflowEntity.getRunDate() == null) {
-                    workflowEntity.updateRunDate(previousWorkflow.getRunDate());
-                }
-                if (previousWorkflow != null && workflowEntity.getRunStatus() == null) {
-                    workflowEntity.updateRunStatus(previousWorkflow.getRunStatus(), previousWorkflow.getLatestBuildNumber());
-                }
-                workflowEntity = workflowRepository.save(workflowEntity);
-                WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
-
-                // 2. Workflow Param (삭제 후 재등록)
-                workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-                for (WorkflowParamDto param : workflowParams) {
-                    workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
-                }
-
-                // 3. Workflow Stage Mapping (삭제 후 재등록)
-                workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
-                for(WorkflowStageMappingDto stage : workflowStageMappings) {
-                    workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
-                }
-
-                result = true;
-            }
-        } catch (UnsupportedEncodingException uee) {
-            log.error(uee.getMessage());
-        } catch (IOException ioe) {
-            log.error(ioe.getMessage());
+            result = true;
+            deleteRenamedJenkinsJob(ossDto, previousWorkflow.getWorkflowName(), workflowEntity.getWorkflowName());
+        } catch (Exception e) {
+            log.error(e.getMessage(), e);
         }
         return result;
+    }
+
+    private boolean synchronizeJenkinsJobIfAvailable(OssDto ossDto, String workflowName, String script, List<WorkflowParamDto> workflowParams) {
+        try {
+            if (!jenkinsService.isJenkinsConnect(ossDto)) {
+                log.warn("Jenkins job synchronization skipped. Jenkins is not reachable. workflowName: {}", workflowName);
+                return false;
+            }
+
+            if (jenkinsService.isExistJobName(ossDto, workflowName)) {
+                return jenkinsService.updateJenkinsJobPipeline_v2(ossDto, workflowName, script, workflowParams);
+            }
+
+            return jenkinsService.createJenkinsJob_v2(ossDto, workflowName, script, workflowParams);
+        } catch (Exception e) {
+            log.warn("Jenkins job synchronization failed. workflowName: {}", workflowName, e);
+            return false;
+        }
+    }
+
+    private void deleteRenamedJenkinsJob(OssDto ossDto, String previousWorkflowName, String currentWorkflowName) {
+        if (!StringUtils.hasText(previousWorkflowName)
+                || !StringUtils.hasText(currentWorkflowName)
+                || previousWorkflowName.equals(currentWorkflowName)) {
+            return;
+        }
+
+        deleteJenkinsJobIfAvailable(ossDto, previousWorkflowName);
     }
 
     /**
@@ -245,31 +280,49 @@ public class WorkflowServiceImpl implements WorkflowService {
                 return false;
             }
 
-            // Jenkins 삭제
             Workflow workflowEntity = workflowRepository.findByWorkflowIdx(workflowIdx);
-            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
-
-            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
-
-            boolean isDelete = jenkinsService.deleteJenkinsJob(ossDto, workflowDto.getWorkflowName());
-
-            if ( isDelete ) {
-                // 1. Workflow Stage Mapping
-                workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
-
-                // 2. Workflow Param
-                workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
-
-                // 3. Workflow
-                workflowRepository.deleteByWorkflowIdx(workflowIdx);
-
-                result = true;
+            if (workflowEntity == null) {
+                return false;
             }
+            WorkflowDto workflowDto = WorkflowDto.from(workflowEntity);
+            OssDto ossDto = getOssDto(workflowDto.getOssIdx());
+            deleteJenkinsJobIfAvailable(ossDto, workflowDto.getWorkflowName());
+
+            // 1. Workflow Stage Mapping
+            workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
+
+            // 2. Workflow Param
+            workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
+
+            // 3. Workflow
+            workflowRepository.deleteByWorkflowIdx(workflowIdx);
+
+            result = true;
         } catch (Exception e) {
             log.error(e.getMessage());
         }
 
         return result;
+    }
+
+    private void deleteJenkinsJobIfAvailable(OssDto ossDto, String workflowName) {
+        try {
+            if (!jenkinsService.isJenkinsConnect(ossDto)) {
+                log.warn("Jenkins job delete skipped. Jenkins is not reachable. workflowName: {}", workflowName);
+                return;
+            }
+            jenkinsService.deleteJenkinsJob(ossDto, workflowName);
+        } catch (Exception e) {
+            log.warn("Jenkins job delete failed. workflowName: {}", workflowName, e);
+        }
+    }
+
+    @Override
+    public Boolean existEventListener(Long workflowIdx) {
+        if (workflowIdx == null || workflowIdx == 0) {
+            return false;
+        }
+        return eventListenerRepository.existsByWorkflow_WorkflowIdx(workflowIdx);
     }
 
     /**
@@ -281,16 +334,16 @@ public class WorkflowServiceImpl implements WorkflowService {
     public WorkflowDetailResDto getWorkflow(Long workflowIdx) {
         try {
             WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+            if (workflowDto == null) {
+                return null;
+            }
 
                     List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
                     .stream()
                     .map(WorkflowParamDto::from)
                     .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx)
-                    .stream()
-                    .map(WorkflowStageMappingDto::from)
-                    .collect(Collectors.toList());
+            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflowIdx);
 
             WorkflowDetailResDto workflowDetail = WorkflowDetailResDto.of(workflowDto, paramList, stageList);
 
@@ -329,22 +382,23 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Override
     public Boolean runWorkflow(Long workflowIdx) {
-        // 배포 실행 관련 사용자 이력 정보 수정
-        updateWorkflowRunDate(workflowIdx);
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+        if (workflowDto == null) {
+            return false;
+        }
 
         List<WorkflowParamDto> paramList = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
                                             .stream()
                                             .map(WorkflowParamDto::from)
                                             .collect(Collectors.toList());
 
-        List<WorkflowStageMappingDto> stageList = workflowStageMappingRepository.findByWorkflow_WorkflowIdx(workflowIdx)
-                                            .stream()
-                                            .map(WorkflowStageMappingDto::from)
-                                            .collect(Collectors.toList());
+        List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflowIdx);
 
         WorkflowReqDto workflowReqDto = WorkflowReqDto.of(workflowDto, paramList, stageList);
 
+        validateInfraDynamicReviewBeforeRun(workflowReqDto);
+        // 배포 실행 관련 사용자 이력 정보 수정
+        updateWorkflowRunDate(workflowIdx);
         workflowAsyncExecutor.runWorkflow(workflowReqDto);
         return true;
     }
@@ -356,11 +410,221 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Override
     public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
+        validateInfraDynamicReviewBeforeRun(workflowReqDto);
         if (workflowReqDto.getWorkflowInfo() != null) {
             updateWorkflowRunDate(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
         }
         workflowAsyncExecutor.runWorkflow(workflowReqDto);
         return true;
+    }
+
+    private void validateInfraDynamicReviewBeforeRun(WorkflowReqDto workflowReqDto) {
+        if (!needsInfraDynamicReview(workflowReqDto)) {
+            return;
+        }
+
+        Map<String, Object> payload = buildInfraDynamicReviewPayload(workflowReqDto);
+        if (payload.isEmpty()) {
+            return;
+        }
+
+        Object reviewResult = mcInfraManagerService.reviewInfraDynamic(getParamValue(workflowReqDto, "NAMESPACE", "system"), null, payload);
+        if (hasInfraReviewError(reviewResult)) {
+            String message = getInfraReviewMessage(reviewResult);
+            throw new McmpException(ResponseCode.RUN_FAILED_DEPLOY, "Infra 사전 검증 실패: " + message);
+        }
+    }
+
+    private boolean needsInfraDynamicReview(WorkflowReqDto workflowReqDto) {
+        if (workflowReqDto == null) {
+            return false;
+        }
+
+        if (workflowReqDto.getWorkflowStageMappings() != null) {
+            for (WorkflowStageMappingDto stage : workflowReqDto.getWorkflowStageMappings()) {
+                String stageName = normalizeText(stage.getWorkflowStageName());
+                String stageContent = normalizeText(stage.getStageContent());
+                if ("infra-create".equals(stageName) || stageContent.contains("infra-create") || stageContent.contains("infraDynamic")) {
+                    return true;
+                }
+            }
+        }
+
+        return StringUtils.hasText(getParamValue(workflowReqDto, "INFRA_ID", null))
+                && StringUtils.hasText(getParamValue(workflowReqDto, "SPEC_ID", null))
+                && StringUtils.hasText(getParamValue(workflowReqDto, "IMAGE_ID", null));
+    }
+
+    private Map<String, Object> buildInfraDynamicReviewPayload(WorkflowReqDto workflowReqDto) {
+        List<Map<String, Object>> nodeGroups = new ArrayList<>();
+        List<String> cspList = Arrays.stream(getParamValue(workflowReqDto, "CSP_LIST", "").split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toList());
+
+        if (cspList.isEmpty()) {
+            Map<String, Object> nodeGroup = buildNodeGroupReviewPayload(workflowReqDto, "", getParamValue(workflowReqDto, "CSP", getParamValue(workflowReqDto, "PROVIDER", "")));
+            if (!nodeGroup.isEmpty()) {
+                nodeGroups.add(nodeGroup);
+            }
+        } else {
+            for (String csp : cspList) {
+                Map<String, Object> nodeGroup = buildNodeGroupReviewPayload(workflowReqDto, normalizeCspKey(csp) + "_", csp);
+                if (!nodeGroup.isEmpty()) {
+                    nodeGroups.add(nodeGroup);
+                }
+            }
+        }
+
+        if (nodeGroups.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("name", getParamValue(
+                workflowReqDto,
+                "INFRA_ID",
+                getParamValue(workflowReqDto, "INFRA_PREFIX", Optional.ofNullable(workflowReqDto.getWorkflowInfo()).map(WorkflowDto::getWorkflowName).orElse("workflow-infra"))));
+        payload.put("description", getParamValue(workflowReqDto, "INFRA_DESC", "Workflow created infra"));
+        payload.put("installMonAgent", getParamValue(workflowReqDto, "INSTALL_MON_AGENT", "no"));
+        payload.put("policyOnPartialFailure", getParamValue(workflowReqDto, "POLICY_ON_PARTIAL_FAILURE", "continue"));
+        payload.put("nodeGroups", nodeGroups);
+        return payload;
+    }
+
+    private Map<String, Object> buildNodeGroupReviewPayload(WorkflowReqDto workflowReqDto, String prefix, String csp) {
+        String region = getParamValue(workflowReqDto, prefix + "REGION", getParamValue(workflowReqDto, "REGION", ""));
+        String connectionName = getParamValue(workflowReqDto, prefix + "CONNECTION_NAME", getParamValue(workflowReqDto, "CONNECTION_NAME", deriveConnectionName(csp, region)));
+        String specId = getParamValue(workflowReqDto, prefix + "SPEC_ID", getParamValue(workflowReqDto, "SPEC_ID", ""));
+        String imageId = getParamValue(workflowReqDto, prefix + "IMAGE_ID", getParamValue(workflowReqDto, "IMAGE_ID", ""));
+
+        if (!StringUtils.hasText(specId) || !StringUtils.hasText(imageId)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> nodeGroup = new LinkedHashMap<>();
+        nodeGroup.put("name", getParamValue(workflowReqDto, "INFRA_NODEGROUP_NAME", "g1"));
+        nodeGroup.put("nodeGroupSize", parseInteger(getParamValue(workflowReqDto, "INFRA_NODEGROUP_SIZE", "1"), 1));
+        nodeGroup.put("specId", specId);
+        nodeGroup.put("imageId", imageId);
+        nodeGroup.put("rootDiskType", getParamValue(workflowReqDto, "ROOT_DISK_TYPE", "default"));
+        nodeGroup.put("rootDiskSize", parseInteger(getParamValue(workflowReqDto, "ROOT_DISK_SIZE", "50"), 50));
+        if (StringUtils.hasText(connectionName)) {
+            nodeGroup.put("connectionName", connectionName);
+        }
+        String zone = getParamValue(workflowReqDto, prefix + "ZONE", getParamValue(workflowReqDto, "ZONE", ""));
+        if (StringUtils.hasText(zone)) {
+            nodeGroup.put("zone", zone);
+        }
+        return nodeGroup;
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean hasInfraReviewError(Object reviewResult) {
+        if (reviewResult == null) {
+            return true;
+        }
+
+        String text = String.valueOf(reviewResult).toLowerCase(Locale.ROOT);
+        if (text.contains("sold out") || text.contains("reviewstatus=error") || text.contains("reviewstatus:error")) {
+            return true;
+        }
+
+        if (reviewResult instanceof Map<?, ?> map) {
+            Object status = firstMapValue((Map<String, Object>) map, "reviewStatus", "status", "validationStatus");
+            if (status != null) {
+                String normalizedStatus = normalizeText(String.valueOf(status));
+                if (Set.of("error", "failed", "fail").contains(normalizedStatus)) {
+                    return true;
+                }
+            }
+
+            for (Object value : map.values()) {
+                if (hasInfraReviewError(value)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if (reviewResult instanceof List<?> list) {
+            return list.stream().anyMatch(this::hasInfraReviewError);
+        }
+
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private String getInfraReviewMessage(Object reviewResult) {
+        if (reviewResult instanceof Map<?, ?> map) {
+            Object message = firstMapValue((Map<String, Object>) map, "message", "detail", "details", "reason", "errorMessage");
+            if (message != null && StringUtils.hasText(String.valueOf(message))) {
+                return String.valueOf(message);
+            }
+            for (Object value : map.values()) {
+                String nestedMessage = getInfraReviewMessage(value);
+                if (StringUtils.hasText(nestedMessage)) {
+                    return nestedMessage;
+                }
+            }
+        }
+        if (reviewResult instanceof List<?> list) {
+            for (Object value : list) {
+                String nestedMessage = getInfraReviewMessage(value);
+                if (StringUtils.hasText(nestedMessage)) {
+                    return nestedMessage;
+                }
+            }
+        }
+        return "선택한 Image/Spec 조합으로 인프라를 생성할 수 없습니다.";
+    }
+
+    private Object firstMapValue(Map<String, Object> map, String... keys) {
+        for (String key : keys) {
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(key)) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    private String getParamValue(WorkflowReqDto workflowReqDto, String key, String defaultValue) {
+        if (workflowReqDto == null || workflowReqDto.getWorkflowParams() == null) {
+            return defaultValue;
+        }
+
+        for (WorkflowParamDto param : workflowReqDto.getWorkflowParams()) {
+            if (param.getParamKey() != null && param.getParamKey().trim().equalsIgnoreCase(key)) {
+                return StringUtils.hasText(param.getParamValue()) ? param.getParamValue().trim() : defaultValue;
+            }
+        }
+        return defaultValue;
+    }
+
+    private String normalizeCspKey(String value) {
+        return Optional.ofNullable(value)
+                .orElse("")
+                .trim()
+                .toUpperCase(Locale.ROOT)
+                .replaceAll("[^A-Z0-9]", "_");
+    }
+
+    private String normalizeText(String value) {
+        return Optional.ofNullable(value).orElse("").trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String deriveConnectionName(String csp, String region) {
+        return StringUtils.hasText(csp) && StringUtils.hasText(region) ? csp + "-" + region : "";
+    }
+
+    private int parseInteger(String value, int defaultValue) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return defaultValue;
+        }
     }
 
     /**
@@ -373,6 +637,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         List<WorkflowStageTypeDto> workflowStageTypeDtoList = workflowStageTypeRepository.findAllByOrderByWorkflowStageTypeIdxAsc()
                                                                 .stream()
                                                                 .map(WorkflowStageTypeDto::from)
+                                                                .filter(type -> WORKFLOW_STAGE_CATEGORIES.contains(type.getWorkflowStageTypeName()))
                                                                 .collect(Collectors.toList());
 
         List<WorkflowStageTypeAndStageNameResDto> result = new ArrayList<>();
@@ -444,19 +709,13 @@ public class WorkflowServiceImpl implements WorkflowService {
             if(ossTypeName.toUpperCase().equals("JENKINS")) {
                 List<WorkflowListResDto> workflowListResDtoList = getWorkflowList();
                 for(WorkflowListResDto workflowResDto : workflowListResDtoList) {
-                    boolean isExistJob = jenkinsService.isExistJobName(ossDto, workflowResDto.getWorkflowInfo().getWorkflowName());
-                    if(!isExistJob) {
-                        jenkinsService.createJenkinsJob_v2(
-                                ossDto,
-                                workflowResDto.getWorkflowInfo().getWorkflowName(),
-                                workflowResDto.getWorkflowInfo().getScript(),
-                                workflowResDto.getWorkflowParams());
-                    }
-                    log.info("Jenkins Job 생성 완료 : {}", isExistJob);
+                    synchronizeJenkinsJobIfAvailable(
+                            ossDto,
+                            workflowResDto.getWorkflowInfo().getWorkflowName(),
+                            workflowResDto.getWorkflowInfo().getScript(),
+                            workflowResDto.getWorkflowParams());
                 }
             }
-        } catch (IOException ioe) {
-            log.error(ioe.getMessage());
         } catch (Exception e) {
             log.error(e.getMessage());
         }
@@ -469,12 +728,23 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     public List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx) {
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+        if (workflowDto == null) {
+            return WorkflowLogResDto.createList();
+        }
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
         List<WorkflowLogResDto> resList = WorkflowLogResDto.createList();
+        Integer latestBuildNumber = workflowDto.getLatestBuildNumber();
+        if (latestBuildNumber == null || latestBuildNumber <= 0) {
+            String fallbackLog = buildWorkflowHistoryFallbackLog(workflowIdx);
+            if (StringUtils.hasText(fallbackLog)) {
+                return WorkflowLogResDto.addToList(resList, 0, fallbackLog);
+            }
+            return resList;
+        }
 
-        int buildNumber = 1;
-        while (true) {
+        int minBuildNumber = Math.max(1, latestBuildNumber - MAX_JENKINS_BUILD_LOOKUP_COUNT + 1);
+        for (int buildNumber = latestBuildNumber; buildNumber >= minBuildNumber; buildNumber--) {
             try {
                 String log = jenkinsService.getJenkinsLog(
                         ossDto.getOssUrl(),
@@ -485,12 +755,91 @@ public class WorkflowServiceImpl implements WorkflowService {
                 );
                 resList = WorkflowLogResDto.addToList(resList, buildNumber, log);
 
-                buildNumber++;
             } catch (Exception e) {
-                break; // 더 이상 빌드가 없으면 루프 종료
+                log.warn("Jenkins console log lookup failed. workflowName: {}, buildNumber: {}",
+                        workflowDto.getWorkflowName(), buildNumber, e);
+                if (resList.isEmpty()) {
+                    String fallbackLog = buildWorkflowHistoryFallbackLog(workflowIdx);
+                    if (StringUtils.hasText(fallbackLog)) {
+                        resList = WorkflowLogResDto.addToList(resList, 0, fallbackLog);
+                        break;
+                    }
+                    resList = WorkflowLogResDto.addToList(
+                            resList,
+                            latestBuildNumber,
+                            "Jenkins console log is not available. Please check Jenkins connection or build existence."
+                    );
+                }
+                break;
             }
         }
         return resList;
+    }
+
+    private String buildWorkflowHistoryFallbackLog(Long workflowIdx) {
+        List<WorkflowHistory> workflowHistories = workflowHistoryRepository.findByWorkflow_WorkflowIdx(workflowIdx);
+        if (CollectionUtils.isEmpty(workflowHistories)) {
+            return "";
+        }
+
+        List<WorkflowHistory> recentHistories = workflowHistories.stream()
+                .filter(history -> history != null && StringUtils.hasText(history.getDataType()))
+                .sorted(Comparator.comparing(
+                        WorkflowHistory::getWorkflowHistoryIdx,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(200)
+                .sorted(Comparator.comparing(
+                        WorkflowHistory::getWorkflowHistoryIdx,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        if (recentHistories.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder fallbackLog = new StringBuilder();
+        fallbackLog.append("Jenkins console log is not available. Showing workflow execution history saved in DB.\n");
+        String previousParamKey = null;
+        for (WorkflowHistory history : recentHistories) {
+            String dataType = history.getDataType();
+            String data = history.getData();
+            if ("paramValue".equals(dataType) && isSensitiveParamKey(previousParamKey)) {
+                data = "******";
+            }
+
+            fallbackLog.append("[")
+                    .append(history.getDate() == null ? "-" : history.getDate())
+                    .append("] ")
+                    .append(dataType)
+                    .append(": ")
+                    .append(truncateHistoryData(data))
+                    .append("\n");
+
+            previousParamKey = "paramKey".equals(dataType) ? history.getData() : null;
+        }
+        return fallbackLog.toString();
+    }
+
+    private boolean isSensitiveParamKey(String paramKey) {
+        if (!StringUtils.hasText(paramKey)) {
+            return false;
+        }
+
+        String normalizedKey = paramKey.toUpperCase(Locale.ROOT);
+        return normalizedKey.contains("PASSWORD")
+                || normalizedKey.contains("PASS")
+                || normalizedKey.contains("SECRET")
+                || normalizedKey.contains("TOKEN")
+                || normalizedKey.contains("KEY_FILE")
+                || normalizedKey.contains("PRIVATE_KEY");
+    }
+
+    private String truncateHistoryData(String data) {
+        if (data == null) {
+            return "";
+        }
+        int maxLength = 2000;
+        return data.length() > maxLength ? data.substring(0, maxLength) + "...(truncated)" : data;
     }
 
 
@@ -520,6 +869,9 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
+        if (workflow == null) {
+            return null;
+        }
         return WorkflowDto.from(workflow);
     }
 
@@ -547,36 +899,44 @@ public class WorkflowServiceImpl implements WorkflowService {
 
         // jenkins job Name 조회
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+        if (workflowDto == null) {
+            return WorkflowRunHistoryResDto.createList();
+        }
 
         // oss 조회
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
 
-        List<WorkflowLogResDto> buildList = WorkflowLogResDto.createList();
-
-        int buildNumber = 1;
-        while (true) {
-            try {
-                String log = jenkinsService.getJenkinsLog(
-                        ossDto.getOssUrl(),
-                        ossDto.getOssUsername(),
-                        ossDto.getOssPassword(),
-                        workflowDto.getWorkflowName(),
-                        buildNumber
-                );
-                buildList = WorkflowLogResDto.addToList(buildList, buildNumber, log);
-
-                buildNumber++;
-            } catch (Exception e) {
-                break; // 더 이상 빌드가 없으면 루프 종료
+        List<WorkflowRunHistoryResDto> buildHistoryList = WorkflowRunHistoryResDto.createList();
+        Integer latestBuildNumber = workflowDto.getLatestBuildNumber();
+        if (latestBuildNumber == null || latestBuildNumber <= 0) {
+            if (StringUtils.hasText(buildWorkflowHistoryFallbackLog(workflowIdx))) {
+                buildHistoryList.add(WorkflowRunHistoryResDto.builder()
+                        .name("DB History")
+                        .status(StringUtils.hasText(workflowDto.getStatus()) ? workflowDto.getStatus() : "-")
+                        .startTimeMillis(workflowDto.getRunDate() == null
+                                ? 0L
+                                : workflowDto.getRunDate()
+                                        .atZone(java.time.ZoneId.systemDefault())
+                                        .toInstant()
+                                        .toEpochMilli())
+                        .durationTimeMillis(0L)
+                        .stages(Collections.emptyList())
+                        .build());
             }
+            return buildHistoryList;
         }
 
-        List<WorkflowRunHistoryResDto> buildHistoryList = WorkflowRunHistoryResDto.createList();
-
-        for(WorkflowLogResDto buildInfo : buildList) {
-            WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), buildInfo.getBuildIdx());
-            buildHistoryList = WorkflowRunHistoryResDto.addToList(buildHistoryList, jenkinsBuildHistory);
+        int minBuildNumber = Math.max(1, latestBuildNumber - MAX_JENKINS_BUILD_LOOKUP_COUNT + 1);
+        for (int buildNumber = latestBuildNumber; buildNumber >= minBuildNumber; buildNumber--) {
+            try {
+                WorkflowRunHistoryResDto jenkinsBuildHistory = jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), buildNumber);
+                buildHistoryList = WorkflowRunHistoryResDto.addToList(buildHistoryList, jenkinsBuildHistory);
+            } catch (Exception e) {
+                log.warn("Jenkins build stage history lookup failed. workflowName: {}, buildNumber: {}",
+                        workflowDto.getWorkflowName(), buildNumber, e);
+                break;
+            }
         }
 
         return buildHistoryList;
@@ -594,6 +954,9 @@ public class WorkflowServiceImpl implements WorkflowService {
 
         // jenkins job Name 조회
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
+        if (workflowDto == null) {
+            return null;
+        }
 
         // oss 조회
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
@@ -613,10 +976,6 @@ public class WorkflowServiceImpl implements WorkflowService {
             }
 
             String normalizedKey = param.getParamKey().trim().toUpperCase();
-            if (paramsByKey.containsKey(normalizedKey)) {
-                continue;
-            }
-
             paramsByKey.put(normalizedKey, WorkflowParamDto.builder()
                     .paramIdx(param.getParamIdx())
                     .workflowIdx(param.getWorkflowIdx())
@@ -629,10 +988,70 @@ public class WorkflowServiceImpl implements WorkflowService {
         return new ArrayList<>(paramsByKey.values());
     }
 
+    private List<WorkflowStageMappingDto> getWorkflowStageMappingDtos(Long workflowIdx) {
+        return toWorkflowStageMappingDtos(
+                workflowStageMappingRepository.findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(workflowIdx));
+    }
+
+    private List<WorkflowStageMappingDto> toWorkflowStageMappingDtos(List<kr.co.mcmp.workflow.Entity.WorkflowStageMapping> workflowStageMappings) {
+        if (CollectionUtils.isEmpty(workflowStageMappings)) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, WorkflowStage> workflowStagesByIdx = new HashMap<>();
+        return workflowStageMappings.stream()
+                .map(stageMapping -> {
+                    WorkflowStage workflowStage = null;
+                    Long workflowStageIdx = stageMapping.getWorkflowStageIdx();
+                    if (workflowStageIdx != null) {
+                        workflowStage = workflowStagesByIdx.computeIfAbsent(
+                                workflowStageIdx,
+                                workflowStageRepository::findByWorkflowStageIdx);
+                    }
+                    return WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                })
+                .collect(Collectors.toList());
+    }
+
     private List<WorkflowStageMappingDto> defaultWorkflowStageMappings(List<WorkflowStageMappingDto> workflowStageMappings) {
         if (CollectionUtils.isEmpty(workflowStageMappings)) {
             return Collections.emptyList();
         }
-        return workflowStageMappings;
+
+        List<WorkflowStageMappingDto> result = new ArrayList<>();
+        int fallbackOrder = 0;
+
+        for (WorkflowStageMappingDto stageMapping : workflowStageMappings) {
+            if (stageMapping == null) {
+                continue;
+            }
+
+            String stageContent = stageMapping.getStageContent();
+            Long workflowStageIdx = stageMapping.getWorkflowStageIdx();
+
+            if (!StringUtils.hasText(stageContent) && workflowStageIdx != null) {
+                WorkflowStage workflowStage = workflowStageRepository.findByWorkflowStageIdx(workflowStageIdx);
+                if (workflowStage != null) {
+                    stageContent = workflowStage.getWorkflowStageContent();
+                }
+            }
+
+            if (!StringUtils.hasText(stageContent)) {
+                log.warn("Workflow stage mapping skipped because stage content is empty. workflowStageIdx: {}", workflowStageIdx);
+                continue;
+            }
+
+            Integer stageOrder = stageMapping.getStageOrder() != null ? stageMapping.getStageOrder() : fallbackOrder;
+            result.add(WorkflowStageMappingDto.builder()
+                    .mappingIdx(stageMapping.getMappingIdx())
+                    .workflowIdx(stageMapping.getWorkflowIdx())
+                    .stageOrder(stageOrder)
+                    .workflowStageIdx(workflowStageIdx)
+                    .stageContent(stageContent)
+                    .build());
+            fallbackOrder++;
+        }
+
+        return result;
     }
 }

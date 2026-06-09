@@ -53,7 +53,7 @@ import TableHeader from '../../components/Table/TableHeader.vue'
 import Tabulator from '@/components/Table/Tabulator.vue'
 // @ts-ignore
 import { getWorkflowList, existEventListener } from '@/api/workflow'
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 // @ts-ignore
 import type { Workflow } from '@/views/type/type'
 import type { ColumnDefinition } from 'tabulator-tables';
@@ -66,6 +66,7 @@ import RunWorkflow from '@/views/workflow/components/RunWorkflow.vue'
 import { useToast } from 'vue-toastification';
 // @ts-ignore
 import WorkflowLog from '@/views/workflow/components/WorkflowLog.vue'
+import { Modal } from 'bootstrap'
 
 const overlayShow = ref(true as Boolean)
 
@@ -85,7 +86,7 @@ onBeforeUnmount(() => {
 
 let workflowListPollingTimer: ReturnType<typeof setInterval> | undefined
 let workflowListFetching = false
-const WORKFLOW_LIST_POLLING_INTERVAL_MS = 15000
+const WORKFLOW_LIST_POLLING_INTERVAL_MS = 30000
 const startWorkflowListPolling = () => {
   stopWorkflowListPolling()
   workflowListPollingTimer = setInterval(() => {
@@ -110,7 +111,7 @@ const _getWorkflowList = async (showLoading = true) => {
       overlayShow.value = true
     }
     await getWorkflowList('N').then(({ data }) => {
-      workflowList.value = data
+      workflowList.value = mergeWorkflowList(data || [], !showLoading)
     })
   } catch(error) {
     console.log(error)
@@ -120,6 +121,48 @@ const _getWorkflowList = async (showLoading = true) => {
     }
     workflowListFetching = false
   }
+}
+
+const getWorkflowRowKey = (workflow: Workflow) => {
+  return String(workflow.workflowInfo?.workflowIdx || workflow.workflowInfo?.workflowName || '')
+}
+
+const mergeWorkflowList = (nextWorkflowList: Array<Workflow>, preserveCurrentRows = false) => {
+  if (workflowList.value.length === 0) {
+    return nextWorkflowList
+  }
+
+  const nextWorkflowByKey = new Map(
+    nextWorkflowList.map((workflow) => [getWorkflowRowKey(workflow), workflow])
+  )
+  const mergedWorkflowKeys = new Set<string>()
+
+  const mergedWorkflowList = workflowList.value
+    .map((workflow) => {
+      const workflowKey = getWorkflowRowKey(workflow)
+      const nextWorkflow = nextWorkflowByKey.get(workflowKey)
+
+      if (!nextWorkflow) {
+        return preserveCurrentRows ? workflow : null
+      }
+
+      mergedWorkflowKeys.add(workflowKey)
+      return nextWorkflow
+    })
+    .filter((workflow): workflow is Workflow => workflow !== null)
+
+  if (preserveCurrentRows) {
+    return mergedWorkflowList
+  }
+
+  const appendedWorkflowList = nextWorkflowList.filter((workflow) => {
+    return !mergedWorkflowKeys.has(getWorkflowRowKey(workflow))
+  })
+
+  return [
+    ...mergedWorkflowList,
+    ...appendedWorkflowList,
+  ]
 }
 
 const selectWorkflowIdx = ref(0 as number)
@@ -132,7 +175,7 @@ const setColumns = () => {
       width: '30%'
     },
     {
-      title: "Workflow Purpose",
+      title: "Purpose",
       field: "workflowInfo.workflowPurpose",
       width: '10%'
     },
@@ -169,6 +212,13 @@ const setColumns = () => {
         }
         else if (btnFlag === 'delete-btn') {
           selectWorkflowName.value = cell.getRow().getData().workflowInfo.workflowName
+          await showModal('deleteWorkflow')
+        }
+        else if (btnFlag === 'run-btn') {
+          await showModal('runWorkflow')
+        }
+        else if (btnFlag === 'log-btn') {
+          await showModal('workflowLog')
         }
       }
     }
@@ -176,16 +226,26 @@ const setColumns = () => {
   ]
 }
 
+const showModal = async (modalId: string) => {
+  await nextTick()
+  const modalElement = document.getElementById(modalId)
+  if (modalElement) {
+    Modal.getOrCreateInstance(modalElement).show()
+  }
+}
+
 const onClickNewBtn = () => {
   router.push('/web/workflows/workflow/new')
 }
 const paramsCountFomatter = (cell: any) => {
-  const paramsCnt = cell._cell.row.data.workflowParams.length
+  const paramsCnt = (cell._cell.row.data.workflowParams || [])
+    .filter((param: any) => String(param?.paramKey || '').trim())
+    .length
   return `<span>${ paramsCnt }</span>`
 }
 
 const statusFormatter = (cell: any) => {
-  const status = cell.getValue(); 
+  const status = cell.getValue() || '-'
   return `
   <div>
     <span class="
@@ -226,21 +286,15 @@ const buttonFormatter = () => {
       </button>
       <button class='btn btn-danger d-none d-sm-inline-block'
         id='delete-btn'
-        data-bs-toggle='modal' 
-        data-bs-target='#deleteWorkflow'
         style='margin-right: 5px'>
         DELETE
       </button>
       <button class='btn btn-info d-none d-sm-inline-block'
-        id='run-btn'
-        data-bs-toggle='modal' 
-        data-bs-target='#runWorkflow'>
+        id='run-btn'>
         RUN
       </button>
       <button class='btn btn-primary d-none d-sm-inline-block'
-        id='log-btn'
-        data-bs-toggle='modal' 
-        data-bs-target='#workflowLog'>
+        id='log-btn'>
         LOG
       </button>
     </div>`;
