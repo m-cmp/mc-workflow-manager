@@ -9,7 +9,7 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
-        <div v-if="runProgress.active" class="run-progress mx-4 mt-3">
+        <div v-if="runProgress.active" class="run-progress">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <span class="text-muted">{{ runProgress.message }}</span>
             <span class="text-muted">{{ runProgress.completed }} / {{ runProgress.total }}</span>
@@ -629,6 +629,13 @@ const isConnectionLikeSpecValue = (specValue: string, connectionName: string, re
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 4px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+  left: 50%;
   padding: 0.75rem;
+  position: fixed;
+  top: 1rem;
+  transform: translateX(-50%);
+  width: min(720px, calc(100vw - 2rem));
+  z-index: 2147483647;
 }
 </style>
