@@ -2187,7 +2187,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'TENCENT_IMAGE_ID', '', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
-(105, 'TUMBLEBUG', 'http://210.217.178.130:1323', 'N'),
+(105, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (105, 'USER', 'default', 'N'),
 (105, 'USERPASS', 'default', 'N'),
 (105, 'NAMESPACE', 'ns01', 'N'),

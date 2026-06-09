@@ -2,7 +2,7 @@
   <div class="mb-3" v-if="showSelector">
     <label class="form-label">Tumblebug Parameter Selection</label>
     <div class="grid gap-0 column-gap-3 mb-2">
-      <div class="tumblebug-param-field g-col-2">
+      <div class="tumblebug-param-field g-col-4">
         <label class="tumblebug-param-label">
           <code>{{ getSelectionParamKeyLabel('NAMESPACE') }}</code>
           <span>Namespace</span>
@@ -14,7 +14,7 @@
           @change="onChangeNamespace"
         />
       </div>
-      <div class="tumblebug-param-field g-col-2">
+      <div class="tumblebug-param-field g-col-4">
         <label class="tumblebug-param-label">
           <code>{{ getSelectionParamKeyLabel(['PROVIDER', 'CSP']) }}</code>
           <span>CSP</span>
@@ -26,7 +26,7 @@
           @change="onChangeInfraProvider"
         />
       </div>
-      <div class="tumblebug-param-field g-col-2">
+      <div class="tumblebug-param-field g-col-4">
         <label class="tumblebug-param-label">
           <code>{{ getSelectionParamKeyLabel('REGION') }}</code>
           <span>Region</span>
@@ -38,7 +38,9 @@
           @change="onChangeInfraSelection"
         />
       </div>
-      <div class="tumblebug-param-field g-col-3">
+    </div>
+    <div class="grid gap-0 column-gap-3 mb-2">
+      <div class="tumblebug-param-field g-col-6">
         <label class="tumblebug-param-label">
           <code>{{ getSpecSelectionParamKeyLabel() }}</code>
           <span>VM/K8s Spec</span>
@@ -51,7 +53,7 @@
           @change="onChangeInfraSelection"
         />
       </div>
-      <div class="tumblebug-param-field g-col-3">
+      <div class="tumblebug-param-field g-col-6">
         <label class="tumblebug-param-label">
           <code>{{ getImageSelectionParamKeyLabel() }}</code>
           <span>Image</span>
