@@ -197,34 +197,18 @@ let connectionLoadSeq = 0
 let zoneLoadSeq = 0
 let infraLoadSeq = 0
 let accessHostLoadSeq = 0
-const tumblebugStageNames = [
-  'infra-create',
-  'k8s-cluster-create',
-  'k8s-kubeconfig-get',
-  'mariadb-install',
-  'infra-ssh-connect-check',
-  'ssh-command-exec',
-]
-const tumblebugSelectionParamKeys = [
-  'NAMESPACE',
-  'PROVIDER',
-  'CSP',
-  'REGION',
-  'IMAGE',
-  'IMAGE_ID',
-  'SPEC',
-  'SPEC_ID',
-  'INFRA_ID',
-  'SSH_HOST',
-  'DB_HOST',
-  'K8S_CLUSTER_ID',
-  'CONNECTION_NAME',
-  'ZONE',
-]
+const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 
 const showSelector = computed(() => {
-  return props.workflowStageMappings.some((stage) => tumblebugStageNames.includes(stage.workflowStageName || ''))
-    || paramData.value.some((param) => tumblebugSelectionParamKeys.includes(param.paramKey?.trim().toUpperCase() || ''))
+  const configuredValue = getWorkflowParamValue('TUMBLEBUG_SELECTOR_YN').trim().toUpperCase()
+  if (['N', 'NO', 'FALSE', '0'].includes(configuredValue)) {
+    return false
+  }
+  if (['Y', 'YES', 'TRUE', '1'].includes(configuredValue)) {
+    return true
+  }
+
+  return props.workflowStageMappings.some((stage) => selectorRequiredStageNames.includes(stage.workflowStageName || ''))
     || (props.workflowName || '').includes('multi-csp')
 })
 

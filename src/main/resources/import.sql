@@ -2021,6 +2021,7 @@ SELECT 106, 'multi-csp-vm-cleanup', 'For Cleanup', 1,
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(101, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
 (101, 'USER', 'default', 'N'),
 (101, 'USERPASS', 'default', 'N'),
 (101, 'NAMESPACE', 'ns01', 'N'),
@@ -2047,6 +2048,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (102, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(102, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
 (102, 'USER', 'default', 'N'),
 (102, 'USERPASS', 'default', 'N'),
 (102, 'NAMESPACE', 'ns01', 'N'),
@@ -2104,6 +2106,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (103, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(103, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
 (103, 'USER', 'default', 'N'),
 (103, 'USERPASS', 'default', 'N'),
 (103, 'NAMESPACE', 'ns01', 'N'),
@@ -2145,6 +2148,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (104, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(104, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
 (104, 'USER', 'default', 'N'),
 (104, 'USERPASS', 'default', 'N'),
 (104, 'NAMESPACE', 'ns01', 'N'),
@@ -2188,6 +2192,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (105, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(105, 'TUMBLEBUG_SELECTOR_YN', 'N', 'N'),
 (105, 'USER', 'default', 'N'),
 (105, 'USERPASS', 'default', 'N'),
 (105, 'NAMESPACE', 'ns01', 'N'),
@@ -2196,6 +2201,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (106, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(106, 'TUMBLEBUG_SELECTOR_YN', 'N', 'N'),
 (106, 'USER', 'default', 'N'),
 (106, 'USERPASS', 'default', 'N'),
 (106, 'NAMESPACE', 'ns01', 'N'),

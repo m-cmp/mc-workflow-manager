@@ -53,8 +53,21 @@
           </div>
 
           <!-- Infra Deployment Setting -->
+          <div class="mb-3" v-if="showTumblebugSelectorControl">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <label class="form-label mb-0">Tumblebug Parameter Selection</label>
+              <label class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  v-model="tumblebugSelectorEnabled"
+                />
+                <span class="form-check-label">{{ tumblebugSelectorEnabled ? 'Enabled' : 'Disabled' }}</span>
+              </label>
+            </div>
+          </div>
+
           <div class="mb-3" v-if="showInfraSettings">
-            <label class="form-label">Tumblebug Parameter Selection</label>
             <div class="grid gap-0 column-gap-3 mb-2">
               <div class="tumblebug-param-field g-col-4">
                 <label class="tumblebug-param-label">
@@ -384,6 +397,7 @@ const tumblebugStageNames = [
   'ssh-command-exec',
 ]
 const tumblebugSelectionParamKeys = [
+  'TUMBLEBUG_SELECTOR_YN',
   'NAMESPACE',
   'PROVIDER',
   'CSP',
@@ -399,11 +413,53 @@ const tumblebugSelectionParamKeys = [
   'CONNECTION_NAME',
   'ZONE',
 ]
+const tumblebugSelectorManagedParamKeys = [
+  'PROVIDER',
+  'CSP',
+  'REGION',
+  'CONNECTION_NAME',
+  'ZONE',
+  'IMAGE',
+  'IMAGE_ID',
+  'SPEC',
+  'SPEC_ID',
+]
+const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
+const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
+
+const hasSelectorCandidate = computed(() => {
+  return mode.value === 'new'
+    || workflowStageMappingsFormData.value.some((stage) => selectorCandidateStageNames.includes(stage.workflowStageName || ''))
+    || workflowParamsFormData.value.some((param) => tumblebugSelectionParamKeys.includes(param.paramKey?.trim().toUpperCase() || ''))
+    || (workflowInfoFormData.workflowName || '').includes('multi-csp')
+})
+
+const hasSelectorRequiredStage = computed(() => {
+  return workflowStageMappingsFormData.value.some((stage) => selectorRequiredStageNames.includes(stage.workflowStageName || ''))
+    || (workflowInfoFormData.workflowName || '').includes('multi-csp')
+})
+
+const tumblebugSelectorEnabled = computed({
+  get: () => {
+    const configuredValue = getWorkflowParamValue('TUMBLEBUG_SELECTOR_YN').trim().toUpperCase()
+    if (['Y', 'YES', 'TRUE', '1'].includes(configuredValue)) return true
+    if (['N', 'NO', 'FALSE', '0'].includes(configuredValue)) return false
+    return hasSelectorRequiredStage.value
+  },
+  set: (enabled: boolean) => {
+    upsertWorkflowParam('TUMBLEBUG_SELECTOR_YN', enabled ? 'Y' : 'N')
+    if (!enabled) {
+      removeTumblebugSelectorManagedParams()
+    } else {
+      applyInfraSelectionParams()
+    }
+  },
+})
+
+const showTumblebugSelectorControl = computed(() => hasSelectorCandidate.value)
 
 const showInfraSettings = computed(() => {
-  return mode.value === 'new'
-    || workflowStageMappingsFormData.value.some((stage) => tumblebugStageNames.includes(stage.workflowStageName || ''))
-    || workflowParamsFormData.value.some((param) => tumblebugSelectionParamKeys.includes(param.paramKey?.trim().toUpperCase() || ''))
+  return showTumblebugSelectorControl.value && tumblebugSelectorEnabled.value
 })
 
 watch(selectedRegion, async (newRegion, oldRegion) => {
@@ -1273,6 +1329,10 @@ const getResourceCatalogNamespace = () => {
 }
 
 const applyInfraSelectionParams = () => {
+  if (!tumblebugSelectorEnabled.value) {
+    return
+  }
+
   const namespace = selectedNamespace.value || getNamespaceParamValue()
   if (namespace) {
     upsertWorkflowParam('NAMESPACE', namespace)
@@ -1299,6 +1359,21 @@ const applyInfraSelectionParams = () => {
   upsertWorkflowParam('IMAGE_ID', selectedImage.value)
   upsertWorkflowParam('SPEC', selectedSpec.value)
   upsertWorkflowParam('SPEC_ID', selectedSpec.value)
+}
+
+const removeTumblebugSelectorManagedParams = () => {
+  workflowParamsFormData.value = workflowParamsFormData.value.filter((param) => {
+    const key = param.paramKey?.trim().toUpperCase() || ''
+    if (tumblebugSelectorManagedParamKeys.includes(key)) {
+      return false
+    }
+    return !tumblebugSelectorManagedParamKeys.some((managedKey) => key.endsWith(`_${managedKey}`))
+  })
+  selectedImage.value = ''
+  selectedSpec.value = ''
+  selectedRegion.value = ''
+  selectedConnectionName.value = ''
+  selectedZone.value = ''
 }
 
 const getSelectedOptionLabel = (options: Array<InfraOption>, value: string) => {

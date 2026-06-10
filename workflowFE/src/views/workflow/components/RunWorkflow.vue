@@ -224,10 +224,9 @@ const flushRunProgressRender = async () => {
 }
 
 const getRunProgressStepCount = () => {
-  const params = workflowFormData.value.workflowParams || []
   const stageNames = getWorkflowStageNames()
-  const needsSpec = needsSpecValidation(params, stageNames)
-  const needsImage = needsImageValidation(params, stageNames)
+  const needsSpec = needsSpecValidation(stageNames)
+  const needsImage = needsImageValidation(stageNames)
   const cspCount = Math.max(1, getCspList().length)
   const validationSteps = cspCount * Number(needsSpec) + cspCount * Number(needsImage)
   const reviewSteps = needsInfraDynamicReview() && buildInfraDynamicReviewPayload() ? 1 : 0
@@ -358,8 +357,8 @@ const collectObjectValuesByKey = (value: any, keys: Array<string>): Array<any> =
 const validateRunParameters = async () => {
   const params = workflowFormData.value.workflowParams || []
   const stageNames = getWorkflowStageNames()
-  const needsSpec = needsSpecValidation(params, stageNames)
-  const needsImage = needsImageValidation(params, stageNames)
+  const needsSpec = needsSpecValidation(stageNames)
+  const needsImage = needsImageValidation(stageNames)
 
   if (!needsSpec && !needsImage) {
     return true
@@ -450,14 +449,22 @@ const getWorkflowStageNames = () => {
     .map((stage: any) => String(stage.workflowStageName || '').trim().toLowerCase())
 }
 
-const needsSpecValidation = (params: Array<any>, stageNames: Array<string>) => {
-  return stageNames.some((stageName) => ['infra-create', 'k8s-cluster-create'].includes(stageName))
-    || params.some((param: any) => normalizeParamKey(param.paramKey) === 'SPEC_ID' || normalizeParamKey(param.paramKey).endsWith('_SPEC_ID'))
+const needsSpecValidation = (stageNames: Array<string>) => {
+  return stageNames.some((stageName) => [
+    'infra-create',
+    'k8s-cluster-create',
+    'multi-csp-vm-deploy',
+    'multi-csp-k8s-cluster-deploy',
+  ].includes(stageName))
 }
 
-const needsImageValidation = (params: Array<any>, stageNames: Array<string>) => {
-  return stageNames.some((stageName) => ['infra-create', 'k8s-cluster-create'].includes(stageName))
-    || params.some((param: any) => normalizeParamKey(param.paramKey) === 'IMAGE_ID' || normalizeParamKey(param.paramKey).endsWith('_IMAGE_ID'))
+const needsImageValidation = (stageNames: Array<string>) => {
+  return stageNames.some((stageName) => [
+    'infra-create',
+    'k8s-cluster-create',
+    'multi-csp-vm-deploy',
+    'multi-csp-k8s-cluster-deploy',
+  ].includes(stageName))
 }
 
 const getCspList = () => {

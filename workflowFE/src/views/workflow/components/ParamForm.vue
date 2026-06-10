@@ -200,6 +200,18 @@ const showAdvanced = ref(false)
 const showSecrets = ref(false)
 
 const lockedParamKeys = ['MCI', 'CLUSTER', 'NAMESPACE']
+const hiddenParamKeys = ['TUMBLEBUG_SELECTOR_YN']
+const tumblebugSelectorParamKeys = [
+  'PROVIDER',
+  'CSP',
+  'REGION',
+  'CONNECTION_NAME',
+  'ZONE',
+  'IMAGE',
+  'IMAGE_ID',
+  'SPEC',
+  'SPEC_ID',
+]
 const longTextParamKeys = [
   'SCHEMA_SQL_CONTENT',
   'INSERT_SQL',
@@ -381,22 +393,26 @@ const paramKeyOptions = computed(() => {
   })
   paramData.value.forEach((param) => {
     const key = normalizeParamKey(param.paramKey)
-    if (key) keys.add(key)
+    if (key && !isHiddenParam(key)) keys.add(key)
   })
-  return Array.from(keys).sort()
+  return Array.from(keys)
+    .filter((key) => !isHiddenParam(key))
+    .sort()
 })
 
 const paramRows = computed(() => {
-  return paramData.value.map((param, index) => {
-    const normalizedKey = normalizeParamKey(param.paramKey)
-    return {
-      index,
-      param,
-      normalizedKey,
-      sectionKey: getSectionKey(normalizedKey),
-      isAdvanced: isAdvancedParam(normalizedKey),
-    }
-  })
+  return paramData.value
+    .map((param, index) => {
+      const normalizedKey = normalizeParamKey(param.paramKey)
+      return {
+        index,
+        param,
+        normalizedKey,
+        sectionKey: getSectionKey(normalizedKey),
+        isAdvanced: isAdvancedParam(normalizedKey),
+      }
+    })
+    .filter((row) => !isHiddenParam(row.normalizedKey))
 })
 
 const filteredRows = computed(() => {
@@ -466,6 +482,27 @@ const inputData = (idx:number) => {
 
 const normalizeParamKey = (paramKey?: string) => {
   return (paramKey || '').trim().toUpperCase()
+}
+
+const isTumblebugSelectorDisabled = computed(() => {
+  const value = paramData.value
+    .find((param) => normalizeParamKey(param.paramKey) === 'TUMBLEBUG_SELECTOR_YN')
+    ?.paramValue
+  return ['N', 'NO', 'FALSE', '0'].includes(String(value || '').trim().toUpperCase())
+})
+
+const isHiddenParam = (paramKey?: string) => {
+  const key = normalizeParamKey(paramKey)
+  if (hiddenParamKeys.includes(key)) {
+    return true
+  }
+  if (!isTumblebugSelectorDisabled.value) {
+    return false
+  }
+  if (tumblebugSelectorParamKeys.includes(key)) {
+    return true
+  }
+  return tumblebugSelectorParamKeys.some((selectorKey) => key.endsWith(`_${selectorKey}`))
 }
 
 const isKeyLocked = (paramKey?: string) => {
