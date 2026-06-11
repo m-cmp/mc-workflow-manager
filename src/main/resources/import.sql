@@ -2619,16 +2619,43 @@ pipeline {
                         return compactValue.contains("\"k8snodegrouplist\":[{") ||
                                 compactValue.contains("\"nodegrouplist\":[{")
                     }
-                    def assertDeleteAccepted = { action, value ->
+                    def extractNodeGroupNames = { value ->
+                        def textValue = value ?: ""
+                        def names = []
+                        def addName = { name ->
+                            def normalizedName = (name ?: "").trim()
+                            if (normalizedName && !names.contains(normalizedName)) {
+                                names << normalizedName
+                            }
+                        }
+                        (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"id"\s*:\s*"([^"]+)"/).each { match ->
+                            addName(match[1])
+                        }
+                        (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"name"\s*:\s*"([^"]+)"/).each { match ->
+                            addName(match[1])
+                        }
+                        (textValue =~ /"NodeGroupList"\s*:\s*\[\s*\{[^]]*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                            addName(match[1])
+                        }
+                        (textValue =~ /"spiderViewK8sNodeGroupDetail"\s*:\s*\{.*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                            addName(match[1])
+                        }
+                        return names
+                    }
+                    def deleteAccepted = { action, value ->
                         def textValue = value ?: ""
                         def lowerValue = textValue.toLowerCase()
                         if (isAbsent(value)) {
                             echo "${action} target is already absent."
+                            return true
                         } else if (lowerValue.contains("not deleted")) {
-                            error "${action} was not deleted by Tumblebug: ${value}"
+                            echo "${action} was not deleted by Tumblebug: ${value}"
+                            return false
                         } else if (!textValue.contains("Http_Status_code:2")) {
-                            error "${action} failed: ${value}"
+                            echo "${action} failed: ${value}"
+                            return false
                         }
+                        return true
                     }
 
                     def statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
@@ -2638,37 +2665,72 @@ pipeline {
                     } else if (!statusResponse.contains("Http_Status_code:2")) {
                         error "k8s-cleanup status check failed: ${statusResponse}"
                     } else {
-                        def nodeGroupNames = (params.K8S_NODEGROUP_NAME ?: "ng1").split(",").collect { it.trim() }.findAll { it }
-                        for (def nodeGroupName : nodeGroupNames) {
-                            def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
-                            def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
-                            echo nodeGroupResponse
-                            assertDeleteAccepted("k8s-nodegroup-remove ${nodeGroupName}", nodeGroupResponse)
-                        }
-
-                        def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
                         def intervalSeconds = (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger()
-                        for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
-                            statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
-                            if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
-                                break
+                        if (hasNodeGroupInfo(statusResponse)) {
+                            def nodeGroupNames = []
+                            (params.K8S_NODEGROUP_NAME ?: "ng1").split(",").collect { it.trim() }.findAll { it }.each { nodeGroupName ->
+                                if (!nodeGroupNames.contains(nodeGroupName)) {
+                                    nodeGroupNames << nodeGroupName
+                                }
                             }
-                            def lowerStatus = statusResponse.toLowerCase()
-                            def nodeGroupState = "Unknown"
-                            if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
-                                nodeGroupState = "Deleting"
+                            extractNodeGroupNames(statusResponse).each { nodeGroupName ->
+                                if (nodeGroupName && !nodeGroupNames.contains(nodeGroupName)) {
+                                    nodeGroupNames << nodeGroupName
+                                }
                             }
-                            echo "k8s node group is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
-                            sleep time: intervalSeconds, unit: "SECONDS"
-                        }
-                        if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
-                            error "k8s node group was not deleted before cluster cleanup within timeout: ${statusResponse}"
+
+                            if (nodeGroupNames.isEmpty()) {
+                                echo "K8s node group exists in ${params.K8S_CLUSTER_ID}, but node group name is not configured. Try cluster delete fallback."
+                            } else {
+                                def nodeGroupDeleteFailed = false
+                                def nodeGroupDeleteRequested = false
+                                echo "K8s node groups selected for ${params.K8S_CLUSTER_ID}: ${nodeGroupNames.join(", ")}"
+                                for (def nodeGroupName : nodeGroupNames) {
+                                    def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
+                                    def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
+                                    echo nodeGroupResponse
+                                    def nodeGroupAlreadyAbsent = isAbsent(nodeGroupResponse)
+                                    def nodeGroupAccepted = deleteAccepted("k8s-nodegroup-remove ${nodeGroupName}", nodeGroupResponse)
+                                    if (!nodeGroupAccepted) {
+                                        nodeGroupDeleteFailed = true
+                                        echo "k8s-nodegroup-remove ${nodeGroupName} failed. Try cluster delete fallback."
+                                    } else if (!nodeGroupAlreadyAbsent) {
+                                        nodeGroupDeleteRequested = true
+                                    }
+                                }
+
+                                if (nodeGroupDeleteFailed) {
+                                    echo "Skip node group delete polling for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
+                                } else if (!nodeGroupDeleteRequested) {
+                                    echo "No existing node group delete request was accepted for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
+                                } else {
+                                    def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                                    for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
+                                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                                        if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
+                                            break
+                                        }
+                                        def lowerStatus = statusResponse.toLowerCase()
+                                        def nodeGroupState = "Unknown"
+                                        if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
+                                            nodeGroupState = "Deleting"
+                                        }
+                                        echo "k8s node group is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
+                                        sleep time: intervalSeconds, unit: "SECONDS"
+                                    }
+                                    if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
+                                        echo "k8s node group still exists after polling. Continue with cluster delete fallback."
+                                    }
+                                }
+                            }
                         }
                     }
 
                     def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${clusterUrl}?option=${option}" ${auth}""", returnStdout: true).trim()
                     echo response
-                    assertDeleteAccepted("k8s-cleanup ${params.K8S_CLUSTER_ID}", response)
+                    if (!deleteAccepted("k8s-cleanup ${params.K8S_CLUSTER_ID}", response)) {
+                        error "k8s-cleanup ${params.K8S_CLUSTER_ID} failed: ${response}"
+                    }
 
                     def clusterAttempts = (params.K8S_CLUSTER_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
                     def clusterDeleted = isAbsent(response)
