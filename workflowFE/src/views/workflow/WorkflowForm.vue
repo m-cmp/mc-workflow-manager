@@ -180,7 +180,7 @@
               </div>
             </div>
             <div class="grid gap-0 column-gap-3 mb-2">
-              <div class="tumblebug-param-field g-col-6">
+              <div class="tumblebug-param-field" :class="isKubernetesImageWorkflow ? 'g-col-4' : 'g-col-6'">
                 <label class="tumblebug-param-label">
                   <code>{{ getSelectionParamKeyLabel('CONNECTION_NAME') }}</code>
                   <span>Connection Config</span>
@@ -192,7 +192,7 @@
                   @change="onChangeConnectionName"
                 />
               </div>
-              <div class="tumblebug-param-field g-col-6">
+              <div class="tumblebug-param-field" :class="isKubernetesImageWorkflow ? 'g-col-4' : 'g-col-6'">
                 <label class="tumblebug-param-label">
                   <code>{{ getSelectionParamKeyLabel('ZONE') }}</code>
                   <span>Zone</span>
@@ -202,6 +202,19 @@
                   :options="zoneOptions"
                   placeholder="Zone"
                   @change="onChangeZone"
+                />
+              </div>
+              <div class="tumblebug-param-field g-col-4" v-if="isKubernetesImageWorkflow">
+                <label class="tumblebug-param-label">
+                  <code>{{ getSelectionParamKeyLabel('K8S_VERSION') }}</code>
+                  <span>K8s Version</span>
+                </label>
+                <SearchableSelect
+                  v-model="selectedK8sVersion"
+                  :options="k8sVersionOptions"
+                  placeholder="K8s Version"
+                  :title="getSelectedOptionLabel(k8sVersionOptions, selectedK8sVersion)"
+                  @change="onChangeK8sVersion"
                 />
               </div>
             </div>
@@ -275,6 +288,7 @@ import {
   getMcInfra,
   getMcInfraAvailableZones,
   getMcInfraConnConfigs,
+  getMcInfraK8sVersions,
   getMcInfraList,
   getMcInfraNamespaces,
   getMcInfraProviders,
@@ -368,7 +382,7 @@ interface InfraOption {
   meta?: Record<string, any>
 }
 
-type InfraOptionKind = 'default' | 'image' | 'spec'
+type InfraOptionKind = 'default' | 'image' | 'spec' | 'k8sVersion'
 
 const defaultInfraProviderList = ['aws', 'azure', 'gcp', 'ncp', 'nhn', 'alibaba', 'tencent', 'ibm', 'kt']
 const infraProviderOptions = ref(sortInfraOptions(defaultInfraProviderList.map((provider) => ({ label: provider, value: provider }))))
@@ -381,6 +395,7 @@ const selectedInfra = ref('')
 const selectedAccessHost = ref('')
 const selectedConnectionName = ref('')
 const selectedZone = ref('')
+const selectedK8sVersion = ref('')
 const isInitializingSelection = ref(false)
 const namespaceOptions = ref([] as Array<InfraOption>)
 const regionOptions = ref([] as Array<InfraOption>)
@@ -390,6 +405,7 @@ const infraOptions = ref([] as Array<InfraOption>)
 const accessHostOptions = ref([] as Array<InfraOption>)
 const connectionOptions = ref([] as Array<InfraOption>)
 const zoneOptions = ref([] as Array<InfraOption>)
+const k8sVersionOptions = ref([] as Array<InfraOption>)
 let providerLoadSeq = 0
 let namespaceLoadSeq = 0
 let regionLoadSeq = 0
@@ -397,6 +413,7 @@ let imageLoadSeq = 0
 let specLoadSeq = 0
 let connectionLoadSeq = 0
 let zoneLoadSeq = 0
+let k8sVersionLoadSeq = 0
 let infraLoadSeq = 0
 let accessHostLoadSeq = 0
 const tumblebugStageNames = [
@@ -417,6 +434,7 @@ const tumblebugSelectionParamKeys = [
   'IMAGE_ID',
   'SPEC',
   'SPEC_ID',
+  'K8S_VERSION',
   'INFRA_ID',
   'SSH_HOST',
   'DB_HOST',
@@ -434,6 +452,7 @@ const tumblebugSelectorManagedParamKeys = [
   'IMAGE_ID',
   'SPEC',
   'SPEC_ID',
+  'K8S_VERSION',
 ]
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
@@ -445,17 +464,14 @@ const hasSelectorCandidate = computed(() => {
   return mode.value === 'new'
     || workflowStageMappingsFormData.value.some((stage) => selectorCandidateStageNames.includes(stage.workflowStageName || ''))
     || workflowParamsFormData.value.some((param) => tumblebugSelectionParamKeys.includes(param.paramKey?.trim().toUpperCase() || ''))
-    || (workflowInfoFormData.workflowName || '').includes('multi-csp')
 })
 
 const hasSelectorRequiredStage = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => selectorRequiredStageNames.includes(stage.workflowStageName || ''))
-    || (workflowInfoFormData.workflowName || '').includes('multi-csp')
 })
 
 const isKubernetesImageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
-    || (workflowInfoFormData.workflowName || '').toLowerCase().includes('k8s')
 })
 
 const tumblebugSelectorEnabled = computed({
@@ -487,6 +503,7 @@ watch(selectedRegion, async (newRegion, oldRegion) => {
   }
   resetRegionDependentSelection(newRegion, oldRegion)
   await loadMcInfraConnConfigs()
+  await loadMcInfraK8sVersions()
   await loadMcInfraSpecs()
   await loadMcInfraImages()
   await loadMcInfraAvailableZones()
@@ -513,6 +530,7 @@ watch(isKubernetesImageWorkflow, async (enabled) => {
   kubernetesImageEnabled.value = enabled
   if (!isInitializingSelection.value) {
     selectedImage.value = ''
+    await loadMcInfraK8sVersions()
     await loadMcInfraImages()
     applyInfraSelectionParams()
   }
@@ -532,6 +550,7 @@ const initTumblebugSelectionValues = async () => {
     selectedRegion.value = getWorkflowParamValue('REGION') || resourceIdParts.region
     selectedImage.value = getWorkflowParamValue('IMAGE_ID') || getWorkflowParamValue('IMAGE')
     selectedSpec.value = getWorkflowParamValue('SPEC_ID') || getWorkflowParamValue('SPEC')
+    selectedK8sVersion.value = getWorkflowParamValue('K8S_VERSION')
     selectedConnectionName.value = getWorkflowParamValue('CONNECTION_NAME')
     selectedZone.value = getWorkflowParamValue('ZONE')
     syncSelectionFromCurrentCspParams()
@@ -579,6 +598,7 @@ const resetRegionDependentSelection = (newRegion?: string, oldRegion?: string) =
 
   clearImageAndSpecSelection()
   selectedZone.value = ''
+  selectedK8sVersion.value = ''
 }
 
 const getCspListValues = () => {
@@ -589,12 +609,12 @@ const getCspListValues = () => {
 }
 
 const isMultiCspWorkflow = () => {
-  return getCspListValues().length > 0 || (workflowInfoFormData.workflowName || '').includes('multi-csp')
+  return getCspListValues().length > 0
 }
 
 const getSelectionParamKey = (paramKey: string) => {
   const normalizedKey = paramKey.trim().toUpperCase()
-  const multiCspParamKeys = ['REGION', 'CONNECTION_NAME', 'ZONE', 'IMAGE_ID', 'SPEC_ID']
+  const multiCspParamKeys = ['REGION', 'CONNECTION_NAME', 'ZONE', 'IMAGE_ID', 'SPEC_ID', 'K8S_VERSION']
 
   if (isMultiCspWorkflow() && multiCspParamKeys.includes(normalizedKey)) {
     const cspKey = normalizeCspKey(infraProvider.value)
@@ -635,6 +655,7 @@ const syncSelectionFromCurrentCspParams = () => {
   selectedRegion.value = getCurrentCspParamValue('REGION') || resourceIdParts.region || ''
   selectedImage.value = getCurrentCspParamValue('IMAGE_ID')
   selectedSpec.value = getCurrentCspParamValue('SPEC_ID')
+  selectedK8sVersion.value = getCurrentCspParamValue('K8S_VERSION')
   selectedConnectionName.value = getCurrentCspParamValue('CONNECTION_NAME')
   selectedZone.value = getCurrentCspParamValue('ZONE')
 }
@@ -656,6 +677,7 @@ const onChangeInfraProvider = async () => {
   selectedSpec.value = ''
   selectedConnectionName.value = ''
   selectedZone.value = ''
+  selectedK8sVersion.value = ''
   syncSelectionFromCurrentCspParams()
   await loadInfraOptions()
   applyInfraSelectionParams()
@@ -687,6 +709,7 @@ const onChangeAccessHost = () => {
 
 const onChangeConnectionName = async () => {
   clearImageAndSpecSelection()
+  selectedK8sVersion.value = ''
   await loadMcInfraSpecs()
   await loadMcInfraImages()
   await loadMcInfraAvailableZones()
@@ -694,6 +717,10 @@ const onChangeConnectionName = async () => {
 }
 
 const onChangeZone = () => {
+  applyInfraSelectionParams()
+}
+
+const onChangeK8sVersion = () => {
   applyInfraSelectionParams()
 }
 
@@ -715,6 +742,7 @@ const loadInfraOptions = async () => {
   await loadMcInfraRegions()
   ensureSelectedRegionOption()
   await loadMcInfraConnConfigs()
+  await loadMcInfraK8sVersions()
   await Promise.all([
     loadMcInfraSpecs(),
     loadMcInfraInfras(),
@@ -895,6 +923,49 @@ const loadMcInfraConnConfigs = async () => {
   }
 }
 
+const loadMcInfraK8sVersions = async () => {
+  const loadSeq = ++k8sVersionLoadSeq
+  k8sVersionOptions.value = []
+  if (!isKubernetesImageWorkflow.value || !infraProvider.value || !selectedRegion.value) {
+    return
+  }
+
+  try {
+    const { data } = await getMcInfraK8sVersions({
+      providerName: infraProvider.value,
+      regionName: selectedRegion.value,
+    })
+    if (loadSeq !== k8sVersionLoadSeq) return
+    k8sVersionOptions.value = normalizeInfraOptions(data, 'k8sVersion')
+    ensureSelectedK8sVersionOption()
+  } catch (error) {
+    if (loadSeq !== k8sVersionLoadSeq) return
+    k8sVersionOptions.value = []
+  }
+}
+
+const ensureSelectedK8sVersionOption = () => {
+  if (!isKubernetesImageWorkflow.value || k8sVersionOptions.value.length === 0) {
+    return
+  }
+
+  if (selectedK8sVersion.value && isSelectedValueInOptions(selectedK8sVersion.value, k8sVersionOptions.value)) {
+    return
+  }
+
+  const currentVersion = isMultiCspWorkflow()
+    ? getCurrentCspParamValue('K8S_VERSION')
+    : getWorkflowParamValue('K8S_VERSION')
+  if (currentVersion && isSelectedValueInOptions(currentVersion, k8sVersionOptions.value)) {
+    selectedK8sVersion.value = currentVersion
+    applyInfraSelectionParams()
+    return
+  }
+
+  selectedK8sVersion.value = k8sVersionOptions.value[0]?.value || selectedK8sVersion.value
+  applyInfraSelectionParams()
+}
+
 const loadMcInfraAvailableZones = async () => {
   const loadSeq = ++zoneLoadSeq
   zoneOptions.value = []
@@ -985,6 +1056,16 @@ function compareInfraOptions(left: InfraOption, right: InfraOption) {
 }
 
 const getInfraOptionValue = (item: any, optionKind: InfraOptionKind) => {
+  if (optionKind === 'k8sVersion') {
+    return String(firstText([
+      item?.id,
+      item?.version,
+      item?.value,
+      item?.name,
+      item,
+    ]))
+  }
+
   if (optionKind === 'spec') {
     const specName = firstText([
       item?.specId,
@@ -1034,6 +1115,15 @@ const getInfraOptionValue = (item: any, optionKind: InfraOptionKind) => {
 }
 
 const getInfraOptionLabel = (item: any, value: string, optionKind: InfraOptionKind) => {
+  if (optionKind === 'k8sVersion') {
+    return formatOptionLabel(value, firstDifferentText(value, [
+      item?.name,
+      item?.displayName,
+      item?.version,
+      item?.value,
+    ]))
+  }
+
   if (optionKind === 'image') {
     return formatOptionLabel(value, firstDifferentText(value, [
       item?.displayName,
@@ -1127,6 +1217,14 @@ const getInfraOptionSearchText = (item: any, value: string, label: string, optio
       formatSpecResourceDetail(item),
     ]
     : []
+  const versionTexts = optionKind === 'k8sVersion'
+    ? [
+      item?.name,
+      item?.displayName,
+      item?.version,
+      item?.value,
+    ]
+    : []
   const candidates = uniqueTextValues([
     value,
     label,
@@ -1145,6 +1243,7 @@ const getInfraOptionSearchText = (item: any, value: string, label: string, optio
     item?.assignedRegion,
     ...imageTexts,
     ...specTexts,
+    ...versionTexts,
   ])
   const aliases = uniqueTextValues(
     candidates.flatMap((candidate) => [
@@ -1299,6 +1398,7 @@ const findFirstArray = (payload: any): Array<any> => {
     'infra', 'infras', 'infraList',
     'regions', 'region', 'regionList',
     'availableZones', 'allVerifiedZones', 'zones', 'zoneList',
+    'availableK8sVersion', 'availableK8sVersions', 'k8sVersion', 'k8sVersions', 'versions', 'versionList',
     'images', 'image', 'imageList',
     'specs', 'spec', 'specList',
     'idList', 'output',
@@ -1392,6 +1492,9 @@ const applyInfraSelectionParams = () => {
       upsertWorkflowParam(`${cspKey}_ZONE`, selectedZone.value)
       upsertWorkflowParam(`${cspKey}_IMAGE_ID`, selectedImage.value)
       upsertWorkflowParam(`${cspKey}_SPEC_ID`, selectedSpec.value)
+      if (isKubernetesImageWorkflow.value) {
+        upsertWorkflowParam(`${cspKey}_K8S_VERSION`, selectedK8sVersion.value)
+      }
     }
     return
   }
@@ -1403,6 +1506,9 @@ const applyInfraSelectionParams = () => {
   upsertWorkflowParam('IMAGE_ID', selectedImage.value)
   upsertWorkflowParam('SPEC', selectedSpec.value)
   upsertWorkflowParam('SPEC_ID', selectedSpec.value)
+  if (isKubernetesImageWorkflow.value) {
+    upsertWorkflowParam('K8S_VERSION', selectedK8sVersion.value)
+  }
 }
 
 const removeTumblebugSelectorManagedParams = () => {
@@ -1418,6 +1524,7 @@ const removeTumblebugSelectorManagedParams = () => {
   selectedRegion.value = ''
   selectedConnectionName.value = ''
   selectedZone.value = ''
+  selectedK8sVersion.value = ''
 }
 
 const getSelectedOptionLabel = (options: Array<InfraOption>, value: string) => {
@@ -1476,14 +1583,14 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'IMAGE_ID', paramValue: selectedImage.value, eventListenerYn: 'N' },
       { paramKey: 'SPEC', paramValue: selectedSpec.value, eventListenerYn: 'N' },
       { paramKey: 'SPEC_ID', paramValue: selectedSpec.value, eventListenerYn: 'N' },
-      { paramKey: 'K8S_VERSION', paramValue: '1.33', eventListenerYn: 'N' },
+      { paramKey: 'K8S_VERSION', paramValue: selectedK8sVersion.value || '1.33', eventListenerYn: 'N' },
       { paramKey: 'K8S_DESIRED_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MIN_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MAX_NODE_SIZE', paramValue: '3', eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_TYPE', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_SIZE', paramValue: '30', eventListenerYn: 'N' },
       { paramKey: 'K8S_NODEGROUP_CREATE_IF_MISSING', paramValue: 'true', eventListenerYn: 'N' },
-      { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
+      { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '360', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_INTERVAL_SECONDS', paramValue: '10', eventListenerYn: 'N' },
       { paramKey: 'K8S_READY_STATUS', paramValue: 'Active,Running', eventListenerYn: 'N' },
     ],
@@ -1506,7 +1613,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'HELM_CHART', paramValue: 'groundhog2k/mariadb', eventListenerYn: 'N' },
       { paramKey: 'HELM_CHART_VERSION', paramValue: '4.5.0', eventListenerYn: 'N' },
       { paramKey: 'HELM_RECREATE_ON_IMMUTABLE_ERROR', paramValue: 'true', eventListenerYn: 'N' },
-      { paramKey: 'K8S_API_READY_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
+      { paramKey: 'K8S_API_READY_MAX_ATTEMPTS', paramValue: '360', eventListenerYn: 'N' },
       { paramKey: 'K8S_API_READY_INTERVAL_SECONDS', paramValue: '10', eventListenerYn: 'N' },
       { paramKey: 'K8S_NODE_READY_MIN_COUNT', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'HELM_VALUES_ARGS', paramValue: '--set settings.rootPassword.value=mariadb_pass --set userDatabase.name.value=testdb --set userDatabase.user.value=mariadb_user --set userDatabase.password.value=mariadb_pass --wait --timeout 10m', eventListenerYn: 'N' },
@@ -1599,6 +1706,8 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       case 'SPEC':
       case 'SPEC_ID':
         return selectedSpec.value || paramValue
+      case 'K8S_VERSION':
+        return selectedK8sVersion.value || existingValue || paramValue
       case 'INFRA_ID':
         return existingValue || paramValue || defaultInfraId
       case 'K8S_CLUSTER_ID':

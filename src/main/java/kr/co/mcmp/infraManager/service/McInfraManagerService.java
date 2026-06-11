@@ -104,6 +104,20 @@ public class McInfraManagerService {
         }
     }
 
+    public Object getK8sVersions(MultiValueMap<String, String> queryParams) {
+        if (!StringUtils.hasText(firstPresentValue(queryParams, "providerName", "provider", "csp"))
+                || !StringUtils.hasText(firstPresentValue(queryParams, "regionName", "region"))) {
+            return Collections.emptyList();
+        }
+
+        try {
+            List<Object> versions = toCatalogList(get("/availableK8sVersion", buildK8sVersionQueryParams(queryParams)));
+            return compactK8sVersionList(versions);
+        } catch (RestClientException e) {
+            return handleCatalogLookupFailure("system", "/availableK8sVersion", e);
+        }
+    }
+
     public Object getResources(String nsId, String resourceType, MultiValueMap<String, String> queryParams) {
         if (!SUPPORTED_RESOURCE_TYPES.contains(resourceType)) {
             throw new IllegalArgumentException("Unsupported resource type: " + resourceType);
@@ -376,6 +390,13 @@ public class McInfraManagerService {
         return connConfigQueryParams;
     }
 
+    private MultiValueMap<String, String> buildK8sVersionQueryParams(MultiValueMap<String, String> queryParams) {
+        org.springframework.util.LinkedMultiValueMap<String, String> k8sVersionQueryParams = new org.springframework.util.LinkedMultiValueMap<>();
+        k8sVersionQueryParams.set("providerName", firstPresentValue(queryParams, "providerName", "provider", "csp"));
+        k8sVersionQueryParams.set("regionName", firstPresentValue(queryParams, "regionName", "region"));
+        return k8sVersionQueryParams;
+    }
+
     private MultiValueMap<String, String> buildImageQueryParams(MultiValueMap<String, String> queryParams) {
         org.springframework.util.LinkedMultiValueMap<String, String> imageQueryParams = new org.springframework.util.LinkedMultiValueMap<>();
         if (queryParams != null) {
@@ -421,6 +442,54 @@ public class McInfraManagerService {
     private Object normalizeResourceResult(String resourceType, Object result, MultiValueMap<String, String> queryParams) {
         List<Object> compacted = compactResourceList(resourceType, toCatalogList(result), queryParams);
         return filterCatalogList(compacted, queryParams);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> compactK8sVersionList(List<Object> versions) {
+        List<Object> compacted = new ArrayList<>();
+        Set<String> seen = new java.util.LinkedHashSet<>();
+
+        for (Object item : versions) {
+            if (!(item instanceof Map<?, ?> itemMap)) {
+                String value = valueAsString(item);
+                if (StringUtils.hasText(value) && seen.add(value)) {
+                    compacted.add(value);
+                }
+                continue;
+            }
+
+            Map<String, Object> source = (Map<String, Object>) itemMap;
+            String id = firstNonBlank(
+                    valueAsString(source.get("id")),
+                    valueAsString(source.get("version")),
+                    valueAsString(source.get("value")),
+                    valueAsString(source.get("name")));
+            String name = firstNonBlank(
+                    valueAsString(source.get("name")),
+                    valueAsString(source.get("displayName")),
+                    id);
+            if (!StringUtils.hasText(id) || !seen.add(id)) {
+                continue;
+            }
+
+            Map<String, Object> target = new LinkedHashMap<>();
+            putIfPresent(target, "id", id);
+            putIfPresent(target, "name", name);
+            putIfPresent(target, "displayName", name);
+            putIfPresent(target, "version", id);
+            compacted.add(target);
+        }
+
+        compacted.sort((left, right) -> {
+            String leftText = left instanceof Map<?, ?> leftMap
+                    ? firstNonBlank(valueAsString(((Map<String, Object>) leftMap).get("name")), valueAsString(((Map<String, Object>) leftMap).get("id")))
+                    : valueAsString(left);
+            String rightText = right instanceof Map<?, ?> rightMap
+                    ? firstNonBlank(valueAsString(((Map<String, Object>) rightMap).get("name")), valueAsString(((Map<String, Object>) rightMap).get("id")))
+                    : valueAsString(right);
+            return firstNonBlank(leftText, "").compareToIgnoreCase(firstNonBlank(rightText, ""));
+        });
+        return compacted;
     }
 
     @SuppressWarnings("unchecked")
@@ -1011,6 +1080,7 @@ public class McInfraManagerService {
                 "connectionconfig", "connConfig", "connConfigs", "connectionConfig", "connectionConfigs",
                 "regions", "region", "regionList",
                 "availableZones", "allVerifiedZones", "zones", "zoneList",
+                "availableK8sVersion", "availableK8sVersions", "k8sVersion", "k8sVersions", "versions", "versionList",
                 "images", "image", "imageList", "customImage",
                 "specs", "spec", "specList", "vmspec", "vmSpec", "VMSpec", "vmSpecs", "VMSpecs",
                 "infra", "infras", "infraList",

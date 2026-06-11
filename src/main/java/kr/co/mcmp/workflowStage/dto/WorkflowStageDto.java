@@ -140,10 +140,11 @@ public class WorkflowStageDto {
                     param("ROOT_DISK_SIZE", "30"),
                     param("K8S_CREATE_OPTION", ""),
                     param("K8S_NODEGROUP_CREATE_IF_MISSING", "true"),
-                    param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                    param("K8S_STATUS_MAX_ATTEMPTS", "360"),
                     param("K8S_STATUS_INTERVAL_SECONDS", "10"),
                     param("K8S_READY_STATUS", "Active,Running"));
             case "multi-csp-k8s-cluster-deploy" -> multiCspK8sParams();
+            case "multi-csp-k8s-cluster-delete" -> multiCspK8sDeleteParams();
             case "k8s-cluster-get" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("K8S_CLUSTER_ID", ""));
@@ -173,7 +174,7 @@ public class WorkflowStageDto {
                     param("K8S_DESIRED_NODE_SIZE", "1"),
                     param("K8S_MIN_NODE_SIZE", "1"),
                     param("K8S_MAX_NODE_SIZE", "3"),
-                    param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                    param("K8S_STATUS_MAX_ATTEMPTS", "360"),
                     param("K8S_STATUS_INTERVAL_SECONDS", "10"),
                     param("K8S_READY_STATUS", "Active,Running"));
             case "k8s-nodegroup-remove" -> tumblebugParams(
@@ -196,7 +197,7 @@ public class WorkflowStageDto {
                     param("HELM_CHART_VERSION", "4.5.0"),
                     param("HELM_VERSION", "v3.18.6"),
                     param("KUBECTL_VERSION", ""),
-                    param("K8S_API_READY_MAX_ATTEMPTS", "60"),
+                    param("K8S_API_READY_MAX_ATTEMPTS", "360"),
                     param("K8S_API_READY_INTERVAL_SECONDS", "10"),
                     param("K8S_NODE_READY_MIN_COUNT", "1"),
                     param("HELM_RECREATE_ON_IMMUTABLE_ERROR", "true"),
@@ -346,7 +347,7 @@ public class WorkflowStageDto {
     private static List<WorkflowParamDto> multiCspK8sParams() {
         List<WorkflowParamDto> result = tumblebugParams(
                 param("NAMESPACE", ""),
-                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,tencent"),
+                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm"),
                 param("CLUSTER_PREFIX", "multi-csp-k8s"),
                 param("K8S_NODEGROUP_PREFIX", "ng"),
                 param("K8S_VERSION", "1.33"),
@@ -356,7 +357,7 @@ public class WorkflowStageDto {
                 param("ROOT_DISK_TYPE", "default"),
                 param("ROOT_DISK_SIZE", "30"),
                 param("K8S_CREATE_OPTION", ""),
-                param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                param("K8S_STATUS_MAX_ATTEMPTS", "360"),
                 param("K8S_STATUS_INTERVAL_SECONDS", "10"),
                 param("K8S_READY_STATUS", "Active,Running"));
 
@@ -365,8 +366,24 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "GCP", "asia-east1", "gcp-asia-east1");
         addCspK8sParams(result, "NCP", "kr1", "ncp-kr1");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1");
+        addCspK8sParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2");
         addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul");
+        addCspK8sParams(result, "IBM", "jp-osa", "ibm-jp-osa");
         return result;
+    }
+
+    private static List<WorkflowParamDto> multiCspK8sDeleteParams() {
+        return tumblebugParams(
+                param("NAMESPACE", ""),
+                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm"),
+                param("CLUSTER_PREFIX", "multi-csp-k8s"),
+                param("K8S_CLUSTER_ID_LIST", ""),
+                param("K8S_NODEGROUP_PREFIX", "ng"),
+                param("K8S_NODEGROUP_NAME_LIST", ""),
+                param("K8S_DELETE_OPTION", "force"),
+                param("K8S_NODEGROUP_DELETE_MAX_ATTEMPTS", "120"),
+                param("K8S_CLUSTER_DELETE_MAX_ATTEMPTS", "120"),
+                param("K8S_DELETE_INTERVAL_SECONDS", "10"));
     }
 
     private static void addCspVmParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
@@ -382,6 +399,7 @@ public class WorkflowStageDto {
         result.add(param(prefix + "_CONNECTION_NAME", connectionName));
         result.add(param(prefix + "_SPEC_ID", ""));
         result.add(param(prefix + "_IMAGE_ID", ""));
+        result.add(param(prefix + "_K8S_VERSION", ""));
     }
 
     private static List<WorkflowParamDto> params(WorkflowParamDto... params) {

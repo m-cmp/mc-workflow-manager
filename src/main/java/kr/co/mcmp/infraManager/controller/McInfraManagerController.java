@@ -59,6 +59,12 @@ public class McInfraManagerController {
         return new ResponseWrapper<>(mcInfraManagerService.getAvailableZones(queryParams));
     }
 
+    @Operation(summary = "K8s Version 목록 조회")
+    @GetMapping("/k8s-versions")
+    public ResponseWrapper<Object> getK8sVersions(@RequestParam MultiValueMap<String, String> queryParams) {
+        return new ResponseWrapper<>(mcInfraManagerService.getK8sVersions(queryParams));
+    }
+
     @Operation(summary = "Namespace Image/Spec 목록 조회")
     @GetMapping("/namespaces/{nsId}/resources/{resourceType}")
     public ResponseWrapper<Object> getResources(

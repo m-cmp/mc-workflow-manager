@@ -33,6 +33,10 @@ export const getMcInfraAvailableZones = (params?: QueryParams) => {
   return request.get(`/infra-manager/available-zones${buildQueryString(params)}`)
 }
 
+export const getMcInfraK8sVersions = (params?: QueryParams) => {
+  return request.get(`/infra-manager/k8s-versions${buildQueryString(params)}`)
+}
+
 export const getMcInfraResources = (nsId: string, resourceType: 'image' | 'spec', params?: QueryParams) => {
   return request.get(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/resources/${resourceType}${buildQueryString(params)}`)
 }

@@ -485,7 +485,6 @@ const needsKubernetesImageValidation = (stageNames: Array<string>) => {
     'k8s-nodegroup-add',
     'multi-csp-k8s-cluster-deploy',
   ].includes(stageName))
-    || normalizeValue(workflowFormData.value.workflowInfo?.workflowName).includes('k8s')
 }
 
 const getCspList = () => {

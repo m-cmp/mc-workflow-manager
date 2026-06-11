@@ -78,7 +78,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(response)
+                    echo groovy.json.JsonOutput.prettyPrint(response)
                 } else {
                     error "GET API call failed with status code: ${response}"
                 }
@@ -120,7 +120,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(response)
+                    echo groovy.json.JsonOutput.prettyPrint(response)
                   } else {
                     error "GET API call failed with status code: ${response}"
                 }
@@ -185,7 +185,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "Unsupported CSP: ${CSP}. Supported values are: aws, azure, gcp, ncp, nhn, alibaba, tencent, ibm"
                 }
 
-                def payload = JsonOutput.toJson([
+                def payload = groovy.json.JsonOutput.toJson([
                     name: "${MCI}",
                     nodeGroups: [
                         [
@@ -206,7 +206,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                   --user ''${USER}:${USERPASS}''"""
                 def response = sh(script: call, returnStdout: true).trim()
 
-                echo JsonOutput.prettyPrint(response)
+                echo groovy.json.JsonOutput.prettyPrint(response)
             }
         }
     }');
@@ -233,7 +233,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(response)
+                    echo groovy.json.JsonOutput.prettyPrint(response)
                   } else {
                     error "GET API call failed with status code: ${response}"
                 }
@@ -251,7 +251,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (tumblebug_exist_k8s_cluster_response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "Exist cluster!"
                     tumblebug_exist_k8s_cluster_response = tumblebug_exist_k8s_cluster_response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
+                    echo groovy.json.JsonOutput.prettyPrint(tumblebug_exist_k8s_cluster_response)
                 } else {
                     def call_tumblebug_create_k8s_cluster_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sClusterDynamic"""
                     def call_tumblebug_create_cluster_payload
@@ -323,7 +323,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         echo """Create cluster >> ${CLUSTER}"""
                         def responseCode = tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ? ''- Http_Status_code:200'' : ''- Http_Status_code:201''
                         tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(responseCode, '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_cluster_response)
+                        echo groovy.json.JsonOutput.prettyPrint(tumblebug_create_cluster_response)
                         
                         // Wait for cluster to be Active before creating node group
                         echo "Waiting for cluster to be Active..."
@@ -427,7 +427,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(response)
+                    echo groovy.json.JsonOutput.prettyPrint(response)
                 } else {
                     error "GET API call failed with status code: ${response}"
                 }
@@ -506,7 +506,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (tumblebug_exist_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
                     echo "Exist Namespace!"
                     tumblebug_exist_ns_response = tumblebug_exist_ns_response.replace(''- Http_Status_code:200'', '''')
-                    echo JsonOutput.prettyPrint(tumblebug_exist_ns_response)
+                    echo groovy.json.JsonOutput.prettyPrint(tumblebug_exist_ns_response)
                 } else {
                     def call_tumblebug_create_ns_url = """${TUMBLEBUG}/tumblebug/ns"""
                     def call_tumblebug_create_ns_payload = """''{ "name": ${NAMESPACE}, "description": "Workflow Created Namespace" }''"""
@@ -515,7 +515,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (tumblebug_create_ns_response.indexOf(''Http_Status_code:200'') > 0 ) {
                         echo """Create Namespace successful >> ${NAMESPACE}"""
                         tumblebug_create_ns_response = tumblebug_create_ns_response.replace(''- Http_Status_code:200'', '''')
-                        echo JsonOutput.prettyPrint(tumblebug_create_ns_response)
+                        echo groovy.json.JsonOutput.prettyPrint(tumblebug_create_ns_response)
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_ns_response}"""
                     }
@@ -631,7 +631,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (params.ZONE) {
                         nodeGroup.zone = params.ZONE
                     }
-                    payload = JsonOutput.toJson([
+                    payload = groovy.json.JsonOutput.toJson([
                         name: params.INFRA_ID,
                         description: params.INFRA_DESC ?: "Workflow created infra",
                         installMonAgent: params.INSTALL_MON_AGENT ?: "no",
@@ -932,7 +932,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         nodeGroup.zone = zone
                     }
 
-                    def payload = JsonOutput.toJson([
+                    def payload = groovy.json.JsonOutput.toJson([
                         name: infraId,
                         description: "Workflow multi CSP VM deploy - ${csp}",
                         installMonAgent: params.INSTALL_MON_AGENT ?: "no",
@@ -1056,7 +1056,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (connectionName) {
                         payloadMap.connectionName = connectionName
                     }
-                    payload = JsonOutput.toJson(payloadMap)
+                    payload = groovy.json.JsonOutput.toJson(payloadMap)
                 } else if (payload.contains("\"version\":\"\"")) {
                     payload = payload.replace("\"version\":\"\"", "\"version\":\"${k8sVersion}\"")
                 } else if (!payload.contains("\"version\"")) {
@@ -1081,7 +1081,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                 }
                 def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
-                def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "360").toInteger()
                 def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                 def statusResponse = ""
                 def currentStatus = ""
@@ -1120,7 +1120,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "k8s cluster is ready but node group is missing: ${statusResponse}"
                     }
                     echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
-                    def nodeGroupPayload = JsonOutput.toJson([
+                    def nodeGroupPayload = groovy.json.JsonOutput.toJson([
                         name: nodeGroupName,
                         specId: params.SPEC_ID,
                         imageId: params.IMAGE_ID,
@@ -1188,7 +1188,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.K8S_UPDATE_PAYLOAD?.trim()
                 if (!payload) {
-                    payload = JsonOutput.toJson([version: params.K8S_VERSION])
+                    payload = groovy.json.JsonOutput.toJson([version: params.K8S_VERSION])
                 }
                 writeFile file: "k8s-cluster-update.json", text: payload
                 def skipVersionCheck = params.K8S_SKIP_VERSION_CHECK ?: "false"
@@ -1225,7 +1225,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.K8S_NODEGROUP_PAYLOAD?.trim()
                 if (!payload) {
-                    payload = JsonOutput.toJson([
+                    payload = groovy.json.JsonOutput.toJson([
                         name: params.K8S_NODEGROUP_NAME,
                         specId: params.SPEC_ID,
                         imageId: params.IMAGE_ID,
@@ -1394,7 +1394,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (51, 18, 9, 'multi-csp-k8s-cluster-deploy', '6종 CSP 대상 K8s Cluster 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (51, 18, 9, 'multi-csp-k8s-cluster-deploy', '8종 CSP 대상 K8s Cluster 배포', '
     stage("multi-csp-k8s-cluster-deploy") {
         steps {
             echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
@@ -1413,7 +1413,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
                     def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
-                    def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
+                    def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
                     if (!specId || !imageId) {
                         error "SPEC_ID and IMAGE_ID are required for ${csp}"
                     }
@@ -1439,7 +1439,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         payloadMap.connectionName = connectionName
                     }
 
-                    def payload = JsonOutput.toJson(payloadMap)
+                    def payload = groovy.json.JsonOutput.toJson(payloadMap)
 
                     writeFile file: "k8s-cluster-create-${csp}.json", text: payload
                     echo "k8s-cluster-create-${csp} payload: ${payload}"
@@ -1450,7 +1450,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "multi-csp-k8s-cluster-deploy failed for ${csp}: ${response}"
                     }
                     def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
-                    def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                    def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "360").toInteger()
                     def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                     def statusResponse = ""
                     def currentStatus = ""
@@ -1477,6 +1477,226 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
                         error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
                     }
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (53, 18, 10, 'multi-csp-k8s-cluster-delete', 'multi-csp-k8s-cluster-deploy로 생성된 K8s Cluster 일괄 삭제', '
+    stage("multi-csp-k8s-cluster-delete") {
+        steps {
+            echo ">>>>> STAGE: multi-csp-k8s-cluster-delete"
+            script {
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+
+                def explicitClusterIds = (params.K8S_CLUSTER_ID_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
+                def targetClusters = []
+
+                def resolveNodeGroupNames = { csp ->
+                    def explicitNodeGroups = (params.K8S_NODEGROUP_NAME_LIST ?: params.K8S_NODEGROUP_NAME ?: "").split(",").collect { it.trim() }.findAll { it }
+                    if (!explicitNodeGroups.isEmpty()) {
+                        return explicitNodeGroups
+                    }
+                    def nodeGroupPrefix = params.K8S_NODEGROUP_PREFIX ?: "ng"
+                    return csp ? ["${nodeGroupPrefix}-${csp}"] : []
+                }
+
+                if (!explicitClusterIds.isEmpty()) {
+                    explicitClusterIds.each { clusterId ->
+                        targetClusters << [clusterId: clusterId, csp: "", nodeGroupNames: resolveNodeGroupNames("")]
+                    }
+                } else {
+                    if (cspList.isEmpty()) {
+                        error "CSP_LIST or K8S_CLUSTER_ID_LIST is required"
+                    }
+                    def clusterPrefix = params.CLUSTER_PREFIX ?: "multi-csp-k8s"
+                    cspList.each { csp ->
+                        targetClusters << [clusterId: "${clusterPrefix}-${csp}", csp: csp, nodeGroupNames: resolveNodeGroupNames(csp)]
+                    }
+                }
+
+                def option = params.K8S_DELETE_OPTION ?: "force"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def intervalSeconds = (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger()
+                def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                def clusterAttempts = (params.K8S_CLUSTER_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                def deletedClusters = []
+                def skippedClusters = []
+                def failedDeletes = []
+
+                def isAbsent = { value ->
+                    def textValue = value ?: ""
+                    def lowerValue = textValue.toLowerCase()
+                    def notFoundStatus = textValue.contains("Http_Status_code:404")
+                    def notExistMessage = lowerValue.contains("not exist")
+                    def failedToFindMessage = lowerValue.contains("failed to find")
+                    return notFoundStatus || notExistMessage || failedToFindMessage
+                }
+                def hasNodeGroupInfo = { value ->
+                    def compactValue = (value ?: "").replaceAll("\\s+", "").toLowerCase()
+                    def directNodeGroup = compactValue.contains("\"k8snodegrouplist\":[{")
+                    def spiderNodeGroup = compactValue.contains("\"nodegrouplist\":[{")
+                    return directNodeGroup || spiderNodeGroup
+                }
+                def extractNodeGroupNames = { value ->
+                    def textValue = value ?: ""
+                    def names = []
+                    def addName = { name ->
+                        def normalizedName = (name ?: "").trim()
+                        if (normalizedName && !names.contains(normalizedName)) {
+                            names << normalizedName
+                        }
+                    }
+                    (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"id"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"name"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"NodeGroupList"\s*:\s*\[\s*\{[^]]*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"spiderViewK8sNodeGroupDetail"\s*:\s*\{.*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    return names
+                }
+                def deleteAccepted = { action, value ->
+                    def textValue = value ?: ""
+                    def lowerValue = textValue.toLowerCase()
+                    if (isAbsent(value)) {
+                        echo "${action} target is already absent."
+                        return true
+                    }
+                    if (lowerValue.contains("not deleted")) {
+                        echo "${action} was not deleted by Tumblebug: ${value}"
+                        return false
+                    }
+                    if (!textValue.contains("Http_Status_code:2")) {
+                        echo "${action} failed: ${value}"
+                        return false
+                    }
+                    return true
+                }
+
+                targetClusters.each { target ->
+                    def clusterId = target.clusterId
+                    def clusterUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}"
+                    echo "Deleting K8s cluster ${clusterId}"
+
+                    def statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                    echo statusResponse
+                    if (isAbsent(statusResponse)) {
+                        skippedClusters << clusterId
+                        echo "K8s cluster ${clusterId} is already absent in Tumblebug."
+                        return
+                    }
+                    if (!statusResponse.contains("Http_Status_code:2")) {
+                        failedDeletes << "${clusterId}: status check failed: ${statusResponse}"
+                        return
+                    }
+
+                    if (hasNodeGroupInfo(statusResponse)) {
+                        def nodeGroupNames = []
+                        (target.nodeGroupNames ?: []).each { nodeGroupName ->
+                            def normalizedName = (nodeGroupName ?: "").trim()
+                            if (normalizedName && !nodeGroupNames.contains(normalizedName)) {
+                                nodeGroupNames << normalizedName
+                            }
+                        }
+                        extractNodeGroupNames(statusResponse).each { nodeGroupName ->
+                            if (nodeGroupName && !nodeGroupNames.contains(nodeGroupName)) {
+                                nodeGroupNames << nodeGroupName
+                            }
+                        }
+                        if (nodeGroupNames.isEmpty()) {
+                            echo "K8s node group exists in ${clusterId}, but node group name is not configured. Try cluster delete fallback."
+                        } else {
+                            def nodeGroupDeleteFailed = false
+                            def nodeGroupDeleteRequested = false
+                            echo "K8s node groups selected for ${clusterId}: ${nodeGroupNames.join(", ")}"
+                            nodeGroupNames.each { nodeGroupName ->
+                                def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
+                                def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
+                                echo nodeGroupResponse
+                                def nodeGroupAlreadyAbsent = isAbsent(nodeGroupResponse)
+                                def nodeGroupAccepted = deleteAccepted("k8s-nodegroup-remove ${clusterId}/${nodeGroupName}", nodeGroupResponse)
+                                if (!nodeGroupAccepted) {
+                                    nodeGroupDeleteFailed = true
+                                    echo "k8s-nodegroup-remove ${clusterId}/${nodeGroupName} failed. Try cluster delete fallback."
+                                } else if (!nodeGroupAlreadyAbsent) {
+                                    nodeGroupDeleteRequested = true
+                                }
+                            }
+
+                            if (nodeGroupDeleteFailed) {
+                                echo "Skip node group delete polling for ${clusterId}. Continue with cluster delete fallback."
+                            } else if (!nodeGroupDeleteRequested) {
+                                echo "No existing node group delete request was accepted for ${clusterId}. Continue with cluster delete fallback."
+                            } else {
+                                for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
+                                    statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                                    if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
+                                        break
+                                    }
+                                    def lowerStatus = statusResponse.toLowerCase()
+                                    def nodeGroupState = "Unknown"
+                                    if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
+                                        nodeGroupState = "Deleting"
+                                    }
+                                    echo "k8s node group for ${clusterId} is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
+                                    sleep time: intervalSeconds, unit: "SECONDS"
+                                }
+                                if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
+                                    echo "k8s node group for ${clusterId} still exists after polling. Continue with cluster delete fallback."
+                                }
+                            }
+                        }
+                    }
+
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${clusterUrl}?option=${option}" ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (!deleteAccepted("multi-csp-k8s-cluster-delete ${clusterId}", response)) {
+                        failedDeletes << "${clusterId}: cluster delete failed: ${response}"
+                        return
+                    }
+
+                    def clusterDeleted = isAbsent(response)
+                    for (int attempt = 1; !clusterDeleted && attempt <= clusterAttempts; attempt++) {
+                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                        clusterDeleted = isAbsent(statusResponse)
+                        if (clusterDeleted) {
+                            break
+                        }
+                        if (statusResponse.toLowerCase().contains("not deleted")) {
+                            failedDeletes << "${clusterId}: cluster was not deleted by Tumblebug: ${statusResponse}"
+                            break
+                        }
+                        def lowerClusterStatus = statusResponse.toLowerCase()
+                        def clusterState = "Unknown"
+                        if (lowerClusterStatus.contains("\"status\":\"deleting\"") || lowerClusterStatus.contains("\"status\": \"deleting\"")) {
+                            clusterState = "Deleting"
+                        }
+                        echo "k8s cluster ${clusterId} is still deleting. state=${clusterState}, attempt ${attempt}/${clusterAttempts}"
+                        sleep time: intervalSeconds, unit: "SECONDS"
+                    }
+                    if (!clusterDeleted) {
+                        failedDeletes << "${clusterId}: cluster was not deleted within timeout: ${statusResponse}"
+                        return
+                    }
+                    deletedClusters << clusterId
+                    echo "K8s cluster ${clusterId} cleanup completed in Tumblebug."
+                }
+
+                echo "Deleted K8s clusters: ${deletedClusters.join(", ")}"
+                echo "Skipped absent K8s clusters: ${skippedClusters.join(", ")}"
+                if (!failedDeletes.isEmpty()) {
+                    error "multi-csp-k8s-cluster-delete completed with failures: ${failedDeletes.join(" | ")}"
                 }
             }
         }
@@ -1574,7 +1794,7 @@ fi
 "${toolsBin}/aws-iam-authenticator" version
 """
                 }
-                def apiReadyAttempts = (params.K8S_API_READY_MAX_ATTEMPTS ?: "30").toInteger()
+                def apiReadyAttempts = (params.K8S_API_READY_MAX_ATTEMPTS ?: "360").toInteger()
                 def apiReadyIntervalSeconds = (params.K8S_API_READY_INTERVAL_SECONDS ?: "10").toInteger()
                 def minReadyNodes = (params.K8S_NODE_READY_MIN_COUNT ?: "1").toInteger()
                 def apiReady = false
@@ -2063,7 +2283,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.NOTIFICATION_PAYLOAD?.trim()
                 if (!payload) {
-                    payload = JsonOutput.toJson([text: params.NOTIFICATION_MESSAGE ?: "Workflow finished"])
+                    payload = groovy.json.JsonOutput.toJson([text: params.NOTIFICATION_MESSAGE ?: "Workflow finished"])
                 }
                 writeFile file: "notification.json", text: payload
                 def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.NOTIFICATION_WEBHOOK_URL}" -H "Content-Type: application/json" -d @notification.json""", returnStdout: true).trim()
@@ -2098,6 +2318,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 -- E. vm-mariadb-data-init-cleanup
 -- F. multi-csp-vm-cleanup
 -- G. k8s-mariadb-data-init-cleanup
+-- H. multi-csp-k8s-cluster-cleanup
 
 DELETE FROM event_listener_param WHERE event_listener_idx IN (
     SELECT event_listener_idx FROM event_listener
@@ -2110,8 +2331,8 @@ DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (SELECT workflow_idx FR
 DELETE FROM workflow_param WHERE workflow_idx IN (SELECT workflow_idx FROM workflow WHERE workflow_purpose = 'test');
 DELETE FROM workflow WHERE workflow_purpose = 'test';
 
-DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107);
-DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107);
+DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108);
+DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108);
 ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH 10000;
 ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH 10000;
 
@@ -2176,7 +2397,7 @@ pipeline {
                             nodeGroup.zone = zone
                         }
 
-                        def payload = JsonOutput.toJson([
+                        def payload = groovy.json.JsonOutput.toJson([
                             name: infraId,
                             description: "Workflow multi CSP VM deploy - ${csp}",
                             installMonAgent: params.INSTALL_MON_AGENT ?: "no",
@@ -2244,7 +2465,7 @@ pipeline {
                         def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
-                        def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
+                        def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
                         if (!specId || !imageId) {
                             error "SPEC_ID and IMAGE_ID are required for ${csp}"
                         }
@@ -2270,7 +2491,7 @@ pipeline {
                             payloadMap.connectionName = connectionName
                         }
 
-                        def payload = JsonOutput.toJson(payloadMap)
+                        def payload = groovy.json.JsonOutput.toJson(payloadMap)
 
                         writeFile file: "k8s-cluster-create-${csp}.json", text: payload
                         echo "k8s-cluster-create-${csp} payload: ${payload}"
@@ -2281,7 +2502,7 @@ pipeline {
                             error "multi-csp-k8s-cluster-deploy failed for ${csp}: ${response}"
                         }
                         def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
-                        def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                        def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "360").toInteger()
                         def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                         def statusResponse = ""
                         def currentStatus = ""
@@ -2479,6 +2700,17 @@ pipeline {
 }
 ', NULL);
 
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (108, 'multi-csp-k8s-cluster-cleanup', 'For Cleanup', 1,
+(SELECT 'pipeline {
+    agent any
+    stages {
+'
+|| workflow_stage_content
+|| '
+    }
+}
+' FROM workflow_stage WHERE workflow_stage_idx = 53), NULL);
+
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (101, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
@@ -2588,12 +2820,12 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'ROOT_DISK_SIZE', '30', 'N'),
 (103, 'K8S_CREATE_OPTION', '', 'N'),
 (103, 'K8S_NODEGROUP_CREATE_IF_MISSING', 'true', 'N'),
-(103, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
+(103, 'K8S_STATUS_MAX_ATTEMPTS', '360', 'N'),
 (103, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
 (103, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (103, 'KUBECONFIG_CONTENT', '', 'N'),
 (103, 'KUBE_NAMESPACE', 'default', 'N'),
-(103, 'K8S_API_READY_MAX_ATTEMPTS', '60', 'N'),
+(103, 'K8S_API_READY_MAX_ATTEMPTS', '360', 'N'),
 (103, 'K8S_API_READY_INTERVAL_SECONDS', '10', 'N'),
 (103, 'K8S_NODE_READY_MIN_COUNT', '1', 'N'),
 (103, 'RELEASE_NAME', 'mariadb', 'N'),
@@ -2622,7 +2854,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'USER', 'default', 'N'),
 (104, 'USERPASS', 'default', 'N'),
 (104, 'NAMESPACE', 'ns01', 'N'),
-(104, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,tencent', 'N'),
+(104, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm', 'N'),
 (104, 'CLUSTER_PREFIX', 'multi-csp-k8s', 'N'),
 (104, 'K8S_NODEGROUP_PREFIX', 'ng', 'N'),
 (104, 'K8S_VERSION', '1.33', 'N'),
@@ -2632,33 +2864,49 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'ROOT_DISK_TYPE', 'default', 'N'),
 (104, 'ROOT_DISK_SIZE', '30', 'N'),
 (104, 'K8S_CREATE_OPTION', '', 'N'),
-(104, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
+(104, 'K8S_STATUS_MAX_ATTEMPTS', '360', 'N'),
 (104, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
 (104, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (104, 'AWS_REGION', 'ap-northeast-2', 'N'),
 (104, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
 (104, 'AWS_SPEC_ID', '', 'N'),
 (104, 'AWS_IMAGE_ID', '', 'N'),
+(104, 'AWS_K8S_VERSION', '', 'N'),
 (104, 'AZURE_REGION', 'koreacentral', 'N'),
 (104, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
 (104, 'AZURE_SPEC_ID', '', 'N'),
 (104, 'AZURE_IMAGE_ID', '', 'N'),
+(104, 'AZURE_K8S_VERSION', '', 'N'),
 (104, 'GCP_REGION', 'asia-east1', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-east1', 'N'),
 (104, 'GCP_SPEC_ID', '', 'N'),
 (104, 'GCP_IMAGE_ID', '', 'N'),
+(104, 'GCP_K8S_VERSION', '', 'N'),
 (104, 'NCP_REGION', 'kr1', 'N'),
 (104, 'NCP_CONNECTION_NAME', 'ncp-kr1', 'N'),
 (104, 'NCP_SPEC_ID', '', 'N'),
 (104, 'NCP_IMAGE_ID', '', 'N'),
+(104, 'NCP_K8S_VERSION', '', 'N'),
 (104, 'NHN_REGION', 'kr1', 'N'),
 (104, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
 (104, 'NHN_SPEC_ID', '', 'N'),
 (104, 'NHN_IMAGE_ID', '', 'N'),
+(104, 'NHN_K8S_VERSION', '', 'N'),
+(104, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
+(104, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
+(104, 'ALIBABA_SPEC_ID', '', 'N'),
+(104, 'ALIBABA_IMAGE_ID', '', 'N'),
+(104, 'ALIBABA_K8S_VERSION', '', 'N'),
 (104, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
 (104, 'TENCENT_SPEC_ID', '', 'N'),
-(104, 'TENCENT_IMAGE_ID', '', 'N');
+(104, 'TENCENT_IMAGE_ID', '', 'N'),
+(104, 'TENCENT_K8S_VERSION', '', 'N'),
+(104, 'IBM_REGION', 'jp-osa', 'N'),
+(104, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
+(104, 'IBM_SPEC_ID', '', 'N'),
+(104, 'IBM_IMAGE_ID', '', 'N'),
+(104, 'IBM_K8S_VERSION', '', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (105, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -2692,6 +2940,22 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (107, 'K8S_NODEGROUP_DELETE_MAX_ATTEMPTS', '120', 'N'),
 (107, 'K8S_CLUSTER_DELETE_MAX_ATTEMPTS', '120', 'N'),
 (107, 'K8S_DELETE_INTERVAL_SECONDS', '10', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(108, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(108, 'TUMBLEBUG_SELECTOR_YN', 'N', 'N'),
+(108, 'USER', 'default', 'N'),
+(108, 'USERPASS', 'default', 'N'),
+(108, 'NAMESPACE', 'ns01', 'N'),
+(108, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm', 'N'),
+(108, 'CLUSTER_PREFIX', 'multi-csp-k8s', 'N'),
+(108, 'K8S_CLUSTER_ID_LIST', '', 'N'),
+(108, 'K8S_NODEGROUP_PREFIX', 'ng', 'N'),
+(108, 'K8S_NODEGROUP_NAME_LIST', '', 'N'),
+(108, 'K8S_DELETE_OPTION', 'force', 'N'),
+(108, 'K8S_NODEGROUP_DELETE_MAX_ATTEMPTS', '120', 'N'),
+(108, 'K8S_CLUSTER_DELETE_MAX_ATTEMPTS', '120', 'N'),
+(108, 'K8S_DELETE_INTERVAL_SECONDS', '10', 'N');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
@@ -2753,5 +3017,8 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (107, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 107));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(108, 1, 53, (SELECT script FROM workflow WHERE workflow_idx = 108));
 
 -- End Step 8
