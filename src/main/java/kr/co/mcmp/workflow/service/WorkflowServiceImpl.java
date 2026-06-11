@@ -106,7 +106,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                                             .map(WorkflowParamDto::from)
                                             .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflow.getWorkflowIdx());
+            List<WorkflowStageMappingDto> stageList = getCurrentWorkflowStageMappingDtos(workflow.getWorkflowIdx());
+            workflowDto = workflowDtoWithScript(workflowDto, stageList);
 
             WorkflowListResDto workflowListData = WorkflowListResDto.of(workflowDto, paramList, stageList);
 
@@ -158,6 +159,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                     workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
                 }
             }
+            List<WorkflowStageMappingDto> currentStageMappings = getCurrentWorkflowStageMappingDtos(workflowEntity.getWorkflowIdx());
+            workflowDto = workflowDtoWithScript(workflowDto, currentStageMappings);
 
             synchronizeJenkinsJobIfAvailable(
                     ossDto,
@@ -221,6 +224,8 @@ public class WorkflowServiceImpl implements WorkflowService {
             for(WorkflowStageMappingDto stage : workflowStageMappings) {
                 workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
             }
+            List<WorkflowStageMappingDto> currentStageMappings = getCurrentWorkflowStageMappingDtos(workflowEntity.getWorkflowIdx());
+            workflowDto = workflowDtoWithScript(workflowDto, currentStageMappings);
 
             synchronizeJenkinsJobIfAvailable(
                     ossDto,
@@ -343,7 +348,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                     .map(WorkflowParamDto::from)
                     .collect(Collectors.toList());
 
-            List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflowIdx);
+            List<WorkflowStageMappingDto> stageList = getCurrentWorkflowStageMappingDtos(workflowIdx);
+            workflowDto = workflowDtoWithScript(workflowDto, stageList);
 
             WorkflowDetailResDto workflowDetail = WorkflowDetailResDto.of(workflowDto, paramList, stageList);
 
@@ -392,7 +398,8 @@ public class WorkflowServiceImpl implements WorkflowService {
                                             .map(WorkflowParamDto::from)
                                             .collect(Collectors.toList());
 
-        List<WorkflowStageMappingDto> stageList = getWorkflowStageMappingDtos(workflowIdx);
+        List<WorkflowStageMappingDto> stageList = getCurrentWorkflowStageMappingDtos(workflowIdx);
+        workflowDto = workflowDtoWithScript(workflowDto, stageList);
 
         WorkflowReqDto workflowReqDto = WorkflowReqDto.of(workflowDto, paramList, stageList);
 
@@ -410,12 +417,144 @@ public class WorkflowServiceImpl implements WorkflowService {
      */
     @Override
     public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
-        validateInfraDynamicReviewBeforeRun(workflowReqDto);
-        if (workflowReqDto.getWorkflowInfo() != null) {
-            updateWorkflowRunDate(workflowReqDto.getWorkflowInfo().getWorkflowIdx());
+        WorkflowReqDto runRequest = currentWorkflowRunRequest(workflowReqDto);
+        validateInfraDynamicReviewBeforeRun(runRequest);
+        if (runRequest.getWorkflowInfo() != null) {
+            updateWorkflowRunDate(runRequest.getWorkflowInfo().getWorkflowIdx());
         }
-        workflowAsyncExecutor.runWorkflow(workflowReqDto);
+        workflowAsyncExecutor.runWorkflow(runRequest);
         return true;
+    }
+
+    private WorkflowReqDto currentWorkflowRunRequest(WorkflowReqDto workflowReqDto) {
+        if (workflowReqDto == null
+                || workflowReqDto.getWorkflowInfo() == null
+                || workflowReqDto.getWorkflowInfo().getWorkflowIdx() == null) {
+            return workflowReqDto;
+        }
+
+        Long workflowIdx = workflowReqDto.getWorkflowInfo().getWorkflowIdx();
+        Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
+        if (workflow == null) {
+            return workflowReqDto;
+        }
+
+        WorkflowDto workflowDto = WorkflowDto.from(workflow);
+        List<WorkflowStageMappingDto> stageList = getCurrentWorkflowStageMappingDtos(workflowIdx);
+        workflowDto = workflowDtoWithScript(workflowDto, stageList);
+        List<WorkflowParamDto> savedParams = workflowParamRepository.findByWorkflow_WorkflowIdx(workflowIdx)
+                .stream()
+                .map(WorkflowParamDto::from)
+                .collect(Collectors.toList());
+        List<WorkflowParamDto> requestedParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
+        List<WorkflowParamDto> runParams = mergeWorkflowParams(savedParams, requestedParams);
+
+        return WorkflowReqDto.of(workflowDto, runParams, stageList);
+    }
+
+    private WorkflowDto workflowDtoWithScript(WorkflowDto workflowDto, List<WorkflowStageMappingDto> stageList) {
+        String currentScript = buildScriptFromStageMappings(stageList);
+        if (!StringUtils.hasText(currentScript)) {
+            return workflowDto;
+        }
+
+        return WorkflowDto.builder()
+                .workflowIdx(workflowDto.getWorkflowIdx())
+                .workflowName(workflowDto.getWorkflowName())
+                .workflowPurpose(workflowDto.getWorkflowPurpose())
+                .ossIdx(workflowDto.getOssIdx())
+                .script(currentScript)
+                .status(workflowDto.getStatus())
+                .runDate(workflowDto.getRunDate())
+                .latestBuildNumber(workflowDto.getLatestBuildNumber())
+                .build();
+    }
+
+    private String buildScriptFromStageMappings(List<WorkflowStageMappingDto> stageList) {
+        if (CollectionUtils.isEmpty(stageList)) {
+            return null;
+        }
+
+        String script = stageList.stream()
+                .map(WorkflowStageMappingDto::getStageContent)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.joining());
+
+        return StringUtils.hasText(script) ? normalizeDeclarativePipelineScript(script) : null;
+    }
+
+    private String normalizeDeclarativePipelineScript(String script) {
+        if (!StringUtils.hasText(script)) {
+            return script;
+        }
+
+        String trimmedScript = script.trim();
+        if (trimmedScript.contains("pipeline {") || !trimmedScript.contains("stage(")) {
+            return script;
+        }
+
+        StringBuilder imports = new StringBuilder();
+        StringBuilder stageBody = new StringBuilder();
+        boolean stageBodyStarted = false;
+
+        for (String line : trimmedScript.split("\\R", -1)) {
+            if (!stageBodyStarted && line.trim().startsWith("import ")) {
+                imports.append(line.trim()).append(System.lineSeparator());
+                continue;
+            }
+            stageBodyStarted = true;
+            stageBody.append(line).append(System.lineSeparator());
+        }
+
+        StringBuilder wrappedScript = new StringBuilder();
+        if (!imports.isEmpty()) {
+            wrappedScript.append(imports).append(System.lineSeparator());
+        }
+        wrappedScript.append("pipeline {").append(System.lineSeparator())
+                .append("    agent any").append(System.lineSeparator())
+                .append("    stages {").append(System.lineSeparator())
+                .append(indentStageBody(stageBody.toString()))
+                .append("    }").append(System.lineSeparator())
+                .append("}").append(System.lineSeparator());
+
+        return wrappedScript.toString();
+    }
+
+    private String indentStageBody(String stageBody) {
+        String[] lines = stageBody.strip().split("\\R", -1);
+        int minIndent = Arrays.stream(lines)
+                .filter(StringUtils::hasText)
+                .mapToInt(this::leadingWhitespaceCount)
+                .min()
+                .orElse(0);
+
+        return Arrays.stream(lines)
+                .map(line -> {
+                    String normalizedLine = line.length() >= minIndent ? line.substring(minIndent) : line.stripLeading();
+                    return StringUtils.hasText(normalizedLine) ? "    " + normalizedLine : "";
+                })
+                .collect(Collectors.joining(System.lineSeparator(), "", System.lineSeparator()));
+    }
+
+    private int leadingWhitespaceCount(String value) {
+        int count = 0;
+        while (count < value.length() && Character.isWhitespace(value.charAt(count))) {
+            count++;
+        }
+        return count;
+    }
+
+    private List<WorkflowParamDto> mergeWorkflowParams(List<WorkflowParamDto> savedParams, List<WorkflowParamDto> requestedParams) {
+        Map<String, WorkflowParamDto> paramsByKey = new LinkedHashMap<>();
+
+        for (WorkflowParamDto param : sanitizeWorkflowParams(savedParams)) {
+            paramsByKey.put(param.getParamKey(), param);
+        }
+        for (WorkflowParamDto param : sanitizeWorkflowParams(requestedParams)) {
+            paramsByKey.put(param.getParamKey(), param);
+        }
+
+        return new ArrayList<>(paramsByKey.values());
     }
 
     private void validateInfraDynamicReviewBeforeRun(WorkflowReqDto workflowReqDto) {
@@ -993,7 +1132,19 @@ public class WorkflowServiceImpl implements WorkflowService {
                 workflowStageMappingRepository.findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(workflowIdx));
     }
 
+    private List<WorkflowStageMappingDto> getCurrentWorkflowStageMappingDtos(Long workflowIdx) {
+        return toWorkflowStageMappingDtos(
+                workflowStageMappingRepository.findByWorkflow_WorkflowIdxOrderByStageOrderAscMappingIdxAsc(workflowIdx),
+                true);
+    }
+
     private List<WorkflowStageMappingDto> toWorkflowStageMappingDtos(List<kr.co.mcmp.workflow.Entity.WorkflowStageMapping> workflowStageMappings) {
+        return toWorkflowStageMappingDtos(workflowStageMappings, false);
+    }
+
+    private List<WorkflowStageMappingDto> toWorkflowStageMappingDtos(
+            List<kr.co.mcmp.workflow.Entity.WorkflowStageMapping> workflowStageMappings,
+            boolean preferCurrentStageContent) {
         if (CollectionUtils.isEmpty(workflowStageMappings)) {
             return Collections.emptyList();
         }
@@ -1008,7 +1159,20 @@ public class WorkflowServiceImpl implements WorkflowService {
                                 workflowStageIdx,
                                 workflowStageRepository::findByWorkflowStageIdx);
                     }
-                    return WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                    WorkflowStageMappingDto stageMappingDto = WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                    if (preferCurrentStageContent && workflowStage != null && StringUtils.hasText(workflowStage.getWorkflowStageContent())) {
+                        stageMappingDto = WorkflowStageMappingDto.builder()
+                                .mappingIdx(stageMappingDto.getMappingIdx())
+                                .workflowIdx(stageMappingDto.getWorkflowIdx())
+                                .stageOrder(stageMappingDto.getStageOrder())
+                                .workflowStageIdx(stageMappingDto.getWorkflowStageIdx())
+                                .workflowStageName(stageMappingDto.getWorkflowStageName())
+                                .workflowStageTypeName(stageMappingDto.getWorkflowStageTypeName())
+                                .stageContent(workflowStage.getWorkflowStageContent())
+                                .defaultParams(stageMappingDto.getDefaultParams())
+                                .build();
+                    }
+                    return stageMappingDto;
                 })
                 .collect(Collectors.toList());
     }
@@ -1029,7 +1193,7 @@ public class WorkflowServiceImpl implements WorkflowService {
             String stageContent = stageMapping.getStageContent();
             Long workflowStageIdx = stageMapping.getWorkflowStageIdx();
 
-            if (!StringUtils.hasText(stageContent) && workflowStageIdx != null) {
+            if (shouldUseCurrentWorkflowStageContent(stageContent, workflowStageIdx)) {
                 WorkflowStage workflowStage = workflowStageRepository.findByWorkflowStageIdx(workflowStageIdx);
                 if (workflowStage != null) {
                     stageContent = workflowStage.getWorkflowStageContent();
@@ -1053,5 +1217,18 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
 
         return result;
+    }
+
+    private boolean shouldUseCurrentWorkflowStageContent(String stageContent, Long workflowStageIdx) {
+        if (workflowStageIdx == null) {
+            return false;
+        }
+        if (!StringUtils.hasText(stageContent)) {
+            return true;
+        }
+
+        String normalizedStageContent = stageContent.trim().toLowerCase(Locale.ROOT);
+        return Set.of("true", "false").contains(normalizedStageContent)
+                || !normalizedStageContent.contains("stage(");
     }
 }

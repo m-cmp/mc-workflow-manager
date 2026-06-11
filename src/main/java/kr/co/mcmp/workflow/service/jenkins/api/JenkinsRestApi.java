@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import kr.co.mcmp.util.AES256Util;
 import kr.co.mcmp.util.Base64Util;
 import kr.co.mcmp.workflow.dto.resDto.WorkflowRunHistoryResDto;
+import kr.co.mcmp.workflow.service.jenkins.exception.JenkinsException;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDescribeLog;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsBuildDetailLog;
 import kr.co.mcmp.workflow.service.jenkins.model.JenkinsCredential;
@@ -32,6 +33,9 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -140,11 +144,199 @@ public class JenkinsRestApi {
      * @throws UnsupportedEncodingException
      */
     public boolean updateJenkinsJob(String url, String id, String password, String jobName, String configXml) throws UnsupportedEncodingException {
-        configXml = URLEncoder.encode(configXml, "UTF-8");
+        try {
+            return updateJenkinsJobConfigXml(url, id, password, jobName, configXml);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("[updateJenkinsJob] Jenkins Job config update interrupted. jobName: {}", jobName, e);
+            return false;
+        } catch (Exception e) {
+            log.error("[updateJenkinsJob] Jenkins Job config update failed. jobName: {}", jobName, e);
+            return false;
+        }
+    }
 
-        JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
-        JobsApi jobsApi = jenkinsClient.api().jobsApi();
-        return jobsApi.config(null, jobName, configXml);
+    public int updateJenkinsJobAndBuildNow(String url, String id, String password, String jobName, String configXml,
+                                           Map<String, List<String>> params, String verificationMarker) {
+        try {
+            updateAndVerifyJenkinsJobConfigXml(url, id, password, jobName, configXml, verificationMarker);
+            return buildJenkinsJobNow(url, id, password, jobName, params);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new JenkinsException(500, "Interrupted while updating Jenkins config.xml before build");
+        } catch (JenkinsException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[updateJenkinsJobAndBuildNow] Jenkins update/build failed. jobName: {}", jobName, e);
+            throw new JenkinsException(500, "Jenkins update/build failed", e.getMessage());
+        }
+    }
+
+    private void updateAndVerifyJenkinsJobConfigXml(String url, String id, String password, String jobName,
+                                                    String configXml, String verificationMarker) throws Exception {
+        int maxAttempts = verificationMarker != null && !verificationMarker.isBlank() ? 3 : 1;
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            boolean updated = updateJenkinsJobConfigXml(url, id, password, jobName, configXml);
+            if (!updated) {
+                throw new JenkinsException(500, "Jenkins config.xml update failed before build");
+            }
+
+            if (verificationMarker == null || verificationMarker.isBlank()) {
+                return;
+            }
+
+            String currentConfig = getJenkinsJobConfigXml(url, id, password, jobName);
+            if (currentConfig != null && currentConfig.contains(verificationMarker)) {
+                return;
+            }
+
+            log.warn("[updateJenkinsJobAndBuildNow] Jenkins config.xml verification failed after update. jobName: {}, marker: {}, attempt: {}/{}",
+                    jobName, verificationMarker, attempt, maxAttempts);
+            Thread.sleep(500L);
+        }
+
+        throw new JenkinsException(500, "Jenkins config.xml verification failed before build", verificationMarker);
+    }
+
+    private boolean updateJenkinsJobConfigXml(String url, String id, String password, String jobName, String configXml) throws Exception {
+        String auth = basicAuth(id, password);
+        String jobConfigUrl = normalizedJenkinsUrl(url) + "/job/" + encodePathSegment(jobName) + "/config.xml";
+
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(jobConfigUrl))
+                .timeout(Duration.ofSeconds(30))
+                .header("Authorization", "Basic " + auth)
+                .header("Content-Type", "application/xml; charset=UTF-8")
+                .POST(HttpRequest.BodyPublishers.ofString(configXml, StandardCharsets.UTF_8));
+
+        try {
+            JenkinsCrumbHeader crumb = getJenkinsCrumbHeader(url, auth);
+            if (crumb != null) {
+                requestBuilder.header(crumb.requestField(), crumb.value());
+                if (crumb.cookieHeader() != null && !crumb.cookieHeader().isBlank()) {
+                    requestBuilder.header("Cookie", crumb.cookieHeader());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[updateJenkinsJob] Jenkins crumb lookup failed. Continue with basic auth only. jobName: {}, message: {}",
+                    jobName, e.getMessage());
+        }
+
+        HttpResponse<String> response = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build()
+                .send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        boolean success = response.statusCode() >= 200 && response.statusCode() < 300;
+        if (!success) {
+            log.error("[updateJenkinsJob] Jenkins config.xml update failed. jobName: {}, status: {}, body: {}",
+                    jobName, response.statusCode(), response.body());
+        } else {
+            log.info("[updateJenkinsJob] Jenkins config.xml update accepted. jobName: {}, status: {}",
+                    jobName, response.statusCode());
+        }
+        return success;
+    }
+
+    public String getJenkinsJobConfigXml(String url, String id, String password, String jobName) {
+        try {
+            String auth = basicAuth(id, password);
+            String jobConfigUrl = normalizedJenkinsUrl(url) + "/job/" + encodePathSegment(jobName) + "/config.xml";
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(jobConfigUrl))
+                    .timeout(Duration.ofSeconds(30))
+                    .header("Authorization", "Basic " + auth)
+                    .header("Cache-Control", "no-cache")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build()
+                    .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.error("[getJenkinsJobConfigXml] Jenkins config.xml lookup failed. jobName: {}, status: {}, body: {}",
+                        jobName, response.statusCode(), response.body());
+                throw new JenkinsException(response.statusCode(), "Jenkins config.xml lookup failed");
+            }
+
+            log.info("[getJenkinsJobConfigXml] Jenkins config.xml loaded. jobName: {}, length: {}, hasK8sHelmMarker: {}",
+                    jobName,
+                    response.body() != null ? response.body().length() : 0,
+                    response.body() != null && response.body().contains("k8s-helm-bootstrap-v3"));
+            return response.body();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new JenkinsException(500, "Interrupted while reading Jenkins config.xml");
+        } catch (JenkinsException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[getJenkinsJobConfigXml] Jenkins config.xml lookup error. jobName: {}", jobName, e);
+            throw new JenkinsException(500, "Jenkins config.xml lookup error", e.getMessage());
+        }
+    }
+
+    private String basicAuth(String id, String password) {
+        String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
+        return Base64.getEncoder()
+                .encodeToString((id + ":" + plainTextPassword).getBytes(StandardCharsets.UTF_8));
+    }
+
+    private JenkinsCrumbHeader getJenkinsCrumbHeader(String url, String auth) throws Exception {
+        String crumbUrl = normalizedJenkinsUrl(url) + "/crumbIssuer/api/json";
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(crumbUrl))
+                .timeout(Duration.ofSeconds(10))
+                .header("Authorization", "Basic " + auth)
+                .GET()
+                .build();
+
+        HttpResponse<String> response = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build()
+                .send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+            log.warn("[updateJenkinsJob] Jenkins crumb lookup returned status: {}", response.statusCode());
+            return null;
+        }
+
+        String requestField = extractJsonString(response.body(), "crumbRequestField");
+        String crumb = extractJsonString(response.body(), "crumb");
+        if (requestField == null || crumb == null) {
+            return null;
+        }
+
+        String cookieHeader = response.headers()
+                .allValues("Set-Cookie")
+                .stream()
+                .map(cookie -> cookie.split(";", 2)[0])
+                .filter(cookie -> !cookie.isBlank())
+                .collect(Collectors.joining("; "));
+
+        return new JenkinsCrumbHeader(requestField, crumb, cookieHeader);
+    }
+
+    private String extractJsonString(String body, String fieldName) {
+        if (body == null) {
+            return null;
+        }
+        Pattern pattern = Pattern.compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([^\"]*)\"");
+        Matcher matcher = pattern.matcher(body);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private record JenkinsCrumbHeader(String requestField, String value, String cookieHeader) {
+    }
+
+    private String normalizedJenkinsUrl(String url) {
+        return url.endsWith("/") ? url.substring(0, url.length() - 1) : url;
+    }
+
+    private String encodePathSegment(String value) throws UnsupportedEncodingException {
+        return URLEncoder.encode(value, "UTF-8").replace("+", "%20");
     }
 
     /**
@@ -160,9 +352,92 @@ public class JenkinsRestApi {
      * Jenkins Job 빌드
      */
     public int buildJenkinsJob(String url, String id, String password, String jobName, Map<String, List<String>> params) {
-        JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
-        JobsApi jobsApi = jenkinsClient.api().jobsApi();
-        return jobsApi.buildWithParameters(null, jobName, params).value();
+        try {
+            return buildJenkinsJobNow(url, id, password, jobName, params);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new JenkinsException(500, "Interrupted while requesting Jenkins build");
+        } catch (JenkinsException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[buildJenkinsJob] Jenkins build request failed. jobName: {}", jobName, e);
+            throw new JenkinsException(500, "Jenkins build request failed", e.getMessage());
+        }
+    }
+
+    private int buildJenkinsJobNow(String url, String id, String password, String jobName, Map<String, List<String>> params) throws Exception {
+        String auth = basicAuth(id, password);
+        String buildUrl = normalizedJenkinsUrl(url)
+                + "/job/" + encodePathSegment(jobName)
+                + "/buildWithParameters?delay=0sec";
+
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(buildUrl))
+                .timeout(Duration.ofSeconds(30))
+                .header("Authorization", "Basic " + auth)
+                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                .POST(HttpRequest.BodyPublishers.ofString(buildFormBody(params), StandardCharsets.UTF_8));
+
+        try {
+            JenkinsCrumbHeader crumb = getJenkinsCrumbHeader(url, auth);
+            if (crumb != null) {
+                requestBuilder.header(crumb.requestField(), crumb.value());
+                if (crumb.cookieHeader() != null && !crumb.cookieHeader().isBlank()) {
+                    requestBuilder.header("Cookie", crumb.cookieHeader());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[buildJenkinsJob] Jenkins crumb lookup failed. Continue with basic auth only. jobName: {}, message: {}",
+                    jobName, e.getMessage());
+        }
+
+        HttpResponse<String> response = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
+                .build()
+                .send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        boolean success = response.statusCode() >= 200 && response.statusCode() < 400;
+        if (!success) {
+            log.error("[buildJenkinsJob] Jenkins build request failed. jobName: {}, status: {}, body: {}",
+                    jobName, response.statusCode(), response.body());
+            throw new JenkinsException(response.statusCode(), "Jenkins build request failed");
+        }
+
+        int queueId = resolveQueueId(response.headers().firstValue("Location").orElse(""));
+        log.info("[buildJenkinsJob] Jenkins build requested. jobName: {}, status: {}, queueId: {}",
+                jobName, response.statusCode(), queueId);
+        return queueId;
+    }
+
+    private String buildFormBody(Map<String, List<String>> params) {
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+
+        return params.entrySet()
+                .stream()
+                .flatMap(entry -> {
+                    List<String> values = entry.getValue();
+                    if (values == null || values.isEmpty()) {
+                        return List.of(Map.entry(entry.getKey(), "")).stream();
+                    }
+                    return values.stream().map(value -> Map.entry(entry.getKey(), value == null ? "" : value));
+                })
+                .map(entry -> encodeFormValue(entry.getKey()) + "=" + encodeFormValue(entry.getValue()))
+                .collect(Collectors.joining("&"));
+    }
+
+    private String encodeFormValue(String value) {
+        return URLEncoder.encode(value == null ? "" : value, StandardCharsets.UTF_8);
+    }
+
+    private int resolveQueueId(String location) {
+        if (location == null) {
+            return 0;
+        }
+
+        Matcher matcher = Pattern.compile("/queue/item/(\\d+)/?").matcher(location);
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : 0;
     }
 
     /**

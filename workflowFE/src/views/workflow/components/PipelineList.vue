@@ -22,8 +22,7 @@
   </span>
   <VAceEditor
     ref="pipeline"
-    v-model="pipelineInfo.stageContent"
-    :value="pipelineInfo.stageContent" 
+    :value="editorContent"
     :id="pipelineInfo.mappingIdx"
     :options="{
       readOnly: dragFlag,
@@ -34,25 +33,17 @@
       cursorStyle: 'smooth',
       hasCssTransforms: true
     }" 
-    @input="inputData"
+    @update:value="updateStageContent"
     />
 </div>
 </template>
 
 <script setup lang="ts">
 import type { WorkflowStageMappings } from '@/views/type/type';
-import { getCurrentInstance, toRefs } from 'vue';
+import { computed, toRefs, watch } from 'vue';
 import { VAceEditor } from "vue3-ace-editor";
 import 'ace-builds/src-noconflict/mode-text';
 import 'ace-builds/src-noconflict/theme-chrome';
-import { watch } from 'vue';
-import { watchEffect } from 'vue';
-import { ref, onMounted } from 'vue';
-
-const instance = getCurrentInstance()
-const inputData = () => {
-  pipelineInfo.value.stageContent = (instance?.refs.pipeline as any)._contentBackup
-}
 
 
 interface Props {
@@ -64,6 +55,58 @@ interface Props {
 const props = defineProps<Props>()
 const { pipelineInfo } = toRefs(props)
 // const test = {...pipelineInfo.value} as WorkflowStageMappings
+
+const getSourceStageContent = () => {
+  if (!pipelineInfo.value.workflowStageIdx || !Array.isArray(props.pipelineScriptList)) return ''
+
+  for (const pipelineScript of props.pipelineScriptList) {
+    const sourceStage = pipelineScript?.list?.find((stage: any) => (
+      stage.workflowStageIdx === pipelineInfo.value.workflowStageIdx
+    ))
+    if (typeof sourceStage?.workflowStageContent === 'string') {
+      return sourceStage.workflowStageContent
+    }
+    if (typeof sourceStage?.stageContent === 'string') {
+      return sourceStage.stageContent
+    }
+  }
+
+  return ''
+}
+
+const isInvalidStageContent = (value: unknown) => {
+  if (!pipelineInfo.value.workflowStageIdx || pipelineInfo.value.isDefaultScript) return false
+  if (typeof value !== 'string') return true
+
+  const normalizedValue = value.trim().toLowerCase()
+  return normalizedValue === 'true'
+    || normalizedValue === 'false'
+    || !normalizedValue.includes('stage(')
+}
+
+const normalizeStageContent = () => {
+  if (!isInvalidStageContent(pipelineInfo.value.stageContent)) return
+
+  const sourceStageContent = getSourceStageContent()
+  if (sourceStageContent) {
+    pipelineInfo.value.stageContent = sourceStageContent
+  }
+}
+
+const editorContent = computed(() => {
+  normalizeStageContent()
+  return typeof pipelineInfo.value.stageContent === 'string' ? pipelineInfo.value.stageContent : ''
+})
+
+const updateStageContent = (value: string) => {
+  pipelineInfo.value.stageContent = value
+}
+
+watch(
+  () => [pipelineInfo.value.stageContent, pipelineInfo.value.workflowStageIdx, props.pipelineScriptList],
+  () => normalizeStageContent(),
+  { immediate: true, deep: true }
+)
 
 const emit = defineEmits(['on-delete-pipeline'])
 const onDeletePipeline = (idx:number) => {
@@ -84,21 +127,6 @@ const getStageTypeLabel = (stageTypeName: string) => {
 
   return labels[stageTypeName] || stageTypeName
 }
-
-// const preSrcipt = ref('')
-// watch(pipelineInfo, newValue => {
-//   console.log('pipelineInfo', pipelineInfo)
-//   console.log('newValue', newValue);
-//   preSrcipt.value = pipelineInfo.value.stageContent
-// })
-const preSrcipt = ref('')
-watch(()=> preSrcipt.value,() => {
-  console.log('preSrcipt', preSrcipt.value)
-})
-onMounted(() => {
-  // preSrcipt.value = pipelineInfo.value.stageContent
-  // preSrcipt.value = lodash.cloneDeep(pipelineInfo.value.stageContent)
-})
 
 </script>
 

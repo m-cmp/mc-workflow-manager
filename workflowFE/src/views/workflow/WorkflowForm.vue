@@ -123,12 +123,23 @@
               <div class="tumblebug-param-field g-col-6">
                 <label class="tumblebug-param-label">
                   <code>{{ getImageSelectionParamKeyLabel() }}</code>
-                  <span>Image</span>
+                  <span class="tumblebug-param-label-actions">
+                    <span>Image</span>
+                    <span class="form-check form-switch tumblebug-k8s-toggle" title="Load Kubernetes node images">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        v-model="kubernetesImageEnabled"
+                        @change="onChangeKubernetesImageMode"
+                      />
+                      <span class="form-check-label">K8s</span>
+                    </span>
+                  </span>
                 </label>
                 <SearchableSelect
                   v-model="selectedImage"
                   :options="imageOptions"
-                  :placeholder="selectedSpec ? 'Image' : 'Select Spec first'"
+                  :placeholder="selectedSpec ? (kubernetesImageEnabled ? 'K8s Image' : 'Image') : 'Select Spec first'"
                   :title="getSelectedOptionLabel(imageOptions, selectedImage)"
                   @change="onChangeInfraSelection"
                 />
@@ -426,6 +437,9 @@ const tumblebugSelectorManagedParamKeys = [
 ]
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
+const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
+const kubernetesImageEnabled = ref(false)
+const kubernetesImageModeChanged = ref(false)
 
 const hasSelectorCandidate = computed(() => {
   return mode.value === 'new'
@@ -437,6 +451,11 @@ const hasSelectorCandidate = computed(() => {
 const hasSelectorRequiredStage = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => selectorRequiredStageNames.includes(stage.workflowStageName || ''))
     || (workflowInfoFormData.workflowName || '').includes('multi-csp')
+})
+
+const isKubernetesImageWorkflow = computed(() => {
+  return workflowStageMappingsFormData.value.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
+    || (workflowInfoFormData.workflowName || '').toLowerCase().includes('k8s')
 })
 
 const tumblebugSelectorEnabled = computed({
@@ -486,6 +505,19 @@ watch(selectedSpec, async (newSpec, oldSpec) => {
   applyInfraSelectionParams()
 })
 
+watch(isKubernetesImageWorkflow, async (enabled) => {
+  if (kubernetesImageModeChanged.value || kubernetesImageEnabled.value === enabled) {
+    return
+  }
+
+  kubernetesImageEnabled.value = enabled
+  if (!isInitializingSelection.value) {
+    selectedImage.value = ''
+    await loadMcInfraImages()
+    applyInfraSelectionParams()
+  }
+})
+
 const initTumblebugSelectionValues = async () => {
   isInitializingSelection.value = true
   try {
@@ -503,6 +535,9 @@ const initTumblebugSelectionValues = async () => {
     selectedConnectionName.value = getWorkflowParamValue('CONNECTION_NAME')
     selectedZone.value = getWorkflowParamValue('ZONE')
     syncSelectionFromCurrentCspParams()
+    if (!kubernetesImageModeChanged.value) {
+      kubernetesImageEnabled.value = isKubernetesImageWorkflow.value
+    }
   } finally {
     await nextTick()
     isInitializingSelection.value = false
@@ -662,6 +697,14 @@ const onChangeZone = () => {
   applyInfraSelectionParams()
 }
 
+const onChangeKubernetesImageMode = async () => {
+  kubernetesImageModeChanged.value = true
+  selectedImage.value = ''
+  imageOptions.value = []
+  await loadMcInfraImages()
+  applyInfraSelectionParams()
+}
+
 const onClickRefreshInfraOptions = async () => {
   await loadInfraOptions()
 }
@@ -792,6 +835,7 @@ const loadMcInfraImages = async () => {
       regionName: selectedRegion.value,
       connectionName: selectedConnectionName.value || deriveConnectionName(),
       matchedSpecId: selectedSpec.value,
+      isKubernetesImage: kubernetesImageEnabled.value ? 'true' : undefined,
     }
     const { data } = await getMcInfraResources(getResourceCatalogNamespace(), 'image', query)
     if (loadSeq !== imageLoadSeq) return
@@ -1432,12 +1476,13 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'IMAGE_ID', paramValue: selectedImage.value, eventListenerYn: 'N' },
       { paramKey: 'SPEC', paramValue: selectedSpec.value, eventListenerYn: 'N' },
       { paramKey: 'SPEC_ID', paramValue: selectedSpec.value, eventListenerYn: 'N' },
-      { paramKey: 'K8S_VERSION', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'K8S_VERSION', paramValue: '1.33', eventListenerYn: 'N' },
       { paramKey: 'K8S_DESIRED_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MIN_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MAX_NODE_SIZE', paramValue: '3', eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_TYPE', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_SIZE', paramValue: '30', eventListenerYn: 'N' },
+      { paramKey: 'K8S_NODEGROUP_CREATE_IF_MISSING', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_INTERVAL_SECONDS', paramValue: '10', eventListenerYn: 'N' },
       { paramKey: 'K8S_READY_STATUS', paramValue: 'Active,Running', eventListenerYn: 'N' },
@@ -1456,8 +1501,15 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'KUBECONFIG_CONTENT', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'KUBE_NAMESPACE', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'RELEASE_NAME', paramValue: 'mariadb', eventListenerYn: 'N' },
-      { paramKey: 'HELM_CHART', paramValue: 'oci://registry-1.docker.io/bitnamicharts/mariadb', eventListenerYn: 'N' },
-      { paramKey: 'HELM_VALUES_ARGS', paramValue: '--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass --wait --timeout 10m', eventListenerYn: 'N' },
+      { paramKey: 'HELM_REPO_NAME', paramValue: 'groundhog2k', eventListenerYn: 'N' },
+      { paramKey: 'HELM_REPO_URL', paramValue: 'https://groundhog2k.github.io/helm-charts', eventListenerYn: 'N' },
+      { paramKey: 'HELM_CHART', paramValue: 'groundhog2k/mariadb', eventListenerYn: 'N' },
+      { paramKey: 'HELM_CHART_VERSION', paramValue: '4.5.0', eventListenerYn: 'N' },
+      { paramKey: 'HELM_RECREATE_ON_IMMUTABLE_ERROR', paramValue: 'true', eventListenerYn: 'N' },
+      { paramKey: 'K8S_API_READY_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
+      { paramKey: 'K8S_API_READY_INTERVAL_SECONDS', paramValue: '10', eventListenerYn: 'N' },
+      { paramKey: 'K8S_NODE_READY_MIN_COUNT', paramValue: '1', eventListenerYn: 'N' },
+      { paramKey: 'HELM_VALUES_ARGS', paramValue: '--set settings.rootPassword.value=mariadb_pass --set userDatabase.name.value=testdb --set userDatabase.user.value=mariadb_user --set userDatabase.password.value=mariadb_pass --wait --timeout 10m', eventListenerYn: 'N' },
       { paramKey: 'DB_EXEC_MODE', paramValue: 'k8s', eventListenerYn: 'N' },
       { paramKey: 'DB_POD_SELECTOR', paramValue: 'app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb', eventListenerYn: 'N' },
     ],
@@ -1909,6 +1961,32 @@ const spliceWorkflowStageMappingsFormData = (transClone: WorkflowStageMappings) 
   flex: 0 0 auto;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.tumblebug-param-label-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tumblebug-k8s-toggle {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  min-height: 0;
+}
+
+.tumblebug-k8s-toggle .form-check-input {
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.tumblebug-k8s-toggle .form-check-label {
+  color: #475467;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .tumblebug-param-action-label {

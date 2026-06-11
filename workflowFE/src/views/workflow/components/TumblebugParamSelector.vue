@@ -56,12 +56,23 @@
       <div class="tumblebug-param-field g-col-6">
         <label class="tumblebug-param-label">
           <code>{{ getImageSelectionParamKeyLabel() }}</code>
-          <span>Image</span>
+          <span class="tumblebug-param-label-actions">
+            <span>Image</span>
+            <span class="form-check form-switch tumblebug-k8s-toggle" title="Load Kubernetes node images">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                v-model="kubernetesImageEnabled"
+                @change="onChangeKubernetesImageMode"
+              />
+              <span class="form-check-label">K8s</span>
+            </span>
+          </span>
         </label>
         <SearchableSelect
           v-model="selectedImage"
           :options="imageOptions"
-          :placeholder="selectedSpec ? 'Image' : 'Select Spec first'"
+          :placeholder="selectedSpec ? (kubernetesImageEnabled ? 'K8s Image' : 'Image') : 'Select Spec first'"
           :title="getSelectedOptionLabel(imageOptions, selectedImage)"
           @change="onChangeInfraSelection"
         />
@@ -198,6 +209,9 @@ let zoneLoadSeq = 0
 let infraLoadSeq = 0
 let accessHostLoadSeq = 0
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
+const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
+const kubernetesImageEnabled = ref(false)
+const kubernetesImageModeChanged = ref(false)
 
 const showSelector = computed(() => {
   const configuredValue = getWorkflowParamValue('TUMBLEBUG_SELECTOR_YN').trim().toUpperCase()
@@ -210,6 +224,11 @@ const showSelector = computed(() => {
 
   return props.workflowStageMappings.some((stage) => selectorRequiredStageNames.includes(stage.workflowStageName || ''))
     || (props.workflowName || '').includes('multi-csp')
+})
+
+const isKubernetesImageWorkflow = computed(() => {
+  return props.workflowStageMappings.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
+    || (props.workflowName || '').toLowerCase().includes('k8s')
 })
 
 onMounted(async () => {
@@ -241,6 +260,19 @@ watch(selectedSpec, async (newSpec, oldSpec) => {
   applyInfraSelectionParams()
 })
 
+watch(isKubernetesImageWorkflow, async (enabled) => {
+  if (kubernetesImageModeChanged.value || kubernetesImageEnabled.value === enabled) {
+    return
+  }
+
+  kubernetesImageEnabled.value = enabled
+  if (!isInitializingSelection.value) {
+    selectedImage.value = ''
+    await loadMcInfraImages()
+    applyInfraSelectionParams()
+  }
+})
+
 watch(
   () => props.workflowName,
   async () => {
@@ -265,6 +297,9 @@ const initSelectionValues = async () => {
     selectedConnectionName.value = getWorkflowParamValue('CONNECTION_NAME')
     selectedZone.value = getWorkflowParamValue('ZONE')
     syncSelectionFromCurrentCspParams()
+    if (!kubernetesImageModeChanged.value) {
+      kubernetesImageEnabled.value = isKubernetesImageWorkflow.value
+    }
   } finally {
     await nextTick()
     isInitializingSelection.value = false
@@ -424,6 +459,14 @@ const onChangeZone = () => {
   applyInfraSelectionParams()
 }
 
+const onChangeKubernetesImageMode = async () => {
+  kubernetesImageModeChanged.value = true
+  selectedImage.value = ''
+  imageOptions.value = []
+  await loadMcInfraImages()
+  applyInfraSelectionParams()
+}
+
 const onClickRefreshInfraOptions = async () => {
   await loadInfraOptions()
 }
@@ -554,6 +597,7 @@ const loadMcInfraImages = async () => {
       regionName: selectedRegion.value,
       connectionName: selectedConnectionName.value || deriveConnectionName(),
       matchedSpecId: selectedSpec.value,
+      isKubernetesImage: kubernetesImageEnabled.value ? 'true' : undefined,
     }
     const { data } = await getMcInfraResources(getResourceCatalogNamespace(), 'image', query)
     if (loadSeq !== imageLoadSeq) return
@@ -1174,6 +1218,32 @@ const upsertWorkflowParam = (paramKey: string, paramValue: string, eventListener
   flex: 0 0 auto;
   font-size: 0.75rem;
   font-weight: 500;
+}
+
+.tumblebug-param-label-actions {
+  align-items: center;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tumblebug-k8s-toggle {
+  align-items: center;
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  min-height: 0;
+}
+
+.tumblebug-k8s-toggle .form-check-input {
+  cursor: pointer;
+  margin-top: 0;
+}
+
+.tumblebug-k8s-toggle .form-check-label {
+  color: #475467;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 600;
 }
 
 .tumblebug-param-action-label {

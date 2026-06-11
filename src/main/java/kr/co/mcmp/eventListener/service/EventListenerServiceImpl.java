@@ -382,7 +382,20 @@ public class EventListenerServiceImpl implements EventListenerService {
                                 workflowStageIdx,
                                 workflowStageRepository::findByWorkflowStageIdx);
                     }
-                    return WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                    WorkflowStageMappingDto stageMappingDto = WorkflowStageMappingDto.from(stageMapping, workflowStage);
+                    if (workflowStage != null && StringUtils.hasText(workflowStage.getWorkflowStageContent())) {
+                        return WorkflowStageMappingDto.builder()
+                                .mappingIdx(stageMappingDto.getMappingIdx())
+                                .workflowIdx(stageMappingDto.getWorkflowIdx())
+                                .stageOrder(stageMappingDto.getStageOrder())
+                                .workflowStageIdx(stageMappingDto.getWorkflowStageIdx())
+                                .workflowStageName(stageMappingDto.getWorkflowStageName())
+                                .workflowStageTypeName(stageMappingDto.getWorkflowStageTypeName())
+                                .stageContent(workflowStage.getWorkflowStageContent())
+                                .defaultParams(stageMappingDto.getDefaultParams())
+                                .build();
+                    }
+                    return stageMappingDto;
                 })
                 .collect(Collectors.toList());
     }

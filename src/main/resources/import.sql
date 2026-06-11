@@ -571,8 +571,10 @@ docker exec -i k8s-tools helm --help
 #helm repo update
 #helm install {{RELEASENAME}} prometheus-community/prometheus
 
-#mariadb: https://artifacthub.io/packages/helm/bitnami/mariadb
-#helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/mariadb
+#mariadb: https://github.com/groundhog2k/helm-charts/tree/master/charts/mariadb
+#helm repo add groundhog2k https://groundhog2k.github.io/helm-charts
+#helm repo update
+#helm install {{RELEASENAME}} groundhog2k/mariadb
 
 #redis: https://artifacthub.io/packages/helm/bitnami/redis
 #helm install {{RELEASENAME}} oci://registry-1.docker.io/bitnamicharts/redis
@@ -1025,23 +1027,29 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: k8s-cluster-create"
             script {
                 def payload = params.K8S_CREATE_PAYLOAD?.trim()
+                def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
+                def nodeGroupName = params.K8S_NODEGROUP_NAME ?: "ng1"
+                def desiredNodeSize = (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger()
+                def minNodeSize = (params.K8S_MIN_NODE_SIZE ?: "1").toInteger()
+                def maxNodeSize = (params.K8S_MAX_NODE_SIZE ?: "3").toInteger()
                 if (!payload) {
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def region = params.REGION ?: ""
                     def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
                     def payloadMap = [
                         name: params.K8S_CLUSTER_ID,
-                        nodeGroupName: params.K8S_NODEGROUP_NAME ?: "ng1",
+                        nodeGroupName: nodeGroupName,
                         specId: params.SPEC_ID,
                         imageId: params.IMAGE_ID,
                         label: [
                             provider: provider,
                             region: region
                         ],
-                        version: params.K8S_VERSION ?: "",
-                        desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
-                        minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
-                        maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
+                        version: k8sVersion,
+                        nodeGroupSize: desiredNodeSize,
+                        desiredNodeSize: desiredNodeSize,
+                        minNodeSize: minNodeSize,
+                        maxNodeSize: maxNodeSize,
                         rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
@@ -1049,31 +1057,98 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         payloadMap.connectionName = connectionName
                     }
                     payload = JsonOutput.toJson(payloadMap)
+                } else if (payload.contains("\"version\":\"\"")) {
+                    payload = payload.replace("\"version\":\"\"", "\"version\":\"${k8sVersion}\"")
+                } else if (!payload.contains("\"version\"")) {
+                    def trimmedPayload = payload.trim()
+                    if (!trimmedPayload.endsWith("}")) {
+                        error "K8S_CREATE_PAYLOAD must be a JSON object"
+                    }
+                    payload = trimmedPayload.substring(0, trimmedPayload.length() - 1) + ",\"version\":\"${k8sVersion}\"}"
                 }
                 writeFile file: "k8s-cluster-create.json", text: payload
+                echo "k8s-cluster-create payload: ${payload}"
                 def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create.json ${auth}""", returnStdout: true).trim()
-                echo response
-                if (!response.contains("Http_Status_code:2")) {
-                    error "k8s-cluster-create failed: ${response}"
+                def existingResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
+                if (existingResponse.contains("Http_Status_code:2")) {
+                    echo "k8s cluster already exists. reuse existing cluster: ${params.K8S_CLUSTER_ID}"
+                } else {
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create.json ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (!response.contains("Http_Status_code:2")) {
+                        error "k8s-cluster-create failed: ${response}"
+                    }
                 }
                 def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
                 def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
                 def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                 def statusResponse = ""
+                def currentStatus = ""
+                def hasNodeGroupInfo = { response ->
+                    def compactResponse = (response ?: "").replaceAll("\\s+", "").toLowerCase()
+                    def hasDirectNodeGroup = compactResponse.contains("\"k8snodegrouplist\":[{")
+                    def hasSpiderNodeGroup = compactResponse.contains("\"nodegrouplist\":[{")
+                    return hasDirectNodeGroup || hasSpiderNodeGroup
+                }
                 for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                     statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
-                    def normalizedStatusResponse = statusResponse.toLowerCase()
-                    if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                    currentStatus = ""
+                    if (statusResponse.contains("Http_Status_code:2")) {
+                        def normalizedStatusResponse = statusResponse.toLowerCase()
+                        for (def readyStatus : readyStatuses) {
+                            if (normalizedStatusResponse.contains("\"status\":\"${readyStatus}\"") ||
+                                    normalizedStatusResponse.contains("\"status\": \"${readyStatus}\"")) {
+                                currentStatus = readyStatus
+                                break
+                            }
+                        }
+                    }
+                    if (currentStatus) {
                         break
                     }
-                    echo "k8s cluster is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                    def displayStatus = currentStatus ?: "unknown"
+                    echo "k8s cluster is not ready. currentStatus=${displayStatus}, attempt ${attempt}/${statusAttempts}: ${statusResponse}"
                     sleep time: statusIntervalSeconds, unit: "SECONDS"
                 }
-                def normalizedFinalStatusResponse = statusResponse.toLowerCase()
-                if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
                     error "k8s-cluster-create status check failed: ${statusResponse}"
+                }
+                def createNodeGroupIfMissing = !(params.K8S_NODEGROUP_CREATE_IF_MISSING?.trim()?.equalsIgnoreCase("false"))
+                if (!hasNodeGroupInfo(statusResponse)) {
+                    if (!createNodeGroupIfMissing) {
+                        error "k8s cluster is ready but node group is missing: ${statusResponse}"
+                    }
+                    echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
+                    def nodeGroupPayload = JsonOutput.toJson([
+                        name: nodeGroupName,
+                        specId: params.SPEC_ID,
+                        imageId: params.IMAGE_ID,
+                        nodeGroupSize: desiredNodeSize,
+                        desiredNodeSize: desiredNodeSize,
+                        minNodeSize: minNodeSize,
+                        maxNodeSize: maxNodeSize,
+                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                    ])
+                    writeFile file: "k8s-nodegroup-add.json", text: nodeGroupPayload
+                    echo "k8s-nodegroup-add payload: ${nodeGroupPayload}"
+                    def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add.json ${auth}""", returnStdout: true).trim()
+                    echo nodeGroupResponse
+                    if (!nodeGroupResponse.contains("Http_Status_code:2") && !nodeGroupResponse.toLowerCase().contains("already")) {
+                        error "k8s-nodegroup-add failed: ${nodeGroupResponse}"
+                    }
+                    for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
+                        if (hasNodeGroupInfo(statusResponse)) {
+                            break
+                        }
+                        echo "k8s node group is not registered yet. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        sleep time: statusIntervalSeconds, unit: "SECONDS"
+                    }
+                    if (!hasNodeGroupInfo(statusResponse)) {
+                        error "k8s node group was not created: ${statusResponse}"
+                    }
                 }
             }
         }
@@ -1154,6 +1229,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         name: params.K8S_NODEGROUP_NAME,
                         specId: params.SPEC_ID,
                         imageId: params.IMAGE_ID,
+                        nodeGroupSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
@@ -1209,42 +1285,109 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
                 writeFile file: "kubeconfig-response.json", text: body
                 def kubeconfig = null
-                if (body.contains("apiVersion") && body.contains("clusters:")) {
-                    kubeconfig = body
-                } else {
-                    def parsed = new groovy.json.JsonSlurper().parseText(body)
-                    def findKubeconfig
-                    findKubeconfig = { value ->
-                        if (value instanceof Map) {
-                            def direct = value.Kubeconfig ?: value.kubeconfig ?: value.config
-                            if (direct) {
-                                return direct.toString()
-                            }
-                            for (def child : value.values()) {
-                                def found = findKubeconfig(child)
-                                if (found) {
-                                    return found
-                                }
-                            }
-                        } else if (value instanceof List) {
-                            for (def child : value) {
-                                def found = findKubeconfig(child)
-                                if (found) {
-                                    return found
-                                }
-                            }
-                        } else if (value instanceof String && value.contains("apiVersion") && value.contains("clusters:")) {
-                            return value
-                        }
+                def extractJsonStringValue = { text, keys ->
+                    if (!text) {
                         return null
                     }
-                    def resolvedKubeconfig = findKubeconfig(parsed)
-                    parsed = null
-                    findKubeconfig = null
-                    kubeconfig = resolvedKubeconfig
+                    def quote = "\"".charAt(0)
+                    def backslash = "\\".charAt(0)
+                    for (def key : keys) {
+                        def keyMarker = "\"" + key + "\""
+                        def searchFrom = 0
+                        while (searchFrom < text.length()) {
+                            def keyIndex = text.indexOf(keyMarker, searchFrom)
+                            if (keyIndex < 0) {
+                                break
+                            }
+                            def colonIndex = text.indexOf(":", keyIndex + keyMarker.length())
+                            if (colonIndex < 0) {
+                                break
+                            }
+                            def quoteIndex = text.indexOf("\"", colonIndex + 1)
+                            if (quoteIndex < 0) {
+                                break
+                            }
+                            def value = new StringBuilder()
+                            def escaped = false
+                            for (int i = quoteIndex + 1; i < text.length(); i++) {
+                                def ch = text.charAt(i)
+                                if (escaped) {
+                                    if (ch == "n".charAt(0)) {
+                                        value.append("\n")
+                                    } else if (ch == "r".charAt(0)) {
+                                        value.append("\r")
+                                    } else if (ch == "t".charAt(0)) {
+                                        value.append("\t")
+                                    } else if (ch == "b".charAt(0)) {
+                                        value.append("\b")
+                                    } else if (ch == "f".charAt(0)) {
+                                        value.append("\f")
+                                    } else {
+                                        value.append(ch)
+                                    }
+                                    escaped = false
+                                } else if (ch == backslash) {
+                                    escaped = true
+                                } else if (ch == quote) {
+                                    return value.toString()
+                                } else {
+                                    value.append(ch)
+                                }
+                            }
+                            searchFrom = keyIndex + keyMarker.length()
+                        }
+                    }
+                    return null
+                }
+                if (body.startsWith("apiVersion:") && body.contains("\nclusters:")) {
+                    kubeconfig = body
+                } else {
+                    kubeconfig = extractJsonStringValue(body, ["Kubeconfig", "kubeconfig", "config"])
                 }
                 if (!kubeconfig) {
                     error "kubeconfig content was not found in response"
+                }
+                if (!kubeconfig.readLines().any { it.trim().startsWith("server:") }) {
+                    error "kubeconfig server was not found after decoding Tumblebug response"
+                }
+                if (kubeconfig.contains("aws-iam-authenticator")
+                        && params.TUMBLEBUG?.trim()
+                        && params.NAMESPACE?.trim()
+                        && params.K8S_CLUSTER_ID?.trim()) {
+                    def tokenResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/token" ${auth}""", returnStdout: true).trim()
+                    if (tokenResponse.contains("Http_Status_code:2")) {
+                        def tokenBody = tokenResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                        writeFile file: "kubeconfig-token-response.json", text: tokenBody
+                        def k8sToken = extractJsonStringValue(tokenBody, ["token"])
+                        if (k8sToken) {
+                            def rewritten = []
+                            def skipExecBlock = false
+                            def injected = false
+                            for (def line : kubeconfig.readLines()) {
+                                if (!skipExecBlock && line.trim() == "exec:") {
+                                    rewritten << line.replace("exec:", "token: ${k8sToken}")
+                                    skipExecBlock = true
+                                    injected = true
+                                    continue
+                                }
+                                if (skipExecBlock) {
+                                    if (line.startsWith("      ") || !line.trim()) {
+                                        continue
+                                    }
+                                    skipExecBlock = false
+                                }
+                                rewritten << line
+                            }
+                            if (injected) {
+                                kubeconfig = rewritten.join("\n") + "\n"
+                                echo "kubeconfig auth was converted from exec plugin to Tumblebug-issued token"
+                            }
+                        } else {
+                            echo "Tumblebug token response did not include execCredential.status.token"
+                        }
+                    } else {
+                        echo "Tumblebug token request failed. Keep kubeconfig exec auth. response=${tokenResponse}"
+                    }
                 }
                 writeFile file: "kubeconfig", text: kubeconfig
                 env.KUBECONFIG_FILE = "kubeconfig"
@@ -1270,6 +1413,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
                     def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                    def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
                     if (!specId || !imageId) {
                         error "SPEC_ID and IMAGE_ID are required for ${csp}"
                     }
@@ -1283,7 +1427,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             csp: csp,
                             region: region
                         ],
-                        version: params.K8S_VERSION ?: "",
+                        version: k8sVersion,
+                        nodeGroupSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
@@ -1297,6 +1442,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def payload = JsonOutput.toJson(payloadMap)
 
                     writeFile file: "k8s-cluster-create-${csp}.json", text: payload
+                    echo "k8s-cluster-create-${csp} payload: ${payload}"
                     def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
                     def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create-${csp}.json ${auth}""", returnStdout: true).trim()
                     echo response
@@ -1307,17 +1453,28 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
                     def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                     def statusResponse = ""
+                    def currentStatus = ""
                     for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                         statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
-                        def normalizedStatusResponse = statusResponse.toLowerCase()
-                        if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                        currentStatus = ""
+                        if (statusResponse.contains("Http_Status_code:2")) {
+                            def normalizedStatusResponse = statusResponse.toLowerCase()
+                            for (def readyStatus : readyStatuses) {
+                                if (normalizedStatusResponse.contains("\"status\":\"${readyStatus}\"") ||
+                                        normalizedStatusResponse.contains("\"status\": \"${readyStatus}\"")) {
+                                    currentStatus = readyStatus
+                                    break
+                                }
+                            }
+                        }
+                        if (currentStatus) {
                             break
                         }
-                        echo "k8s cluster ${clusterId} is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        def displayStatus = currentStatus ?: "unknown"
+                        echo "k8s cluster ${clusterId} is not ready. currentStatus=${displayStatus}, attempt ${attempt}/${statusAttempts}: ${statusResponse}"
                         sleep time: statusIntervalSeconds, unit: "SECONDS"
                     }
-                    def normalizedFinalStatusResponse = statusResponse.toLowerCase()
-                    if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                    if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
                         error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
                     }
                 }
@@ -1329,6 +1486,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: app-deploy-helm"
             script {
+                echo ">>>>> TOOLCHAIN: k8s-helm-bootstrap-v3"
                 def kubeconfigFile = env.KUBECONFIG_FILE ?: "kubeconfig"
                 if (params.KUBECONFIG_CONTENT?.trim()) {
                     writeFile file: kubeconfigFile, text: params.KUBECONFIG_CONTENT
@@ -1336,9 +1494,182 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!fileExists(kubeconfigFile)) {
                     error "KUBECONFIG_CONTENT is required or run k8s-kubeconfig-get before app-deploy-helm"
                 }
+                def toolsBin = "${pwd()}/.workflow-tools/bin"
+                env.PATH = "${toolsBin}:${env.PATH}"
+                def helmVersion = params.HELM_VERSION?.trim() ?: "v3.18.6"
+                if (helmVersion == "v3.15.4") {
+                    echo "Ignoring stale HELM_VERSION=${helmVersion}; using v3.18.6"
+                    helmVersion = "v3.18.6"
+                }
+                def kubectlVersionSpec = params.KUBECTL_VERSION?.trim()
+                if (kubectlVersionSpec == "v1.30.4" || kubectlVersionSpec == "1.30.4") {
+                    echo "Ignoring stale KUBECTL_VERSION=${kubectlVersionSpec}; deriving kubectl from K8S_VERSION"
+                    kubectlVersionSpec = ""
+                }
+                if (!kubectlVersionSpec) {
+                    def normalizedK8sVersion = (params.K8S_VERSION?.trim() ?: "1.33").replaceFirst("^v", "")
+                    def k8sVersionParts = normalizedK8sVersion.tokenize(".")
+                    kubectlVersionSpec = k8sVersionParts.size() >= 2 ? "stable-${k8sVersionParts[0]}.${k8sVersionParts[1]}" : "stable-1.33"
+                }
+                sh """#!/bin/sh
+set -e
+mkdir -p "${toolsBin}"
+os=\$(uname -s | tr "[:upper:]" "[:lower:]")
+arch=\$(uname -m)
+case "\${arch}" in
+  x86_64|amd64) arch="amd64" ;;
+  aarch64|arm64) arch="arm64" ;;
+  *) echo "Unsupported CPU architecture for Kubernetes tools: \${arch}"; exit 1 ;;
+esac
+
+installed_helm_version=""
+if command -v helm >/dev/null 2>&1; then
+  installed_helm_version=\$(helm version --short 2>/dev/null | sed "s/+.*//; s/ .*//")
+fi
+if [ "\${installed_helm_version}" != "${helmVersion}" ]; then
+  echo "Installing helm ${helmVersion} into ${toolsBin} (current: \${installed_helm_version:-not found})"
+  curl -fsSL "https://get.helm.sh/helm-${helmVersion}-\${os}-\${arch}.tar.gz" -o ".workflow-tools/helm.tar.gz"
+  tar -xzf ".workflow-tools/helm.tar.gz" -C ".workflow-tools"
+  cp ".workflow-tools/\${os}-\${arch}/helm" "${toolsBin}/helm"
+  chmod +x "${toolsBin}/helm"
+fi
+
+kubectl_version="${kubectlVersionSpec}"
+case "\${kubectl_version}" in
+  stable-*) kubectl_version=\$(curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}.txt") ;;
+esac
+installed_kubectl_version=""
+if command -v kubectl >/dev/null 2>&1; then
+  installed_kubectl_version=\$(kubectl version --client=true 2>/dev/null | sed -n "s/^Client Version: \\(v[0-9.]*\\).*/\\1/p" | head -1)
+fi
+if [ "\${installed_kubectl_version}" != "\${kubectl_version}" ]; then
+  echo "Installing kubectl \${kubectl_version} into ${toolsBin} (current: \${installed_kubectl_version:-not found})"
+  curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}/bin/\${os}/\${arch}/kubectl" -o "${toolsBin}/kubectl"
+  chmod +x "${toolsBin}/kubectl"
+fi
+
+helm version --short
+kubectl version --client=true
+"""
+                if (readFile(kubeconfigFile).contains("aws-iam-authenticator")) {
+                    def authVersion = params.AWS_IAM_AUTHENTICATOR_VERSION ?: "0.6.31"
+                    sh """#!/bin/sh
+set -e
+os=\$(uname -s | tr "[:upper:]" "[:lower:]")
+arch=\$(uname -m)
+case "\${arch}" in
+  x86_64|amd64) arch="amd64" ;;
+  aarch64|arm64) arch="arm64" ;;
+  *) echo "Unsupported CPU architecture for aws-iam-authenticator: \${arch}"; exit 1 ;;
+esac
+current_auth_version=""
+if [ -x "${toolsBin}/aws-iam-authenticator" ]; then
+  current_auth_version=\$("${toolsBin}/aws-iam-authenticator" version 2>/dev/null || true)
+fi
+if ! printf "%s" "\${current_auth_version}" | grep -q "${authVersion}"; then
+  echo "Installing aws-iam-authenticator v${authVersion} into ${toolsBin}"
+  curl -fsSL "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v${authVersion}/aws-iam-authenticator_${authVersion}_\${os}_\${arch}" -o "${toolsBin}/aws-iam-authenticator"
+  chmod +x "${toolsBin}/aws-iam-authenticator"
+fi
+"${toolsBin}/aws-iam-authenticator" version
+"""
+                }
+                def apiReadyAttempts = (params.K8S_API_READY_MAX_ATTEMPTS ?: "30").toInteger()
+                def apiReadyIntervalSeconds = (params.K8S_API_READY_INTERVAL_SECONDS ?: "10").toInteger()
+                def minReadyNodes = (params.K8S_NODE_READY_MIN_COUNT ?: "1").toInteger()
+                def apiReady = false
+                for (int attempt = 1; attempt <= apiReadyAttempts; attempt++) {
+                    def readyResult = sh(script: """#!/bin/sh
+set +e
+api_server=\$(sed -n "s/^[[:space:]]*server:[[:space:]]*//p" "${kubeconfigFile}" | head -1)
+echo "Checking Kubernetes nodes from \${api_server}"
+if [ -z "\${api_server}" ]; then
+  echo "kubeconfig server is empty. Check k8s-kubeconfig-get response decoding."
+  exit 87
+fi
+kubectl --kubeconfig "${kubeconfigFile}" get nodes -o wide --no-headers > k8s-nodes.log 2>&1
+rc=\$?
+cat k8s-nodes.log
+if grep -q "invalid character ''<''" k8s-nodes.log; then
+  echo "Kubernetes API/auth response was HTML, not JSON. Check Jenkins network/proxy, EKS endpoint access, and aws-iam-authenticator credentials."
+  exit 88
+fi
+if [ "\${rc}" -ne 0 ]; then
+  exit "\${rc}"
+fi
+if grep -q "No resources found" k8s-nodes.log; then
+  echo "Kubernetes API is reachable, but no worker nodes are registered yet."
+  exit 89
+fi
+ready_count=\$(grep -E "[[:space:]]Ready[[:space:],]" k8s-nodes.log | grep -v "NotReady" | wc -l | tr -d " ")
+if [ "\${ready_count:-0}" -lt "${minReadyNodes}" ]; then
+  echo "Ready worker nodes are not enough. ready=\${ready_count:-0}, required=${minReadyNodes}"
+  exit 89
+fi
+exit "\${rc}"
+""", returnStatus: true)
+                    if (readyResult == 0) {
+                        apiReady = true
+                        break
+                    }
+                    if (readyResult == 87) {
+                        error "kubeconfig server is empty after decoding Tumblebug response"
+                    }
+                    if (readyResult == 88) {
+                        error "Kubernetes API/auth response was HTML while running kubectl get nodes"
+                    }
+                    echo "Kubernetes Ready nodes are not available. attempt ${attempt}/${apiReadyAttempts}"
+                    sleep time: apiReadyIntervalSeconds, unit: "SECONDS"
+                }
+                if (!apiReady) {
+                    error "Kubernetes Ready nodes are not available with kubeconfig"
+                }
                 def namespace = params.KUBE_NAMESPACE ?: "default"
+                def chartRef = params.HELM_CHART ?: "groundhog2k/mariadb"
+                def repoUrl = params.HELM_REPO_URL?.trim()
+                if (repoUrl) {
+                    def repoName = params.HELM_REPO_NAME?.trim()
+                    if (!repoName && chartRef.contains("/")) {
+                        repoName = chartRef.tokenize("/")[0]
+                    }
+                    if (!repoName) {
+                        repoName = "workflow-chart"
+                    }
+                    sh """#!/bin/sh
+set -e
+helm repo add "${repoName}" "${repoUrl}" --force-update
+helm repo update"""
+                }
+                def chartVersion = params.HELM_CHART_VERSION?.trim()
+                def versionArg = chartVersion ? "--version \"${chartVersion}\"" : ""
                 def valuesArgs = params.HELM_VALUES_ARGS ?: ""
-                sh """helm upgrade --install "${params.RELEASE_NAME}" "${params.HELM_CHART}" --namespace "${namespace}" --create-namespace --kubeconfig "${kubeconfigFile}" ${valuesArgs}"""
+                def releaseName = params.RELEASE_NAME ?: "mariadb"
+                def helmInstallCommand = """helm upgrade --install "${releaseName}" "${chartRef}" ${versionArg} --namespace "${namespace}" --create-namespace --kubeconfig "${kubeconfigFile}" ${valuesArgs}"""
+                def helmStatus = sh(script: """#!/bin/sh
+set +e
+${helmInstallCommand} > helm-upgrade.log 2>&1
+rc=\$?
+cat helm-upgrade.log
+exit \${rc}
+""", returnStatus: true)
+                if (helmStatus != 0) {
+                    def helmOutput = readFile("helm-upgrade.log")
+                    def recreateOnImmutableError = !(params.HELM_RECREATE_ON_IMMUTABLE_ERROR?.trim()?.equalsIgnoreCase("false"))
+                    if (recreateOnImmutableError && helmOutput.contains("Forbidden: updates to statefulset spec")) {
+                        echo "Helm upgrade hit immutable StatefulSet fields. Recreating release ${releaseName}."
+                        sh """#!/bin/sh
+set -e
+helm uninstall "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" || true
+kubectl delete statefulset "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+kubectl delete service "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+kubectl delete secret "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+kubectl delete configmap "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+${helmInstallCommand}
+"""
+                    } else {
+                        error "app-deploy-helm failed: ${helmOutput}"
+                    }
+                }
             }
         }
     }');
@@ -1766,6 +2097,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 -- D. multi-csp-k8s-cluster-deploy
 -- E. vm-mariadb-data-init-cleanup
 -- F. multi-csp-vm-cleanup
+-- G. k8s-mariadb-data-init-cleanup
 
 DELETE FROM event_listener_param WHERE event_listener_idx IN (
     SELECT event_listener_idx FROM event_listener
@@ -1778,8 +2110,8 @@ DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (SELECT workflow_idx FR
 DELETE FROM workflow_param WHERE workflow_idx IN (SELECT workflow_idx FROM workflow WHERE workflow_purpose = 'test');
 DELETE FROM workflow WHERE workflow_purpose = 'test';
 
-DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106);
-DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106);
+DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107);
+DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107);
 ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH 10000;
 ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH 10000;
 
@@ -1912,6 +2244,7 @@ pipeline {
                         def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                        def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
                         if (!specId || !imageId) {
                             error "SPEC_ID and IMAGE_ID are required for ${csp}"
                         }
@@ -1925,7 +2258,8 @@ pipeline {
                                 csp: csp,
                                 region: region
                             ],
-                            version: params.K8S_VERSION ?: "",
+                            version: k8sVersion,
+                            nodeGroupSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                             desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                             minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                             maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
@@ -1939,6 +2273,7 @@ pipeline {
                         def payload = JsonOutput.toJson(payloadMap)
 
                         writeFile file: "k8s-cluster-create-${csp}.json", text: payload
+                        echo "k8s-cluster-create-${csp} payload: ${payload}"
                         def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
                         def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sClusterDynamic${option}" -H "Content-Type: application/json" -d @k8s-cluster-create-${csp}.json ${auth}""", returnStdout: true).trim()
                         echo response
@@ -1949,17 +2284,28 @@ pipeline {
                         def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
                         def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                         def statusResponse = ""
+                        def currentStatus = ""
                         for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                             statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
-                            def normalizedStatusResponse = statusResponse.toLowerCase()
-                            if (statusResponse.contains("Http_Status_code:2") && readyStatuses.any { normalizedStatusResponse.contains(it) }) {
+                            currentStatus = ""
+                            if (statusResponse.contains("Http_Status_code:2")) {
+                                def normalizedStatusResponse = statusResponse.toLowerCase()
+                                for (def readyStatus : readyStatuses) {
+                                    if (normalizedStatusResponse.contains("\"status\":\"${readyStatus}\"") ||
+                                            normalizedStatusResponse.contains("\"status\": \"${readyStatus}\"")) {
+                                        currentStatus = readyStatus
+                                        break
+                                    }
+                                }
+                            }
+                            if (currentStatus) {
                                 break
                             }
-                            echo "k8s cluster ${clusterId} is not ready. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                            def displayStatus = currentStatus ?: "unknown"
+                            echo "k8s cluster ${clusterId} is not ready. currentStatus=${displayStatus}, attempt ${attempt}/${statusAttempts}: ${statusResponse}"
                             sleep time: statusIntervalSeconds, unit: "SECONDS"
                         }
-                        def normalizedFinalStatusResponse = statusResponse.toLowerCase()
-                        if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.any { normalizedFinalStatusResponse.contains(it) }) {
+                        if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
                             error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
                         }
                     }
@@ -2018,6 +2364,120 @@ SELECT 106, 'multi-csp-vm-cleanup', 'For Cleanup', 1,
     }
 }
 ', NULL;
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (107, 'k8s-mariadb-data-init-cleanup', 'For Cleanup', 1, '
+pipeline {
+    agent any
+    stages {
+        stage("k8s-cleanup") {
+            steps {
+                echo ">>>>> STAGE: k8s-cleanup"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+                    if (!params.K8S_CLUSTER_ID?.trim()) {
+                        error "K8S_CLUSTER_ID is required"
+                    }
+
+                    def option = params.K8S_DELETE_OPTION ?: "force"
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def clusterUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}"
+                    def isAbsent = { value ->
+                        def textValue = value ?: ""
+                        def lowerValue = textValue.toLowerCase()
+                        return textValue.contains("Http_Status_code:404") ||
+                                lowerValue.contains("not exist") ||
+                                lowerValue.contains("failed to find")
+                    }
+                    def hasNodeGroupInfo = { value ->
+                        def compactValue = (value ?: "").replaceAll("\\s+", "").toLowerCase()
+                        return compactValue.contains("\"k8snodegrouplist\":[{") ||
+                                compactValue.contains("\"nodegrouplist\":[{")
+                    }
+                    def assertDeleteAccepted = { action, value ->
+                        def textValue = value ?: ""
+                        def lowerValue = textValue.toLowerCase()
+                        if (isAbsent(value)) {
+                            echo "${action} target is already absent."
+                        } else if (lowerValue.contains("not deleted")) {
+                            error "${action} was not deleted by Tumblebug: ${value}"
+                        } else if (!textValue.contains("Http_Status_code:2")) {
+                            error "${action} failed: ${value}"
+                        }
+                    }
+
+                    def statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                    echo statusResponse
+                    if (isAbsent(statusResponse)) {
+                        echo "K8s cluster ${params.K8S_CLUSTER_ID} is already absent in Tumblebug."
+                    } else if (!statusResponse.contains("Http_Status_code:2")) {
+                        error "k8s-cleanup status check failed: ${statusResponse}"
+                    } else {
+                        def nodeGroupNames = (params.K8S_NODEGROUP_NAME ?: "ng1").split(",").collect { it.trim() }.findAll { it }
+                        for (def nodeGroupName : nodeGroupNames) {
+                            def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
+                            def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
+                            echo nodeGroupResponse
+                            assertDeleteAccepted("k8s-nodegroup-remove ${nodeGroupName}", nodeGroupResponse)
+                        }
+
+                        def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                        def intervalSeconds = (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger()
+                        for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
+                            statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                            if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
+                                break
+                            }
+                            def lowerStatus = statusResponse.toLowerCase()
+                            def nodeGroupState = "Unknown"
+                            if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
+                                nodeGroupState = "Deleting"
+                            }
+                            echo "k8s node group is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
+                            sleep time: intervalSeconds, unit: "SECONDS"
+                        }
+                        if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
+                            error "k8s node group was not deleted before cluster cleanup within timeout: ${statusResponse}"
+                        }
+                    }
+
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${clusterUrl}?option=${option}" ${auth}""", returnStdout: true).trim()
+                    echo response
+                    assertDeleteAccepted("k8s-cleanup ${params.K8S_CLUSTER_ID}", response)
+
+                    def clusterAttempts = (params.K8S_CLUSTER_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                    def clusterDeleted = isAbsent(response)
+                    for (int attempt = 1; !clusterDeleted && attempt <= clusterAttempts; attempt++) {
+                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                        clusterDeleted = isAbsent(statusResponse)
+                        if (clusterDeleted) {
+                            break
+                        }
+                        if (statusResponse.toLowerCase().contains("not deleted")) {
+                            error "k8s-cleanup was not completed by Tumblebug: ${statusResponse}"
+                        }
+                        def lowerClusterStatus = statusResponse.toLowerCase()
+                        def clusterState = "Unknown"
+                        if (lowerClusterStatus.contains("\"status\":\"deleting\"") || lowerClusterStatus.contains("\"status\": \"deleting\"")) {
+                            clusterState = "Deleting"
+                        }
+                        echo "k8s cluster is still deleting. state=${clusterState}, attempt ${attempt}/${clusterAttempts}"
+                        sleep time: (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger(), unit: "SECONDS"
+                    }
+                    if (!clusterDeleted) {
+                        error "k8s cluster was not deleted within timeout: ${statusResponse}"
+                    }
+                    echo "K8s cluster ${params.K8S_CLUSTER_ID} cleanup completed in Tumblebug."
+                }
+            }
+        }
+    }
+}
+', NULL);
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -2120,21 +2580,31 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'SPEC_ID', '', 'N'),
 (103, 'SPEC', '', 'N'),
 (103, 'IMAGE_ID', '', 'N'),
-(103, 'K8S_VERSION', '', 'N'),
+(103, 'K8S_VERSION', '1.33', 'N'),
 (103, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MAX_NODE_SIZE', '3', 'N'),
 (103, 'ROOT_DISK_TYPE', 'default', 'N'),
 (103, 'ROOT_DISK_SIZE', '30', 'N'),
 (103, 'K8S_CREATE_OPTION', '', 'N'),
+(103, 'K8S_NODEGROUP_CREATE_IF_MISSING', 'true', 'N'),
 (103, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
 (103, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
 (103, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (103, 'KUBECONFIG_CONTENT', '', 'N'),
 (103, 'KUBE_NAMESPACE', 'default', 'N'),
+(103, 'K8S_API_READY_MAX_ATTEMPTS', '60', 'N'),
+(103, 'K8S_API_READY_INTERVAL_SECONDS', '10', 'N'),
+(103, 'K8S_NODE_READY_MIN_COUNT', '1', 'N'),
 (103, 'RELEASE_NAME', 'mariadb', 'N'),
-(103, 'HELM_CHART', 'oci://registry-1.docker.io/bitnamicharts/mariadb', 'N'),
-(103, 'HELM_VALUES_ARGS', '--set auth.rootPassword=mariadb_pass --set auth.database=testdb --set auth.username=mariadb_user --set auth.password=mariadb_pass --wait --timeout 10m', 'N'),
+(103, 'HELM_REPO_NAME', 'groundhog2k', 'N'),
+(103, 'HELM_REPO_URL', 'https://groundhog2k.github.io/helm-charts', 'N'),
+(103, 'HELM_CHART', 'groundhog2k/mariadb', 'N'),
+(103, 'HELM_CHART_VERSION', '4.5.0', 'N'),
+(103, 'HELM_VERSION', 'v3.18.6', 'N'),
+(103, 'KUBECTL_VERSION', '', 'N'),
+(103, 'HELM_RECREATE_ON_IMMUTABLE_ERROR', 'true', 'N'),
+(103, 'HELM_VALUES_ARGS', '--set settings.rootPassword.value=mariadb_pass --set userDatabase.name.value=testdb --set userDatabase.user.value=mariadb_user --set userDatabase.password.value=mariadb_pass --wait --timeout 10m', 'N'),
 (103, 'DB_EXEC_MODE', 'k8s', 'N'),
 (103, 'DB_POD_SELECTOR', 'app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb', 'N'),
 (103, 'DB_HOST', 'mariadb.default.svc.cluster.local', 'N'),
@@ -2155,7 +2625,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,tencent', 'N'),
 (104, 'CLUSTER_PREFIX', 'multi-csp-k8s', 'N'),
 (104, 'K8S_NODEGROUP_PREFIX', 'ng', 'N'),
-(104, 'K8S_VERSION', '', 'N'),
+(104, 'K8S_VERSION', '1.33', 'N'),
 (104, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
 (104, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (104, 'K8S_MAX_NODE_SIZE', '3', 'N'),
@@ -2209,6 +2679,19 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (106, 'INFRA_PREFIX', 'multi-csp-vm', 'N'),
 (106, 'INFRA_ID_LIST', '', 'N'),
 (106, 'INFRA_DELETE_OPTION', 'terminate', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(107, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(107, 'TUMBLEBUG_SELECTOR_YN', 'N', 'N'),
+(107, 'USER', 'default', 'N'),
+(107, 'USERPASS', 'default', 'N'),
+(107, 'NAMESPACE', 'ns01', 'N'),
+(107, 'K8S_CLUSTER_ID', 'k8s-mariadb-data-init', 'N'),
+(107, 'K8S_NODEGROUP_NAME', 'ng1', 'N'),
+(107, 'K8S_DELETE_OPTION', 'force', 'N'),
+(107, 'K8S_NODEGROUP_DELETE_MAX_ATTEMPTS', '120', 'N'),
+(107, 'K8S_CLUSTER_DELETE_MAX_ATTEMPTS', '120', 'N'),
+(107, 'K8S_DELETE_INTERVAL_SECONDS', '10', 'N');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
@@ -2267,5 +2750,8 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (106, 1, 52, (SELECT script FROM workflow WHERE workflow_idx = 106));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(107, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 107));
 
 -- End Step 8

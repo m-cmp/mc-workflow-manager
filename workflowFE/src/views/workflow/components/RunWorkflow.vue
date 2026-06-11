@@ -168,7 +168,7 @@ const onClickRun = async () => {
     }
 
     await setRunProgressMessage('Workflow 실행 요청 중')
-    const { data } = await runWorkflow(workflowFormData.value)
+    const { data } = await runWorkflow(buildRunWorkflowPayload())
     await completeRunProgressStep('Workflow 실행 요청 완료')
     if (data) {
       toast.success('워크플로우 실행 요청이 접수되었습니다.')
@@ -183,6 +183,17 @@ const onClickRun = async () => {
   } finally {
     running.value = false
     stopRunProgress()
+  }
+}
+
+const buildRunWorkflowPayload = () => {
+  const workflowInfo = workflowFormData.value.workflowInfo
+  return {
+    workflowInfo: {
+      workflowIdx: workflowInfo?.workflowIdx,
+    },
+    workflowParams: workflowFormData.value.workflowParams || [],
+    workflowStageMappings: [],
   }
 }
 
@@ -425,6 +436,7 @@ const validateImageValue = async (prefix: string, csp: string, invalidKeys: Arra
   const specValue = getParamValue(`${prefix}SPEC_ID`)
   const region = getParamValue(`${prefix}REGION`) || getParamValue('REGION')
   const connectionName = getParamValue(`${prefix}CONNECTION_NAME`) || getParamValue('CONNECTION_NAME') || deriveConnectionName(csp, region)
+  const useKubernetesImage = needsKubernetesImageValidation(getWorkflowStageNames())
 
   if (!imageValue || isConnectionLikeSpecValue(imageValue, connectionName, region, csp)) {
     invalidKeys.push(imageKey)
@@ -438,7 +450,7 @@ const validateImageValue = async (prefix: string, csp: string, invalidKeys: Arra
   }
 
   await setRunProgressMessage(`${imageKey} 목록 검증 중`)
-  if (!(await isCatalogResourceValueAvailable('image', imageValue, csp, region, connectionName, specValue))) {
+  if (!(await isCatalogResourceValueAvailable('image', imageValue, csp, region, connectionName, specValue, useKubernetesImage))) {
     invalidKeys.push(imageKey)
   }
   await completeRunProgressStep(`${imageKey} 목록 검증 완료`)
@@ -467,6 +479,15 @@ const needsImageValidation = (stageNames: Array<string>) => {
   ].includes(stageName))
 }
 
+const needsKubernetesImageValidation = (stageNames: Array<string>) => {
+  return stageNames.some((stageName) => [
+    'k8s-cluster-create',
+    'k8s-nodegroup-add',
+    'multi-csp-k8s-cluster-deploy',
+  ].includes(stageName))
+    || normalizeValue(workflowFormData.value.workflowInfo?.workflowName).includes('k8s')
+}
+
 const getCspList = () => {
   return getParamValue('CSP_LIST')
     .split(',')
@@ -481,6 +502,7 @@ const isCatalogResourceValueAvailable = async (
   region: string,
   connectionName: string,
   matchedSpecId = '',
+  isKubernetesImage = false,
 ) => {
   if (!value || !csp || !region) {
     return false
@@ -492,6 +514,7 @@ const isCatalogResourceValueAvailable = async (
       regionName: region,
       connectionName,
       matchedSpecId: resourceType === 'image' ? matchedSpecId : '',
+      isKubernetesImage: resourceType === 'image' && isKubernetesImage ? 'true' : undefined,
     })
     const items = findFirstArray(data?.data ?? data)
     const normalizedValue = normalizeValue(value)

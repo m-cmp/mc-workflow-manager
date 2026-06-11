@@ -82,10 +82,13 @@ public class WorkflowAsyncExecutor {
 
         saveWorkflowRequestHistory(workflowReqDto, workflowParams, ossDto, ossTypeDto);
 
-        synchronizeJenkinsJobForRun(workflowReqDto, workflowParams, ossDto);
+        String workflowName = workflowReqDto.getWorkflowInfo().getWorkflowName();
+        int expectedBuildNumber = getExpectedBuildNumber(ossDto, workflowName);
+        if (expectedBuildNumber <= 0) {
+            expectedBuildNumber = getExpectedBuildNumber(ossDto, workflowName);
+        }
 
-        int expectedBuildNumber = jenkinsService.getNextBuildNumber(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName());
-        int jenkinsBuildId = jenkinsService.buildJenkinsJob(ossDto, workflowReqDto.getWorkflowInfo().getWorkflowName(), jenkinsJobParams);
+        int jenkinsBuildId = updateAndBuildJenkinsJobForRun(workflowReqDto, workflowParams, ossDto, jenkinsJobParams);
         int buildNumber = jenkinsService.getQueueExecutableNumber(ossDto, jenkinsBuildId, expectedBuildNumber);
         updateWorkflowRunStatus(workflowReqDto, "IN_PROGRESS", buildNumber);
 
@@ -160,6 +163,37 @@ public class WorkflowAsyncExecutor {
             log.info("Jenkins Job synchronized before run. workflowName: {}", workflowName);
         } catch (IOException e) {
             throw new IllegalStateException("Failed to synchronize Jenkins Job before workflow run: " + workflowName, e);
+        }
+    }
+
+    private int updateAndBuildJenkinsJobForRun(WorkflowReqDto workflowReqDto,
+                                               List<WorkflowParamDto> workflowParams,
+                                               OssDto ossDto,
+                                               Map<String, List<String>> jenkinsJobParams) {
+        String workflowName = workflowReqDto.getWorkflowInfo().getWorkflowName();
+        String pipelineScript = workflowReqDto.getWorkflowInfo().getScript();
+
+        try {
+            int queueId = jenkinsService.updateAndBuildJenkinsJobForRun(
+                    ossDto,
+                    workflowName,
+                    pipelineScript,
+                    workflowParams,
+                    jenkinsJobParams);
+            log.info("Jenkins Job synchronized and build requested before stale overwrite window. workflowName: {}, queueId: {}",
+                    workflowName, queueId);
+            return queueId;
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to synchronize/build Jenkins Job before workflow run: " + workflowName, e);
+        }
+    }
+
+    private int getExpectedBuildNumber(OssDto ossDto, String workflowName) {
+        try {
+            return jenkinsService.getNextBuildNumber(ossDto, workflowName);
+        } catch (Exception e) {
+            log.warn("Jenkins next build number lookup failed. workflowName: {}", workflowName, e);
+            return 0;
         }
     }
 

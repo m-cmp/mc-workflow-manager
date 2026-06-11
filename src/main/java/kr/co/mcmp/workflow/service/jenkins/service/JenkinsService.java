@@ -18,9 +18,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientResponseException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -141,13 +141,13 @@ public class JenkinsService {
             throw new McmpException(ResponseCode.NOT_EXISTS_JENKINS_JOB);
         }
 
-        // 새로운 XML 파일 생성
-        Document document = XMLUtil.getDocument(new ClassPathResource(RESOURCE_JENKINS_PATH+"jenkins-k8s-deploy-job-template.xml").getInputStream());
-
-        // Jenkins에서 XML 파일 받아오기
-        // Document document = this.getJobConfigXml(jenkins, jenkinsJobName);
+        Document document = this.getJobConfigXml(jenkins, jenkinsJobName);
+        if (document == null) {
+            document = XMLUtil.getDocument(new ClassPathResource(RESOURCE_JENKINS_PATH+"jenkins-k8s-deploy-job-template.xml").getInputStream());
+        }
 
         addParameter(document, params);
+        setQuietPeriodZero(document);
 
         String configXml = null;
         try {
@@ -163,8 +163,88 @@ public class JenkinsService {
             log.error("[updateJenkinsJobPipeline] Jenkins Job pipeline update fail.");
             throw new McmpException(ResponseCode.ERROR_JENKINS_API);
         }
+        verifyUpdatedJobConfig(jenkins, jenkinsJobName, pipelineScript);
 
         return result;
+    }
+
+    public int updateAndBuildJenkinsJobForRun(OssDto jenkins, String jenkinsJobName, String pipelineScript,
+                                              List<WorkflowParamDto> params,
+                                              Map<String, List<String>> jenkinsJobParams) throws IOException {
+        if ( !isExistJobName(jenkins, jenkinsJobName) ) {
+            createJenkinsJob_v2(jenkins, jenkinsJobName, pipelineScript, params);
+            return buildJenkinsJob(jenkins, jenkinsJobName, jenkinsJobParams);
+        }
+
+        Document document = this.getJobConfigXml(jenkins, jenkinsJobName);
+        if (document == null) {
+            document = XMLUtil.getDocument(new ClassPathResource(RESOURCE_JENKINS_PATH+"jenkins-k8s-deploy-job-template.xml").getInputStream());
+        }
+
+        addParameter(document, params);
+        setQuietPeriodZero(document);
+
+        String configXml = null;
+        try {
+            Document addPipelineDoc = XMLUtil.appendXml(document, PIPELINE_XML_PATH, pipelineScript);
+            configXml = XMLUtil.XmlToString(addPipelineDoc);
+        } catch (XPathExpressionException e) {
+            e.printStackTrace();
+            throw new McmpException(ResponseCode.UNKNOWN_ERROR);
+        }
+
+        String verificationMarker = resolvePipelineVerificationMarker(pipelineScript);
+        log.info("[updateAndBuildJenkinsJobForRun] Jenkins Job config update/build requested. jobName: {}, marker: {}",
+                jenkinsJobName, verificationMarker);
+        return api.updateJenkinsJobAndBuildNow(
+                jenkins.getOssUrl(),
+                jenkins.getOssUsername(),
+                jenkins.getOssPassword(),
+                jenkinsJobName,
+                configXml,
+                jenkinsJobParams,
+                verificationMarker);
+    }
+
+    private void verifyUpdatedJobConfig(OssDto jenkins, String jenkinsJobName, String pipelineScript) {
+        String marker = resolvePipelineVerificationMarker(pipelineScript);
+        if (!StringUtils.hasText(marker)) {
+            return;
+        }
+
+        try {
+            Document jobConfigXml = getJobConfigXml(jenkins, jenkinsJobName);
+            String currentConfig = XMLUtil.XmlToString(jobConfigXml);
+            if (currentConfig == null || !currentConfig.contains(marker)) {
+                log.error("[updateJenkinsJobPipeline] Jenkins Job config verification failed. jobName: {}, marker: {}",
+                        jenkinsJobName, marker);
+                throw new McmpException(ResponseCode.ERROR_JENKINS_API);
+            }
+            log.info("[updateJenkinsJobPipeline] Jenkins Job config verified. jobName: {}, marker: {}",
+                    jenkinsJobName, marker);
+        } catch (McmpException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("[updateJenkinsJobPipeline] Jenkins Job config verification error. jobName: {}, marker: {}",
+                    jenkinsJobName, marker, e);
+            throw new McmpException(ResponseCode.ERROR_JENKINS_API);
+        }
+    }
+
+    private String resolvePipelineVerificationMarker(String pipelineScript) {
+        if (!StringUtils.hasText(pipelineScript)) {
+            return null;
+        }
+        if (pipelineScript.contains("k8s-helm-bootstrap-v3")) {
+            return "k8s-helm-bootstrap-v3";
+        }
+        if (pipelineScript.contains("k8s-cluster-create payload")) {
+            return "k8s-cluster-create payload";
+        }
+        if (pipelineScript.contains("Installing helm ")) {
+            return "Installing helm ";
+        }
+        return null;
     }
 
     /*******
@@ -172,11 +252,12 @@ public class JenkinsService {
      *
      */
     public Document getJobConfigXml(OssDto jenkins, String jobName) {
-        ResponseEntity<byte[]> response = api.getJobPipelineScript(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName);
-        String xmlStr = new String(response.getBody());
-        Document jobConfigXml = XMLUtil.getDocument(xmlStr);
-
-        return jobConfigXml;
+        String xmlStr = api.getJenkinsJobConfigXml(
+                jenkins.getOssUrl(),
+                jenkins.getOssUsername(),
+                jenkins.getOssPassword(),
+                jobName);
+        return XMLUtil.getDocument(xmlStr);
     }
 
 
@@ -320,36 +401,26 @@ public class JenkinsService {
             return;
         }
 
-        // parametersDefinitionProperty
         NodeList propertiesList = document.getElementsByTagName("properties");
         Element properties = (Element) propertiesList.item(0);
 
-        // addParametersDefinitionProperty
-        Element addParametersDefinitionProperty = document.createElement("hudson.model.ParametersDefinitionProperty");
-        properties.appendChild(addParametersDefinitionProperty);
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // parametersDefinitionProperty
-        propertiesList = document.getElementsByTagName("properties");
-        properties = (Element) propertiesList.item(0);
-
-        // parameterDefinitions
         NodeList parametersDefinitionPropertyList = properties.getElementsByTagName("hudson.model.ParametersDefinitionProperty");
-        Element parameterDefinitionProperties = (Element) parametersDefinitionPropertyList.item(0);
+        Element parameterDefinitionProperties;
+        if (parametersDefinitionPropertyList.getLength() > 0) {
+            parameterDefinitionProperties = (Element) parametersDefinitionPropertyList.item(0);
+        } else {
+            parameterDefinitionProperties = document.createElement("hudson.model.ParametersDefinitionProperty");
+            properties.appendChild(parameterDefinitionProperties);
+        }
 
-        // addParameterDefinitions
-        Element addParameterDefinitions = document.createElement("parameterDefinitions");
-        parameterDefinitionProperties.appendChild(addParameterDefinitions);
-
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        // parameterDefinitions
-        parametersDefinitionPropertyList = properties.getElementsByTagName("hudson.model.ParametersDefinitionProperty");
-        parameterDefinitionProperties = (Element) parametersDefinitionPropertyList.item(0);
         NodeList parameterDefinitionsList = parameterDefinitionProperties.getElementsByTagName("parameterDefinitions");
+        for (int idx = parameterDefinitionsList.getLength() - 1; idx >= 0; idx--) {
+            parameterDefinitionProperties.removeChild(parameterDefinitionsList.item(idx));
+        }
+        Element parameterDefinitions = document.createElement("parameterDefinitions");
+        parameterDefinitionProperties.appendChild(parameterDefinitions);
 
-        if (parameterDefinitionsList.getLength() > 0) {
+        {
             Map<String, WorkflowParamDto> paramsByKey = new LinkedHashMap<>();
             for (WorkflowParamDto item : params) {
                 if (item == null || item.getParamKey() == null || item.getParamKey().trim().isEmpty()) {
@@ -366,9 +437,6 @@ public class JenkinsService {
             }
 
             new ArrayList<>(paramsByKey.values()).forEach(item -> {
-
-                Element parameterDefinitions = (Element) parameterDefinitionsList.item(0);
-
                 // Create new parameter node
                 Element stringParameterDefinition = document.createElement("hudson.model.StringParameterDefinition");
 
@@ -392,6 +460,21 @@ public class JenkinsService {
                 parameterDefinitions.appendChild(stringParameterDefinition);
             });
         }
+    }
+
+    private void setQuietPeriodZero(Document document) {
+        Element root = document.getDocumentElement();
+        Element quietPeriod = XMLUtil.getDirectChild(root, "quietPeriod");
+        if (quietPeriod == null) {
+            quietPeriod = document.createElement("quietPeriod");
+            Element disabled = XMLUtil.getDirectChild(root, "disabled");
+            if (disabled != null) {
+                root.insertBefore(quietPeriod, disabled);
+            } else {
+                root.appendChild(quietPeriod);
+            }
+        }
+        quietPeriod.setTextContent("0");
     }
 
 

@@ -54,7 +54,7 @@ export function deleteWorkflow(workflowIdx: number) {
 }
 
 // 배포 실행
-export function runWorkflow(params: Workflow) {
+export function runWorkflow(params: Workflow | any) {
   return request.post(`/workflow/run`, params);
 }
 

@@ -54,8 +54,8 @@ const makeTable = () => {
     reactiveData:true,
     columns: props.columns,
     pagination: true,
-    paginationSize:6,
-    paginationSizeSelector:[3, 6, 8, 10],
+    paginationSize:10,
+    paginationSizeSelector:[10, 20, 50, 100],
     movableColumns:true,
     paginationCounter:"rows",
   });
