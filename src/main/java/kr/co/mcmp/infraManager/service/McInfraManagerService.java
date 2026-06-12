@@ -96,10 +96,20 @@ public class McInfraManagerService {
             List<Object> result = toCatalogList(get("/availableZonesForSpec", queryParams));
             MultiValueMap<String, String> fallbackParams = buildAvailableZoneFallbackQueryParams(queryParams, result);
             if (fallbackParams != null) {
-                return toCatalogList(get("/availableZonesForSpec", fallbackParams));
+                List<Object> fallbackResult = toCatalogList(get("/availableZonesForSpec", fallbackParams));
+                if (!isEmptyOrSpecNotFoundResult(fallbackResult)) {
+                    return fallbackResult;
+                }
+            }
+            if (isEmptyOrSpecNotFoundResult(result)) {
+                return lookupAvailableZonesByConnectionConfig(queryParams);
             }
             return result;
         } catch (RestClientException e) {
+            List<Object> fallbackResult = lookupAvailableZonesByConnectionConfig(queryParams);
+            if (!fallbackResult.isEmpty()) {
+                return fallbackResult;
+            }
             return handleCatalogLookupFailure("system", "/availableZonesForSpec", e);
         }
     }
@@ -125,7 +135,7 @@ public class McInfraManagerService {
 
         if ("image".equals(resourceType)) {
             Object searchResult = postResourceWithSystemFallback(nsId, "/resources/searchImage", buildImageSearchRequest(queryParams));
-            if (hasImageMatchFilter(queryParams) || !isEmptyCatalogResult(searchResult)) {
+            if (!isEmptyCatalogResult(searchResult) || Boolean.TRUE.equals(firstBooleanValue(queryParams, "isKubernetesImage"))) {
                 return normalizeResourceResult(resourceType, searchResult, queryParams);
             }
         }
@@ -168,6 +178,7 @@ public class McInfraManagerService {
     public Object reviewInfraDynamic(String nsId, MultiValueMap<String, String> queryParams, Object requestBody) {
         String namespace = StringUtils.hasText(nsId) ? nsId : "system";
         try {
+            ensureNamespace(namespace);
             return post("/ns/" + namespace + "/infraDynamicReview" + buildRawQueryString(queryParams), requestBody);
         } catch (RestClientResponseException e) {
             Map<String, Object> error = new LinkedHashMap<>();
@@ -180,6 +191,37 @@ public class McInfraManagerService {
             error.put("reviewStatus", "Error");
             error.put("message", e.getMessage());
             return error;
+        }
+    }
+
+    public void ensureNamespace(String nsId) {
+        if (!StringUtils.hasText(nsId) || "system".equalsIgnoreCase(nsId)) {
+            return;
+        }
+
+        try {
+            get("/ns/" + nsId, null);
+            return;
+        } catch (RestClientResponseException e) {
+            if (!isNotFound(e)) {
+                throw e;
+            }
+        }
+
+        Map<String, Object> request = new LinkedHashMap<>();
+        request.put("name", nsId);
+        request.put("description", "Workflow created namespace");
+        try {
+            post("/ns", request);
+            log.info("[mc-infra-manager] Created namespace before infra review. namespace: {}", nsId);
+        } catch (RestClientResponseException e) {
+            String body = e.getResponseBodyAsString();
+            boolean alreadyExists = e.getStatusCode().value() == 409
+                    || (body != null && body.toLowerCase(Locale.ROOT).contains("already"));
+            if (!alreadyExists) {
+                throw e;
+            }
+            log.info("[mc-infra-manager] Namespace already exists while creating. namespace: {}", nsId);
         }
     }
 
@@ -382,6 +424,135 @@ public class McInfraManagerService {
         return parts[0] + "+" + normalizedRegion + "+" + parts[2];
     }
 
+    private List<Object> lookupAvailableZonesByConnectionConfig(MultiValueMap<String, String> queryParams) {
+        MultiValueMap<String, String> zoneLookupParams = buildZoneLookupParams(queryParams);
+        try {
+            List<Object> connConfigs = filterConnectionConfigs(
+                    toCatalogList(get("/connConfig", buildConnConfigQueryParams(zoneLookupParams))),
+                    zoneLookupParams);
+            List<Object> zones = compactZoneList(connConfigs);
+            if (!zones.isEmpty()) {
+                log.debug("[mc-infra-manager] availableZonesForSpec returned empty. Use connection config zones instead.");
+            }
+            return zones;
+        } catch (RestClientException e) {
+            log.warn("[mc-infra-manager] Connection config zone fallback failed. message: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    private MultiValueMap<String, String> buildZoneLookupParams(MultiValueMap<String, String> queryParams) {
+        org.springframework.util.LinkedMultiValueMap<String, String> lookupParams = new org.springframework.util.LinkedMultiValueMap<>();
+        if (queryParams != null) {
+            lookupParams.addAll(queryParams);
+        }
+
+        String[] specIdParts = splitTumblebugResourceId(firstValue(queryParams, "specId"));
+        if (!StringUtils.hasText(firstPresentValue(lookupParams, "providerName", "provider", "csp"))
+                && specIdParts.length > 0) {
+            lookupParams.set("providerName", specIdParts[0]);
+        }
+        if (!StringUtils.hasText(firstPresentValue(lookupParams, "regionName", "region"))
+                && specIdParts.length > 1) {
+            lookupParams.set("regionName", specIdParts[1]);
+        }
+        if (!StringUtils.hasText(resolveConnectionName(lookupParams))
+                && specIdParts.length > 1) {
+            lookupParams.set("connectionName", specIdParts[0] + "-" + specIdParts[1]);
+        }
+        return lookupParams;
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> compactZoneList(List<Object> connConfigs) {
+        java.util.LinkedHashSet<String> seen = new java.util.LinkedHashSet<>();
+        for (Object item : connConfigs) {
+            if (!(item instanceof Map<?, ?> itemMap)) {
+                addZoneValue(seen, valueAsString(item));
+                continue;
+            }
+
+            Map<String, Object> map = (Map<String, Object>) itemMap;
+            addZoneValue(seen, valueAsString(map.get("zone")));
+            addZoneValue(seen, valueAsString(map.get("zoneId")));
+            addZoneValue(seen, valueAsString(map.get("zoneName")));
+            addZoneValue(seen, valueAsString(map.get("assignedZone")));
+            addZoneValueIfScalar(seen, map.get("zones"));
+            addZoneValueIfScalar(seen, map.get("zoneList"));
+            addZonesFromList(seen, map.get("zones"));
+            addZonesFromList(seen, map.get("zoneList"));
+            addZonesFromNestedMap(seen, map.get("regionZoneInfo"));
+            addZonesFromNestedMap(seen, map.get("regionDetail"));
+        }
+
+        List<Object> zones = new ArrayList<>();
+        seen.stream().sorted(String::compareToIgnoreCase).forEach(zone -> {
+            Map<String, Object> target = new LinkedHashMap<>();
+            target.put("id", zone);
+            target.put("name", zone);
+            target.put("zone", zone);
+            zones.add(target);
+        });
+        return zones;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addZonesFromNestedMap(Set<String> zones, Object value) {
+        if (!(value instanceof Map<?, ?> nestedMap)) {
+            return;
+        }
+
+        Map<String, Object> map = (Map<String, Object>) nestedMap;
+        addZoneValue(zones, valueAsString(map.get("assignedZone")));
+        addZoneValue(zones, valueAsString(map.get("zone")));
+        addZoneValue(zones, valueAsString(map.get("zoneId")));
+        addZoneValue(zones, valueAsString(map.get("zoneName")));
+        addZoneValueIfScalar(zones, map.get("zones"));
+        addZoneValueIfScalar(zones, map.get("zoneList"));
+        addZonesFromList(zones, map.get("zones"));
+        addZonesFromList(zones, map.get("zoneList"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addZonesFromList(Set<String> zones, Object value) {
+        if (!(value instanceof List<?> list)) {
+            return;
+        }
+
+        for (Object item : list) {
+            if (item instanceof Map<?, ?> itemMap) {
+                Map<String, Object> map = (Map<String, Object>) itemMap;
+                addZoneValue(zones, valueAsString(map.get("id")));
+                addZoneValue(zones, valueAsString(map.get("name")));
+                addZoneValue(zones, valueAsString(map.get("zone")));
+                addZoneValue(zones, valueAsString(map.get("zoneId")));
+                addZoneValue(zones, valueAsString(map.get("zoneName")));
+                addZoneValue(zones, valueAsString(map.get("assignedZone")));
+            } else {
+                addZoneValue(zones, valueAsString(item));
+            }
+        }
+    }
+
+    private void addZoneValue(Set<String> zones, String value) {
+        if (!StringUtils.hasText(value)) {
+            return;
+        }
+
+        for (String part : value.split("[,;]")) {
+            if (StringUtils.hasText(part)) {
+                zones.add(part.trim());
+            }
+        }
+    }
+
+    private void addZoneValueIfScalar(Set<String> zones, Object value) {
+        if (value instanceof List<?> || value instanceof Map<?, ?>) {
+            return;
+        }
+        addZoneValue(zones, valueAsString(value));
+    }
+
     private MultiValueMap<String, String> buildConnConfigQueryParams(MultiValueMap<String, String> queryParams) {
         org.springframework.util.LinkedMultiValueMap<String, String> connConfigQueryParams = new org.springframework.util.LinkedMultiValueMap<>();
         copyIfPresent(connConfigQueryParams, queryParams, "filterCredentialHolder");
@@ -421,7 +592,9 @@ public class McInfraManagerService {
         putIfPresent(request, "providerName", firstPresentValue(queryParams, "providerName", "provider", "csp"));
         putIfPresent(request, "regionName", firstPresentValue(queryParams, "regionName", "region"));
         putIfPresent(request, "osType", firstPresentValue(queryParams, "osType", "imageSearch", "keyword"));
-        putIfPresent(request, "matchedSpecId", firstPresentValue(queryParams, "matchedSpecId", "specId", "SPEC_ID"));
+        if (isMatchedSpecImageSearchSupported(queryParams)) {
+            putIfPresent(request, "matchedSpecId", firstPresentValue(queryParams, "matchedSpecId", "specId", "SPEC_ID"));
+        }
         putIfPresent(request, "osArchitecture", firstPresentValue(queryParams, "osArchitecture", "architecture"));
         putIfPresent(request, "detailSearchKeys", splitDetailSearchKeys(queryParams));
 
@@ -435,8 +608,14 @@ public class McInfraManagerService {
         return request;
     }
 
-    private boolean hasImageMatchFilter(MultiValueMap<String, String> queryParams) {
-        return StringUtils.hasText(firstPresentValue(queryParams, "matchedSpecId", "specId", "SPEC_ID"));
+    private boolean isMatchedSpecImageSearchSupported(MultiValueMap<String, String> queryParams) {
+        String providerName = firstPresentValue(queryParams, "providerName", "provider", "csp");
+        String matchedSpecId = firstPresentValue(queryParams, "matchedSpecId", "specId", "SPEC_ID");
+        if ("azure".equalsIgnoreCase(providerName)) {
+            return false;
+        }
+        return !StringUtils.hasText(matchedSpecId)
+                || !matchedSpecId.toLowerCase(Locale.ROOT).startsWith("azure+");
     }
 
     private Object normalizeResourceResult(String resourceType, Object result, MultiValueMap<String, String> queryParams) {
@@ -715,6 +894,13 @@ public class McInfraManagerService {
             return null;
         }
         return providerName + "+" + regionName + "+" + resourceName;
+    }
+
+    private String[] splitTumblebugResourceId(String resourceId) {
+        if (!StringUtils.hasText(resourceId)) {
+            return new String[0];
+        }
+        return resourceId.split("\\+", 3);
     }
 
     private String mibToGiB(Object value) {

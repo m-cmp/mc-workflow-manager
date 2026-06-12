@@ -644,6 +644,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     ])
                 }
                 writeFile file: "infra-create.json", text: payload
+                echo "infra-create payload: ${payload}"
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
                 def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create.json ${auth}""", returnStdout: true).trim()
                 echo response
@@ -676,8 +677,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def collectAccessInfo
                 collectAccessInfo = { value ->
                     if (value instanceof Map) {
-                        if (!resolvedPrivateKey && value.privateKey) {
-                            resolvedPrivateKey = value.privateKey.toString()
+                        def keyCandidate = value.privateKey ?: value.sshKey ?: value.sshPrivateKey ?: value.private_key ?: value.ssh_private_key
+                        if (!resolvedPrivateKey && keyCandidate) {
+                            resolvedPrivateKey = keyCandidate.toString()
                         }
                         if (value.publicIP || value.publicIp || value.privateIP || value.privateIp || value.host) {
                             accessNodes << value
@@ -843,8 +845,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def collectAccessInfo
                     collectAccessInfo = { value ->
                         if (value instanceof Map) {
-                            if (!resolvedPrivateKey && value.privateKey) {
-                                resolvedPrivateKey = value.privateKey.toString()
+                            def keyCandidate = value.privateKey ?: value.sshKey ?: value.sshPrivateKey ?: value.private_key ?: value.ssh_private_key
+                            if (!resolvedPrivateKey && keyCandidate) {
+                                resolvedPrivateKey = keyCandidate.toString()
                             }
                             if (value.publicIP || value.publicIp || value.privateIP || value.privateIp || value.host) {
                                 accessNodes << value
@@ -885,16 +888,51 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                 }
 
-                if (sshHost && sshUser) {
-                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                    sh """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 ${keyOpt} "${sshUser}@${sshHost}" "echo ssh-ok" """
+                if (sshHost) {
+                    def candidates = []
+                    def addCandidate = { user ->
+                        def candidate = user?.toString()?.trim()
+                        if (candidate && !candidates.contains(candidate)) {
+                            candidates << candidate
+                        }
+                    }
+                    addCandidate(sshUser)
+                    addCandidate(env.SSH_USER)
+                    addCandidate(params.SSH_USER)
+                    addCandidate("ubuntu")
+                    addCandidate("ec2-user")
+                    addCandidate("cb-user")
+                    addCandidate("centos")
+                    addCandidate("admin")
+                    addCandidate("root")
+                    def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\" -o IdentitiesOnly=yes" : ""
+                    def connectedUser = ""
+                    for (candidate in candidates) {
+                        echo "SSH check try. user=${candidate}, host=${sshHost}"
+                        def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" """, returnStatus: true)
+                        if (status == 0) {
+                            connectedUser = candidate
+                            break
+                        }
+                    }
+                    if (!connectedUser) {
+                        error "SSH connect check failed for host ${sshHost}. tried users: ${candidates.join(", ")}"
+                    }
+                    sshUser = connectedUser
+                    env.SSH_HOST = sshHost
+                    env.DB_HOST = sshHost
+                    env.SSH_USER = connectedUser
+                    if (sshKeyFile) {
+                        env.SSH_KEY_FILE = sshKeyFile
+                    }
+                    echo "SSH connect check succeeded. SSH_HOST=${env.SSH_HOST}, SSH_USER=${env.SSH_USER}, SSH_KEY_FILE=${env.SSH_KEY_FILE ?: ""}"
                 } else {
-                    error "SSH_HOST and SSH_USER are required for infra-ssh-connect-check"
+                    error "SSH_HOST is required for infra-ssh-connect-check"
                 }
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (50, 17, 10, 'multi-csp-vm-deploy', '9종 CSP 대상 INFRA(VM) 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (50, 17, 10, 'multi-csp-vm-deploy', '10종 CSP 대상 INFRA(VM) 배포', '
     stage("multi-csp-vm-deploy") {
         steps {
             echo ">>>>> STAGE: multi-csp-vm-deploy"
@@ -995,13 +1033,21 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def deletedInfra = []
                 def skippedInfra = []
                 def failedDeletes = []
+                def isAbsent = { value ->
+                    def textValue = value ?: ""
+                    def lowerValue = textValue.toLowerCase()
+                    return textValue.contains("Http_Status_code:404") ||
+                            lowerValue.contains("not exist") ||
+                            lowerValue.contains("does not exist") ||
+                            lowerValue.contains("failed to find")
+                }
 
                 targetInfraIds.each { infraId ->
                     echo "Deleting infra ${infraId}"
                     def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${infraId}?option=${option}" ${auth}""", returnStdout: true).trim()
                     echo response
 
-                    if (response.contains("Http_Status_code:404")) {
+                    if (isAbsent(response)) {
                         skippedInfra << infraId
                         echo "Infra ${infraId} is already absent. Skip."
                     } else if (response.contains("Http_Status_code:2")) {
@@ -2305,6 +2351,45 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (54, 21, 6, 'namespace-ensure', 'Tumblebug Namespace 확인 및 생성', '
+    stage("namespace-ensure") {
+        steps {
+            echo ">>>>> STAGE: namespace-ensure"
+            script {
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def namespaceUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}"
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${namespaceUrl}" ${auth}""", returnStdout: true).trim()
+                if (response.contains("Http_Status_code:2")) {
+                    echo "Namespace ${params.NAMESPACE} already exists."
+                    return
+                }
+                if (!response.contains("Http_Status_code:404")) {
+                    error "namespace-ensure lookup failed: ${response}"
+                }
+
+                def payload = groovy.json.JsonOutput.toJson([
+                    name: params.NAMESPACE,
+                    description: params.NAMESPACE_DESC ?: "Workflow created namespace"
+                ])
+                writeFile file: "namespace-create.json", text: payload
+                def createResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns" -H "Content-Type: application/json" -d @namespace-create.json ${auth}""", returnStdout: true).trim()
+                echo createResponse
+                def lowerCreateResponse = createResponse.toLowerCase()
+                def createdOrExists = createResponse.contains("Http_Status_code:2") || createResponse.contains("Http_Status_code:409") || lowerCreateResponse.contains("already")
+                if (!createdOrExists) {
+                    error "namespace-ensure create failed: ${createResponse}"
+                }
+                echo "Namespace ${params.NAMESPACE} is ready."
+            }
+        }
+    }');
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -2344,6 +2429,7 @@ pipeline {
     agent any
     stages {
 '
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 48)
@@ -2360,6 +2446,44 @@ import groovy.json.JsonOutput
 pipeline {
     agent any
     stages {
+        stage("namespace-ensure") {
+            steps {
+                echo ">>>>> STAGE: namespace-ensure"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def namespaceUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${namespaceUrl}" ${auth}""", returnStdout: true).trim()
+                    if (response.contains("Http_Status_code:2")) {
+                        echo "Namespace ${params.NAMESPACE} already exists."
+                        return
+                    }
+                    if (!response.contains("Http_Status_code:404")) {
+                        error "namespace-ensure lookup failed: ${response}"
+                    }
+
+                    def payload = groovy.json.JsonOutput.toJson([
+                        name: params.NAMESPACE,
+                        description: params.NAMESPACE_DESC ?: "Workflow created namespace"
+                    ])
+                    writeFile file: "namespace-create.json", text: payload
+                    def createResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns" -H "Content-Type: application/json" -d @namespace-create.json ${auth}""", returnStdout: true).trim()
+                    echo createResponse
+                    def lowerCreateResponse = createResponse.toLowerCase()
+                    def createdOrExists = createResponse.contains("Http_Status_code:2") || createResponse.contains("Http_Status_code:409") || lowerCreateResponse.contains("already")
+                    if (!createdOrExists) {
+                        error "namespace-ensure create failed: ${createResponse}"
+                    }
+                    echo "Namespace ${params.NAMESPACE} is ready."
+                }
+            }
+        }
         stage("multi-csp-vm-deploy") {
             steps {
                 echo ">>>>> STAGE: multi-csp-vm-deploy"
@@ -2431,6 +2555,7 @@ pipeline {
     agent any
     stages {
 '
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 26)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 33)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 34)
@@ -2447,6 +2572,44 @@ import groovy.json.JsonOutput
 pipeline {
     agent any
     stages {
+        stage("namespace-ensure") {
+            steps {
+                echo ">>>>> STAGE: namespace-ensure"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def namespaceUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${namespaceUrl}" ${auth}""", returnStdout: true).trim()
+                    if (response.contains("Http_Status_code:2")) {
+                        echo "Namespace ${params.NAMESPACE} already exists."
+                        return
+                    }
+                    if (!response.contains("Http_Status_code:404")) {
+                        error "namespace-ensure lookup failed: ${response}"
+                    }
+
+                    def payload = groovy.json.JsonOutput.toJson([
+                        name: params.NAMESPACE,
+                        description: params.NAMESPACE_DESC ?: "Workflow created namespace"
+                    ])
+                    writeFile file: "namespace-create.json", text: payload
+                    def createResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns" -H "Content-Type: application/json" -d @namespace-create.json ${auth}""", returnStdout: true).trim()
+                    echo createResponse
+                    def lowerCreateResponse = createResponse.toLowerCase()
+                    def createdOrExists = createResponse.contains("Http_Status_code:2") || createResponse.contains("Http_Status_code:409") || lowerCreateResponse.contains("already")
+                    if (!createdOrExists) {
+                        error "namespace-ensure create failed: ${createResponse}"
+                    }
+                    echo "Namespace ${params.NAMESPACE} is ready."
+                }
+            }
+        }
         stage("multi-csp-k8s-cluster-deploy") {
             steps {
                 echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
@@ -2812,51 +2975,51 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'INFRA_NODEGROUP_SIZE', '1', 'N'),
 (102, 'ROOT_DISK_TYPE', 'default', 'N'),
 (102, 'ROOT_DISK_SIZE', '50', 'N'),
-(102, 'AWS_REGION', 'ap-northeast-2', 'N'),
-(102, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
-(102, 'AWS_ZONE', '', 'N'),
-(102, 'AWS_SPEC_ID', '', 'N'),
-(102, 'AWS_IMAGE_ID', '', 'N'),
-(102, 'AZURE_REGION', 'koreasouth', 'N'),
-(102, 'AZURE_CONNECTION_NAME', 'azure-koreasouth', 'N'),
-(102, 'AZURE_ZONE', '', 'N'),
-(102, 'AZURE_SPEC_ID', '', 'N'),
-(102, 'AZURE_IMAGE_ID', '', 'N'),
+(102, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
+(102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
+(102, 'ALIBABA_ZONE', 'ap-northeast-2a', 'N'),
+(102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-2+ecs.e-c1m1.large', 'N'),
+(102, 'ALIBABA_IMAGE_ID', 'ubuntu_22_04_x64_20G_alibase_20260522.vhd', 'N'),
+(102, 'AWS_REGION', 'ap-northeast-1', 'N'),
+(102, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
+(102, 'AWS_ZONE', 'ap-northeast-1a', 'N'),
+(102, 'AWS_SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
+(102, 'AWS_IMAGE_ID', 'ami-00b4561fe1d28c285', 'N'),
+(102, 'AZURE_REGION', 'koreacentral', 'N'),
+(102, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
+(102, 'AZURE_ZONE', '1', 'N'),
+(102, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D2s_v3', 'N'),
+(102, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-22_04-lts:server:22.04.202603110', 'N'),
 (102, 'GCP_REGION', 'asia-northeast3', 'N'),
 (102, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (102, 'GCP_ZONE', '', 'N'),
 (102, 'GCP_SPEC_ID', '', 'N'),
 (102, 'GCP_IMAGE_ID', '', 'N'),
-(102, 'NCP_REGION', 'kr', 'N'),
-(102, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
-(102, 'NCP_ZONE', '', 'N'),
-(102, 'NCP_SPEC_ID', 'ncp+kr+mi1-g3', 'N'),
-(102, 'NCP_IMAGE_ID', '104630229', 'N'),
-(102, 'NHN_REGION', 'kr1', 'N'),
-(102, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
-(102, 'NHN_ZONE', '', 'N'),
-(102, 'NHN_SPEC_ID', '', 'N'),
-(102, 'NHN_IMAGE_ID', '', 'N'),
-(102, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
-(102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
-(102, 'ALIBABA_ZONE', '', 'N'),
-(102, 'ALIBABA_SPEC_ID', '', 'N'),
-(102, 'ALIBABA_IMAGE_ID', '', 'N'),
-(102, 'TENCENT_REGION', 'ap-seoul', 'N'),
-(102, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
-(102, 'TENCENT_ZONE', '', 'N'),
-(102, 'TENCENT_SPEC_ID', '', 'N'),
-(102, 'TENCENT_IMAGE_ID', '', 'N'),
 (102, 'IBM_REGION', 'jp-osa', 'N'),
 (102, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
-(102, 'IBM_ZONE', '', 'N'),
-(102, 'IBM_SPEC_ID', '', 'N'),
-(102, 'IBM_IMAGE_ID', '', 'N'),
+(102, 'IBM_ZONE', 'jp-osa-1', 'N'),
+(102, 'IBM_SPEC_ID', 'ibm+jp-osa+bxf-2x8', 'N'),
+(102, 'IBM_IMAGE_ID', 'r034-ed053bf7-43c9-4b64-844b-77918ac3d597', 'N'),
 (102, 'KT_REGION', 'kr1', 'N'),
 (102, 'KT_CONNECTION_NAME', 'kt-kr1', 'N'),
 (102, 'KT_ZONE', '', 'N'),
 (102, 'KT_SPEC_ID', '', 'N'),
-(102, 'KT_IMAGE_ID', '', 'N');
+(102, 'KT_IMAGE_ID', '', 'N'),
+(102, 'NCP_REGION', 'kr', 'N'),
+(102, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
+(102, 'NCP_ZONE', 'KR-1', 'N'),
+(102, 'NCP_SPEC_ID', 'ncp+kr+c2-g3', 'N'),
+(102, 'NCP_IMAGE_ID', '104630229', 'N'),
+(102, 'NHN_REGION', 'kr1', 'N'),
+(102, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
+(102, 'NHN_ZONE', 'kr-pub-a', 'N'),
+(102, 'NHN_SPEC_ID', 'nhn+kr1+m2.c1m2', 'N'),
+(102, 'NHN_IMAGE_ID', '0f07c795-2a46-44fc-a61b-fa0d96763ce2', 'N'),
+(102, 'TENCENT_REGION', 'ap-seoul', 'N'),
+(102, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
+(102, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
+(102, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+BF1.MEDIUM2', 'N'),
+(102, 'TENCENT_IMAGE_ID', 'img-487zeit5', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (103, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -3027,17 +3190,19 @@ pipeline {
     stages {
 ');
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 101, 2, 17, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17;
+SELECT 101, 2, 54, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 101, 3, 25, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25;
+SELECT 101, 3, 17, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 101, 4, 48, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 48;
+SELECT 101, 4, 25, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 101, 5, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+SELECT 101, 5, 48, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 48;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 101, 6, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
+SELECT 101, 6, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 101, 7, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(101, 7, null, '
+(101, 8, null, '
     }
 }
 ');
@@ -3053,17 +3218,19 @@ pipeline {
     stages {
 ');
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 103, 2, 26, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 26;
+SELECT 103, 2, 54, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 103, 3, 33, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 33;
+SELECT 103, 3, 26, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 26;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 103, 4, 34, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 34;
+SELECT 103, 4, 33, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 33;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 103, 5, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+SELECT 103, 5, 34, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 34;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 103, 6, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
+SELECT 103, 6, 40, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 40;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 103, 7, 41, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 41;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(103, 7, null, '
+(103, 8, null, '
     }
 }
 ');

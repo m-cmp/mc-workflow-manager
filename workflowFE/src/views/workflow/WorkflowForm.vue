@@ -74,12 +74,24 @@
                   <code>{{ getSelectionParamKeyLabel('NAMESPACE') }}</code>
                   <span>Namespace</span>
                 </label>
-                <SearchableSelect
+                <input
                   v-model="selectedNamespace"
-                  :options="namespaceOptions"
+                  class="form-control p-2"
+                  :list="namespaceInputListId"
                   placeholder="Namespace"
+                  autocomplete="off"
+                  @input="onInputNamespace"
                   @change="onChangeNamespace"
                 />
+                <datalist :id="namespaceInputListId">
+                  <option
+                    v-for="option in namespaceOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </datalist>
               </div>
               <div class="tumblebug-param-field g-col-4">
                 <label class="tumblebug-param-label">
@@ -151,12 +163,24 @@
                   <code>{{ getSelectionParamKeyLabel('INFRA_ID') }}</code>
                   <span>Existing Infra</span>
                 </label>
-                <SearchableSelect
+                <input
                   v-model="selectedInfra"
-                  :options="infraOptions"
-                  placeholder="Existing Infra"
+                  class="form-control p-2"
+                  :list="infraInputListId"
+                  placeholder="Infra ID"
+                  autocomplete="off"
+                  @input="onInputInfra"
                   @change="onChangeInfra"
                 />
+                <datalist :id="infraInputListId">
+                  <option
+                    v-for="option in infraOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </datalist>
               </div>
               <div class="tumblebug-param-field g-col-5">
                 <label class="tumblebug-param-label">
@@ -199,8 +223,8 @@
                 </label>
                 <SearchableSelect
                   v-model="selectedZone"
-                  :options="zoneOptions"
-                  placeholder="Zone"
+                  :options="effectiveZoneOptions"
+                  :placeholder="zonePlaceholder"
                   @change="onChangeZone"
                 />
               </div>
@@ -384,6 +408,14 @@ interface InfraOption {
 
 type InfraOptionKind = 'default' | 'image' | 'spec' | 'k8sVersion'
 
+interface VmSelectionDefault {
+  region: string
+  connectionName: string
+  zone: string
+  specId: string
+  imageId: string
+}
+
 const defaultInfraProviderList = ['aws', 'azure', 'gcp', 'ncp', 'nhn', 'alibaba', 'tencent', 'ibm', 'kt']
 const infraProviderOptions = ref(sortInfraOptions(defaultInfraProviderList.map((provider) => ({ label: provider, value: provider }))))
 const infraProvider = ref('aws')
@@ -397,6 +429,9 @@ const selectedConnectionName = ref('')
 const selectedZone = ref('')
 const selectedK8sVersion = ref('')
 const isInitializingSelection = ref(false)
+const inputIdSuffix = Math.random().toString(36).slice(2)
+const namespaceInputListId = `tumblebug-namespace-options-${inputIdSuffix}`
+const infraInputListId = `tumblebug-infra-options-${inputIdSuffix}`
 const namespaceOptions = ref([] as Array<InfraOption>)
 const regionOptions = ref([] as Array<InfraOption>)
 const imageOptions = ref([] as Array<InfraOption>)
@@ -405,6 +440,7 @@ const infraOptions = ref([] as Array<InfraOption>)
 const accessHostOptions = ref([] as Array<InfraOption>)
 const connectionOptions = ref([] as Array<InfraOption>)
 const zoneOptions = ref([] as Array<InfraOption>)
+const zoneLoading = ref(false)
 const k8sVersionOptions = ref([] as Array<InfraOption>)
 let providerLoadSeq = 0
 let namespaceLoadSeq = 0
@@ -459,6 +495,58 @@ const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebug
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
+const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
+const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
+  alibaba: {
+    region: 'ap-northeast-2',
+    connectionName: 'alibaba-ap-northeast-2',
+    zone: 'ap-northeast-2a',
+    specId: 'alibaba+ap-northeast-2+ecs.e-c1m1.large',
+    imageId: 'ubuntu_22_04_x64_20G_alibase_20260522.vhd',
+  },
+  aws: {
+    region: 'ap-northeast-1',
+    connectionName: 'aws-ap-northeast-1',
+    zone: 'ap-northeast-1a',
+    specId: 'aws+ap-northeast-1+t3.small',
+    imageId: 'ami-00b4561fe1d28c285',
+  },
+  azure: {
+    region: 'koreacentral',
+    connectionName: 'azure-koreacentral',
+    zone: '1',
+    specId: 'azure+koreacentral+Standard_D2s_v3',
+    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
+  },
+  ibm: {
+    region: 'jp-osa',
+    connectionName: 'ibm-jp-osa',
+    zone: 'jp-osa-1',
+    specId: 'ibm+jp-osa+bxf-2x8',
+    imageId: 'r034-ed053bf7-43c9-4b64-844b-77918ac3d597',
+  },
+  ncp: {
+    region: 'kr',
+    connectionName: 'ncp-kr',
+    zone: 'KR-1',
+    specId: 'ncp+kr+c2-g3',
+    imageId: '104630229',
+  },
+  nhn: {
+    region: 'kr1',
+    connectionName: 'nhn-kr1',
+    zone: 'kr-pub-a',
+    specId: 'nhn+kr1+m2.c1m2',
+    imageId: '0f07c795-2a46-44fc-a61b-fa0d96763ce2',
+  },
+  tencent: {
+    region: 'ap-seoul',
+    connectionName: 'tencent-ap-seoul',
+    zone: 'ap-seoul-1',
+    specId: 'tencent+ap-seoul+BF1.MEDIUM2',
+    imageId: 'img-487zeit5',
+  },
+}
 
 const hasSelectorCandidate = computed(() => {
   return mode.value === 'new'
@@ -472,6 +560,32 @@ const hasSelectorRequiredStage = computed(() => {
 
 const isKubernetesImageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
+})
+
+const isNoZoneProvider = computed(() => infraProvider.value.toLowerCase() === 'azure')
+
+const effectiveZoneOptions = computed(() => {
+  if (zoneOptions.value.length > 0) {
+    return zoneOptions.value
+  }
+
+  if (
+    !zoneLoading.value
+    && isNoZoneProvider.value
+    && selectedSpec.value
+    && selectedRegion.value
+    && (selectedConnectionName.value || deriveConnectionName())
+  ) {
+    return [noZoneOption]
+  }
+
+  return []
+})
+
+const zonePlaceholder = computed(() => {
+  return effectiveZoneOptions.value.length === 1 && effectiveZoneOptions.value[0].value === ''
+    ? noZoneOption.label
+    : 'Zone'
 })
 
 const tumblebugSelectorEnabled = computed({
@@ -646,29 +760,56 @@ const getCurrentCspParamValue = (suffix: string) => {
   return cspKey ? getWorkflowParamValue(`${cspKey}_${suffix}`) : ''
 }
 
+const getVmSelectionDefault = () => {
+  if (kubernetesImageEnabled.value || isKubernetesImageWorkflow.value) {
+    return undefined
+  }
+  return vmSelectionDefaults[infraProvider.value.toLowerCase()]
+}
+
+const applyVmSelectionDefault = () => {
+  const defaults = getVmSelectionDefault()
+  if (!defaults) return
+  selectedRegion.value = selectedRegion.value || defaults.region
+  selectedConnectionName.value = selectedConnectionName.value || defaults.connectionName
+  selectedZone.value = selectedZone.value || defaults.zone
+  selectedSpec.value = selectedSpec.value || defaults.specId
+  selectedImage.value = selectedImage.value || defaults.imageId
+}
+
 const syncSelectionFromCurrentCspParams = () => {
   if (!isMultiCspWorkflow()) {
     return
   }
 
+  const defaults = getVmSelectionDefault()
   const resourceIdParts = parseTumblebugResourceId(getCurrentCspParamValue('SPEC_ID') || getCurrentCspParamValue('IMAGE_ID'))
-  selectedRegion.value = getCurrentCspParamValue('REGION') || resourceIdParts.region || ''
-  selectedImage.value = getCurrentCspParamValue('IMAGE_ID')
-  selectedSpec.value = getCurrentCspParamValue('SPEC_ID')
+  selectedRegion.value = getCurrentCspParamValue('REGION') || resourceIdParts.region || defaults?.region || ''
+  selectedImage.value = getCurrentCspParamValue('IMAGE_ID') || defaults?.imageId || ''
+  selectedSpec.value = getCurrentCspParamValue('SPEC_ID') || defaults?.specId || ''
   selectedK8sVersion.value = getCurrentCspParamValue('K8S_VERSION')
-  selectedConnectionName.value = getCurrentCspParamValue('CONNECTION_NAME')
-  selectedZone.value = getCurrentCspParamValue('ZONE')
+  selectedConnectionName.value = getCurrentCspParamValue('CONNECTION_NAME') || defaults?.connectionName || ''
+  selectedZone.value = getCurrentCspParamValue('ZONE') || defaults?.zone || ''
+}
+
+const getInputValue = (event: Event | undefined, fallback = '') => {
+  return (event?.target as HTMLInputElement | null)?.value ?? fallback
+}
+
+const onInputNamespace = (event?: Event) => {
+  selectedNamespace.value = getInputValue(event, selectedNamespace.value)
+  upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
 }
 
 const onChangeNamespace = async () => {
-  selectedInfra.value = ''
+  upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
   selectedAccessHost.value = ''
   accessHostOptions.value = []
-  if (selectedNamespace.value) {
-    upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
-  }
   await Promise.all([loadMcInfraSpecs(), loadMcInfraInfras()])
   await loadMcInfraImages()
+  if (selectedInfra.value) {
+    await loadMcInfraAccessHosts()
+  }
 }
 
 const onChangeInfraProvider = async () => {
@@ -679,6 +820,7 @@ const onChangeInfraProvider = async () => {
   selectedZone.value = ''
   selectedK8sVersion.value = ''
   syncSelectionFromCurrentCspParams()
+  applyVmSelectionDefault()
   await loadInfraOptions()
   applyInfraSelectionParams()
 }
@@ -687,11 +829,16 @@ const onChangeInfraSelection = () => {
   applyInfraSelectionParams()
 }
 
+const onInputInfra = (event?: Event) => {
+  selectedInfra.value = getInputValue(event, selectedInfra.value)
+  upsertWorkflowParam('INFRA_ID', selectedInfra.value)
+}
+
 const onChangeInfra = async () => {
+  upsertWorkflowParam('INFRA_ID', selectedInfra.value)
   selectedAccessHost.value = ''
   accessHostOptions.value = []
   if (selectedInfra.value) {
-    upsertWorkflowParam('INFRA_ID', selectedInfra.value)
     await loadMcInfraAccessHosts()
   }
 }
@@ -739,6 +886,7 @@ const onClickRefreshInfraOptions = async () => {
 const loadInfraOptions = async () => {
   await loadMcInfraProviders()
   await loadMcInfraNamespaces()
+  applyVmSelectionDefault()
   await loadMcInfraRegions()
   ensureSelectedRegionOption()
   await loadMcInfraConnConfigs()
@@ -970,19 +1118,28 @@ const loadMcInfraAvailableZones = async () => {
   const loadSeq = ++zoneLoadSeq
   zoneOptions.value = []
   if (!selectedSpec.value) {
+    zoneLoading.value = false
     return
   }
 
+  zoneLoading.value = true
   try {
-    const { data } = await getMcInfraAvailableZones({ specId: selectedSpec.value })
+    const { data } = await getMcInfraAvailableZones({
+      specId: selectedSpec.value,
+      providerName: infraProvider.value,
+      regionName: selectedRegion.value,
+      connectionName: selectedConnectionName.value || deriveConnectionName(),
+    })
     if (loadSeq !== zoneLoadSeq) return
     zoneOptions.value = normalizeInfraOptions(data)
     if (selectedZone.value && !zoneOptions.value.some((option) => option.value === selectedZone.value)) {
       selectedZone.value = ''
     }
+    zoneLoading.value = false
   } catch (error) {
     if (loadSeq !== zoneLoadSeq) return
     zoneOptions.value = []
+    zoneLoading.value = false
   }
 }
 
@@ -1465,7 +1622,7 @@ const getWorkflowParamValue = (paramKey: string) => {
 }
 
 const getNamespaceParamValue = () => {
-  return getWorkflowParamValue('NAMESPACE') || userInfo.projectInfo.ns_id || selectedNamespace.value || ''
+  return selectedNamespace.value || getWorkflowParamValue('NAMESPACE') || userInfo.projectInfo.ns_id || ''
 }
 
 const getResourceCatalogNamespace = () => {

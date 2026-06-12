@@ -286,6 +286,9 @@ public class WorkflowStageDto {
                     param("NOTIFICATION_PAYLOAD", ""));
             case "script-exec" -> params(
                     param("SCRIPT_CONTENT", "echo no script"));
+            case "namespace-ensure" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("NAMESPACE_DESC", "Workflow created namespace"));
             default -> List.of();
         };
     }
@@ -323,15 +326,22 @@ public class WorkflowStageDto {
                 param("INSTALL_MON_AGENT", "no"),
                 param("POLICY_ON_PARTIAL_FAILURE", "continue"));
 
-        addCspVmParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2");
-        addCspVmParams(result, "AZURE", "koreasouth", "azure-koreasouth");
-        addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3");
-        addCspVmParams(result, "NCP", "kr", "ncp-kr");
-        addCspVmParams(result, "NHN", "kr1", "nhn-kr1");
-        addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2");
-        addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul");
-        addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa");
-        addCspVmParams(result, "KT", "kr1", "kt-kr1");
+        addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
+                "alibaba+ap-northeast-2+ecs.e-c1m1.large", "ubuntu_22_04_x64_20G_alibase_20260522.vhd");
+        addCspVmParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
+                "aws+ap-northeast-1+t3.small", "ami-00b4561fe1d28c285");
+        addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
+                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202603110");
+        addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "", "", "");
+        addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
+                "ibm+jp-osa+bxf-2x8", "r034-ed053bf7-43c9-4b64-844b-77918ac3d597");
+        addCspVmParams(result, "KT", "kr1", "kt-kr1", "", "", "");
+        addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
+                "ncp+kr+c2-g3", "104630229");
+        addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
+                "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2");
+        addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
+                "tencent+ap-seoul+BF1.MEDIUM2", "img-487zeit5");
         return result;
     }
 
@@ -386,12 +396,13 @@ public class WorkflowStageDto {
                 param("K8S_DELETE_INTERVAL_SECONDS", "10"));
     }
 
-    private static void addCspVmParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
+    private static void addCspVmParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName,
+                                       String zone, String specId, String imageId) {
         result.add(param(prefix + "_REGION", region));
         result.add(param(prefix + "_CONNECTION_NAME", connectionName));
-        result.add(param(prefix + "_ZONE", ""));
-        result.add(param(prefix + "_SPEC_ID", ""));
-        result.add(param(prefix + "_IMAGE_ID", ""));
+        result.add(param(prefix + "_ZONE", zone));
+        result.add(param(prefix + "_SPEC_ID", specId));
+        result.add(param(prefix + "_IMAGE_ID", imageId));
     }
 
     private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
