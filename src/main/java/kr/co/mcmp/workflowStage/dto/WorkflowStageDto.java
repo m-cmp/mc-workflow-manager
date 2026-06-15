@@ -126,6 +126,7 @@ public class WorkflowStageDto {
                     param("CSP", ""),
                     param("REGION", ""),
                     param("CONNECTION_NAME", ""),
+                    param("ZONE", ""),
                     param("K8S_CLUSTER_ID", ""),
                     param("K8S_NODEGROUP_NAME", "ng1"),
                     param("IMAGE", ""),
@@ -167,6 +168,7 @@ public class WorkflowStageDto {
                     param("REGION", ""),
                     param("K8S_CLUSTER_ID", ""),
                     param("K8S_NODEGROUP_NAME", "ng1"),
+                    param("ZONE", ""),
                     param("IMAGE", ""),
                     param("IMAGE_ID", ""),
                     param("SPEC", ""),
@@ -408,6 +410,7 @@ public class WorkflowStageDto {
     private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
         result.add(param(prefix + "_REGION", region));
         result.add(param(prefix + "_CONNECTION_NAME", connectionName));
+        result.add(param(prefix + "_ZONE", ""));
         result.add(param(prefix + "_SPEC_ID", ""));
         result.add(param(prefix + "_IMAGE_ID", ""));
         result.add(param(prefix + "_K8S_VERSION", ""));

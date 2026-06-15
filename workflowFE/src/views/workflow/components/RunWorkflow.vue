@@ -438,6 +438,10 @@ const validateImageValue = async (prefix: string, csp: string, invalidKeys: Arra
   const connectionName = getParamValue(`${prefix}CONNECTION_NAME`) || getParamValue('CONNECTION_NAME') || deriveConnectionName(csp, region)
   const useKubernetesImage = needsKubernetesImageValidation(getWorkflowStageNames())
 
+  if (useKubernetesImage && isAzureCsp(csp)) {
+    return
+  }
+
   if (!imageValue || isConnectionLikeSpecValue(imageValue, connectionName, region, csp)) {
     invalidKeys.push(imageKey)
     return
@@ -486,6 +490,8 @@ const needsKubernetesImageValidation = (stageNames: Array<string>) => {
     'multi-csp-k8s-cluster-deploy',
   ].includes(stageName))
 }
+
+const isAzureCsp = (csp: string) => normalizeValue(csp) === 'azure'
 
 const getCspList = () => {
   return getParamValue('CSP_LIST')

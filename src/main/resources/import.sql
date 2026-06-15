@@ -1082,11 +1082,18 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def region = params.REGION ?: ""
                     def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
+                    def imageId = params.IMAGE_ID?.trim() ?: ""
+                    def isAzureK8s = provider?.equalsIgnoreCase("azure")
+                    if (!params.SPEC_ID?.trim()) {
+                        error "SPEC_ID is required"
+                    }
+                    if (!imageId && !isAzureK8s) {
+                        error "IMAGE_ID is required"
+                    }
                     def payloadMap = [
                         name: params.K8S_CLUSTER_ID,
                         nodeGroupName: nodeGroupName,
                         specId: params.SPEC_ID,
-                        imageId: params.IMAGE_ID,
                         label: [
                             provider: provider,
                             region: region
@@ -1099,8 +1106,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
+                    if (imageId) {
+                        payloadMap.imageId = imageId
+                    }
                     if (connectionName) {
                         payloadMap.connectionName = connectionName
+                    }
+                    if (params.ZONE?.trim()) {
+                        payloadMap.zone = params.ZONE.trim()
                     }
                     payload = groovy.json.JsonOutput.toJson(payloadMap)
                 } else if (payload.contains("\"version\":\"\"")) {
@@ -1166,17 +1179,50 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "k8s cluster is ready but node group is missing: ${statusResponse}"
                     }
                     echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
-                    def nodeGroupPayload = groovy.json.JsonOutput.toJson([
+                    def nodeGroupZone = ""
+                    if (!nodeGroupZone) {
+                        def zoneMarker = "\"key\":\"ZoneId\",\"value\":\""
+                        def zoneIndex = (statusResponse ?: "").indexOf(zoneMarker)
+                        if (zoneIndex >= 0) {
+                            def zoneStart = zoneIndex + zoneMarker.length()
+                            def zoneEnd = statusResponse.indexOf("\"", zoneStart)
+                            if (zoneEnd > zoneStart) {
+                                nodeGroupZone = statusResponse.substring(zoneStart, zoneEnd)
+                            }
+                        }
+                    }
+                    if (!nodeGroupZone) {
+                        nodeGroupZone = params.ZONE?.trim() ?: ""
+                    }
+                    if (!nodeGroupZone) {
+                        def assignedZoneMarker = "\"assignedZone\":\""
+                        def assignedZoneIndex = (statusResponse ?: "").indexOf(assignedZoneMarker)
+                        if (assignedZoneIndex >= 0) {
+                            def assignedZoneStart = assignedZoneIndex + assignedZoneMarker.length()
+                            def assignedZoneEnd = statusResponse.indexOf("\"", assignedZoneStart)
+                            if (assignedZoneEnd > assignedZoneStart) {
+                                nodeGroupZone = statusResponse.substring(assignedZoneStart, assignedZoneEnd)
+                            }
+                        }
+                    }
+                    echo "k8s node group resolved zone: ${nodeGroupZone}"
+                    def nodeGroupMap = [
                         name: nodeGroupName,
                         specId: params.SPEC_ID,
-                        imageId: params.IMAGE_ID,
                         nodeGroupSize: desiredNodeSize,
                         desiredNodeSize: desiredNodeSize,
                         minNodeSize: minNodeSize,
                         maxNodeSize: maxNodeSize,
                         rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
-                    ])
+                    ]
+                    if (params.IMAGE_ID?.trim()) {
+                        nodeGroupMap.imageId = params.IMAGE_ID.trim()
+                    }
+                    if (nodeGroupZone) {
+                        nodeGroupMap.zone = nodeGroupZone
+                    }
+                    def nodeGroupPayload = groovy.json.JsonOutput.toJson(nodeGroupMap)
                     writeFile file: "k8s-nodegroup-add.json", text: nodeGroupPayload
                     echo "k8s-nodegroup-add payload: ${nodeGroupPayload}"
                     def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add.json ${auth}""", returnStdout: true).trim()
@@ -1271,17 +1317,32 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.K8S_NODEGROUP_PAYLOAD?.trim()
                 if (!payload) {
-                    payload = groovy.json.JsonOutput.toJson([
+                    def imageId = params.IMAGE_ID?.trim() ?: ""
+                    def provider = params.CSP ?: params.PROVIDER ?: ""
+                    def isAzureK8s = provider?.equalsIgnoreCase("azure")
+                    if (!params.SPEC_ID?.trim()) {
+                        error "SPEC_ID is required"
+                    }
+                    if (!imageId && !isAzureK8s) {
+                        error "IMAGE_ID is required"
+                    }
+                    def payloadMap = [
                         name: params.K8S_NODEGROUP_NAME,
                         specId: params.SPEC_ID,
-                        imageId: params.IMAGE_ID,
                         nodeGroupSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                         rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
-                    ])
+                    ]
+                    if (imageId) {
+                        payloadMap.imageId = imageId
+                    }
+                    if (params.ZONE?.trim()) {
+                        payloadMap.zone = params.ZONE.trim()
+                    }
+                    payload = groovy.json.JsonOutput.toJson(payloadMap)
                 }
                 writeFile file: "k8s-nodegroup-add.json", text: payload
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
@@ -2628,16 +2689,20 @@ pipeline {
                         def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
+                        def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                         def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
-                        if (!specId || !imageId) {
-                            error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                        def isAzureK8s = csp?.equalsIgnoreCase("azure")
+                        if (!specId) {
+                            error "SPEC_ID is required for ${csp}"
+                        }
+                        if (!imageId && !isAzureK8s) {
+                            error "IMAGE_ID is required for ${csp}"
                         }
 
                         def payloadMap = [
                             name: clusterId,
                             nodeGroupName: nodeGroupName,
                             specId: specId,
-                            imageId: imageId,
                             label: [
                                 csp: csp,
                                 region: region
@@ -2650,8 +2715,14 @@ pipeline {
                             rootDiskType: params.ROOT_DISK_TYPE ?: "default",
                             rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                         ]
+                        if (imageId) {
+                            payloadMap.imageId = imageId
+                        }
                         if (connectionName) {
                             payloadMap.connectionName = connectionName
+                        }
+                        if (zone) {
+                            payloadMap.zone = zone
                         }
 
                         def payload = groovy.json.JsonOutput.toJson(payloadMap)
@@ -3031,6 +3102,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'CSP', 'aws', 'N'),
 (103, 'REGION', 'ap-northeast-2', 'N'),
 (103, 'CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
+(103, 'ZONE', '', 'N'),
 (103, 'K8S_CLUSTER_ID', 'k8s-mariadb-data-init', 'N'),
 (103, 'K8S_NODEGROUP_NAME', 'ng1', 'N'),
 (103, 'IMAGE', '', 'N'),
@@ -3094,41 +3166,49 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (104, 'AWS_REGION', 'ap-northeast-2', 'N'),
 (104, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
+(104, 'AWS_ZONE', '', 'N'),
 (104, 'AWS_SPEC_ID', '', 'N'),
 (104, 'AWS_IMAGE_ID', '', 'N'),
 (104, 'AWS_K8S_VERSION', '', 'N'),
 (104, 'AZURE_REGION', 'koreacentral', 'N'),
 (104, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
+(104, 'AZURE_ZONE', '', 'N'),
 (104, 'AZURE_SPEC_ID', '', 'N'),
 (104, 'AZURE_IMAGE_ID', '', 'N'),
 (104, 'AZURE_K8S_VERSION', '', 'N'),
 (104, 'GCP_REGION', 'asia-east1', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-east1', 'N'),
+(104, 'GCP_ZONE', '', 'N'),
 (104, 'GCP_SPEC_ID', '', 'N'),
 (104, 'GCP_IMAGE_ID', '', 'N'),
 (104, 'GCP_K8S_VERSION', '', 'N'),
 (104, 'NCP_REGION', 'kr1', 'N'),
 (104, 'NCP_CONNECTION_NAME', 'ncp-kr1', 'N'),
+(104, 'NCP_ZONE', '', 'N'),
 (104, 'NCP_SPEC_ID', '', 'N'),
 (104, 'NCP_IMAGE_ID', '', 'N'),
 (104, 'NCP_K8S_VERSION', '', 'N'),
 (104, 'NHN_REGION', 'kr1', 'N'),
 (104, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
+(104, 'NHN_ZONE', '', 'N'),
 (104, 'NHN_SPEC_ID', '', 'N'),
 (104, 'NHN_IMAGE_ID', '', 'N'),
 (104, 'NHN_K8S_VERSION', '', 'N'),
 (104, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
 (104, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
+(104, 'ALIBABA_ZONE', '', 'N'),
 (104, 'ALIBABA_SPEC_ID', '', 'N'),
 (104, 'ALIBABA_IMAGE_ID', '', 'N'),
 (104, 'ALIBABA_K8S_VERSION', '', 'N'),
 (104, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
+(104, 'TENCENT_ZONE', '', 'N'),
 (104, 'TENCENT_SPEC_ID', '', 'N'),
 (104, 'TENCENT_IMAGE_ID', '', 'N'),
 (104, 'TENCENT_K8S_VERSION', '', 'N'),
 (104, 'IBM_REGION', 'jp-osa', 'N'),
 (104, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
+(104, 'IBM_ZONE', '', 'N'),
 (104, 'IBM_SPEC_ID', '', 'N'),
 (104, 'IBM_IMAGE_ID', '', 'N'),
 (104, 'IBM_K8S_VERSION', '', 'N');
