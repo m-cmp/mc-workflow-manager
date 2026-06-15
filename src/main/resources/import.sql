@@ -1150,6 +1150,25 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def hasSpiderNodeGroup = compactResponse.contains("\"nodegrouplist\":[{")
                     return hasDirectNodeGroup || hasSpiderNodeGroup
                 }
+                def isKubeconfigReadyInStatus = { response ->
+                    def compactResponse = (response ?: "").replaceAll("\\s+", "").toLowerCase()
+                    if (!hasNodeGroupInfo(response)) {
+                        return false
+                    }
+                    if (compactResponse.contains("\"k8snodes\":[]")) {
+                        return false
+                    }
+                    if (compactResponse.contains("\"key\":\"clusternodenum\",\"value\":\"0\"")) {
+                        return false
+                    }
+                    if (compactResponse.contains("kubeconfigisnotreadyyet")) {
+                        return false
+                    }
+                    if (compactResponse.contains("first,addanodegroup")) {
+                        return false
+                    }
+                    return true
+                }
                 for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                     statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
                     currentStatus = ""
@@ -1232,14 +1251,18 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                     for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                         statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
-                        if (hasNodeGroupInfo(statusResponse)) {
+                        if (isKubeconfigReadyInStatus(statusResponse)) {
                             break
                         }
-                        echo "k8s node group is not registered yet. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        if (!hasNodeGroupInfo(statusResponse)) {
+                            echo "k8s node group is not registered yet. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        } else {
+                            echo "k8s node group is registered but nodes or kubeconfig are not ready yet. attempt ${attempt}/${statusAttempts}: ${statusResponse}"
+                        }
                         sleep time: statusIntervalSeconds, unit: "SECONDS"
                     }
-                    if (!hasNodeGroupInfo(statusResponse)) {
-                        error "k8s node group was not created: ${statusResponse}"
+                    if (!isKubeconfigReadyInStatus(statusResponse)) {
+                        error "k8s node group or kubeconfig was not ready: ${statusResponse}"
                     }
                 }
             }
@@ -1377,17 +1400,30 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def response = ""
                 def kubeconfigAttempts = (params.K8S_KUBECONFIG_MAX_ATTEMPTS ?: "30").toInteger()
                 def kubeconfigIntervalSeconds = (params.K8S_KUBECONFIG_INTERVAL_SECONDS ?: "10").toInteger()
+                def isKubeconfigResponseReady = { text ->
+                    def lowerText = (text ?: "").toLowerCase()
+                    if (!text?.contains("Http_Status_code:2")) {
+                        return false
+                    }
+                    if (lowerText.contains("kubeconfig is not ready yet")) {
+                        return false
+                    }
+                    if (lowerText.contains("first, add a nodegroup")) {
+                        return false
+                    }
+                    return lowerText.contains("apiversion:") || lowerText.contains("\"kubeconfig\"") || lowerText.contains("\"kubeconfig\":")
+                }
                 for (int attempt = 1; attempt <= kubeconfigAttempts; attempt++) {
                     response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/kubeconfig" ${auth}""", returnStdout: true).trim()
-                    if (response.contains("Http_Status_code:2")) {
+                    if (isKubeconfigResponseReady(response)) {
                         break
                     }
                     echo "kubeconfig is not ready. attempt ${attempt}/${kubeconfigAttempts}: ${response}"
                     sleep time: kubeconfigIntervalSeconds, unit: "SECONDS"
                 }
                 echo response
-                if (!response.contains("Http_Status_code:2")) {
-                    error "k8s-kubeconfig-get failed: ${response}"
+                if (!isKubeconfigResponseReady(response)) {
+                    error "k8s-kubeconfig-get failed or kubeconfig was not ready: ${response}"
                 }
                 def body = response.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
                 writeFile file: "kubeconfig-response.json", text: body

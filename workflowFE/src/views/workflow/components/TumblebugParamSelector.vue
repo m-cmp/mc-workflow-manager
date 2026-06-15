@@ -420,7 +420,7 @@ const initSelectionValues = async () => {
     }
 
     selectedNamespace.value = getNamespaceParamValue()
-    selectedInfra.value = getWorkflowParamValue('INFRA_ID')
+    selectedInfra.value = getWorkflowParamValue('INFRA_ID') || getWorkflowParamValue('K8S_CLUSTER_ID')
     selectedAccessHost.value = getWorkflowParamValue('SSH_HOST') || getWorkflowParamValue('DB_HOST')
     selectedRegion.value = getWorkflowParamValue('REGION') || resourceIdParts.region
     selectedImage.value = getWorkflowParamValue('IMAGE_ID') || getWorkflowParamValue('IMAGE')
@@ -592,11 +592,11 @@ const onChangeInfraSelection = () => {
 
 const onInputInfra = (event?: Event) => {
   selectedInfra.value = getInputValue(event, selectedInfra.value)
-  upsertWorkflowParam('INFRA_ID', selectedInfra.value)
+  syncInfraIdParams()
 }
 
 const onChangeInfra = async () => {
-  upsertWorkflowParam('INFRA_ID', selectedInfra.value)
+  syncInfraIdParams()
   selectedAccessHost.value = ''
   accessHostOptions.value = []
   if (selectedInfra.value) {
@@ -1380,6 +1380,17 @@ const collectAccessNodes = (value: any, nodes: Array<any>) => {
 
 const getWorkflowParamValue = (paramKey: string) => {
   return paramData.value.find((param) => param.paramKey?.toUpperCase() === paramKey.toUpperCase())?.paramValue || ''
+}
+
+const hasWorkflowParam = (paramKey: string) => {
+  return paramData.value.some((param) => param.paramKey?.trim().toUpperCase() === paramKey.toUpperCase())
+}
+
+const syncInfraIdParams = () => {
+  upsertWorkflowParam('INFRA_ID', selectedInfra.value)
+  if (isKubernetesImageWorkflow.value || hasWorkflowParam('K8S_CLUSTER_ID')) {
+    upsertWorkflowParam('K8S_CLUSTER_ID', selectedInfra.value)
+  }
 }
 
 const getNamespaceParamValue = () => {
