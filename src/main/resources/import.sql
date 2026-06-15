@@ -1083,11 +1083,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def region = params.REGION ?: ""
                     def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
                     def imageId = params.IMAGE_ID?.trim() ?: ""
-                    def isAzureK8s = provider?.equalsIgnoreCase("azure")
+                    def usesProviderManagedK8sImage = provider?.equalsIgnoreCase("azure") || provider?.equalsIgnoreCase("ibm") || provider?.equalsIgnoreCase("ncp") || provider?.equalsIgnoreCase("tencent")
                     if (!params.SPEC_ID?.trim()) {
                         error "SPEC_ID is required"
                     }
-                    if (!imageId && !isAzureK8s) {
+                    if (!imageId && !usesProviderManagedK8sImage) {
                         error "IMAGE_ID is required"
                     }
                     def payloadMap = [
@@ -1319,11 +1319,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!payload) {
                     def imageId = params.IMAGE_ID?.trim() ?: ""
                     def provider = params.CSP ?: params.PROVIDER ?: ""
-                    def isAzureK8s = provider?.equalsIgnoreCase("azure")
+                    def usesProviderManagedK8sImage = provider?.equalsIgnoreCase("azure") || provider?.equalsIgnoreCase("ibm") || provider?.equalsIgnoreCase("ncp") || provider?.equalsIgnoreCase("tencent")
                     if (!params.SPEC_ID?.trim()) {
                         error "SPEC_ID is required"
                     }
-                    if (!imageId && !isAzureK8s) {
+                    if (!imageId && !usesProviderManagedK8sImage) {
                         error "IMAGE_ID is required"
                     }
                     def payloadMap = [
@@ -2691,11 +2691,11 @@ pipeline {
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
                         def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                         def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
-                        def isAzureK8s = csp?.equalsIgnoreCase("azure")
+                        def usesProviderManagedK8sImage = csp?.equalsIgnoreCase("azure") || csp?.equalsIgnoreCase("ibm") || csp?.equalsIgnoreCase("ncp") || csp?.equalsIgnoreCase("tencent")
                         if (!specId) {
                             error "SPEC_ID is required for ${csp}"
                         }
-                        if (!imageId && !isAzureK8s) {
+                        if (!imageId && !usesProviderManagedK8sImage) {
                             error "IMAGE_ID is required for ${csp}"
                         }
 

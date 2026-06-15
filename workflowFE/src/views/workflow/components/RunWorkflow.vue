@@ -438,7 +438,7 @@ const validateImageValue = async (prefix: string, csp: string, invalidKeys: Arra
   const connectionName = getParamValue(`${prefix}CONNECTION_NAME`) || getParamValue('CONNECTION_NAME') || deriveConnectionName(csp, region)
   const useKubernetesImage = needsKubernetesImageValidation(getWorkflowStageNames())
 
-  if (useKubernetesImage && isAzureCsp(csp)) {
+  if (useKubernetesImage && skipsKubernetesImageSelection(csp)) {
     return
   }
 
@@ -491,7 +491,7 @@ const needsKubernetesImageValidation = (stageNames: Array<string>) => {
   ].includes(stageName))
 }
 
-const isAzureCsp = (csp: string) => normalizeValue(csp) === 'azure'
+const skipsKubernetesImageSelection = (csp: string) => ['azure', 'ibm', 'ncp', 'tencent'].includes(normalizeValue(csp))
 
 const getCspList = () => {
   return getParamValue('CSP_LIST')
