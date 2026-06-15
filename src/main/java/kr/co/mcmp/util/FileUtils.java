@@ -28,11 +28,7 @@ public class FileUtils {
 		return readLineByLineJava8(file.getAbsolutePath());
 	}
 	
-	/**
-	 * 파일 내용을 스트링으로 리턴한다.
-	 * @param filePath
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public static String readLineByLineJava8(String filePath) throws IOException {
 		StringBuilder contentBuilder = new StringBuilder();
 		Stream<String> stream = Files.lines(Paths.get(filePath), StandardCharsets.UTF_8);

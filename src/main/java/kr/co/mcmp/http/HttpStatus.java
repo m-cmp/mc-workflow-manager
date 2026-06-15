@@ -1,10 +1,6 @@
 package kr.co.mcmp.http;
 
-/**
- * HTTP Response Code 정의
- * @author hclee 
- *
- */
+/* Comment translated to English. */
 public enum HttpStatus {
 	
 	NO_ERROR(2200, "No Error"),

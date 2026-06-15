@@ -176,7 +176,7 @@ const normalize = (value?: string) => {
 }
 
 const compact = (value?: string) => {
-  return normalize(value).replace(/[^a-z0-9가-힣]/g, '')
+  return normalize(value).replace(/[^a-z0-9\uac00-\ud7a3]/g, '')
 }
 
 const getOptionSearchValues = (option: SelectOption) => {

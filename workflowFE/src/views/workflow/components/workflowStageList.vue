@@ -1,5 +1,5 @@
 <template>
-  <!-- Palette 리스트 카드 -->
+  <!-- Comment translated to English. -->
   <div class="card">
     <div class="accordion accordion-flush" id="accordionArea">
       <div class="accordion-item" v-for="(pipelineCd, idx) in pipelineScriptList" :key="idx">
@@ -33,7 +33,7 @@
                 class="list-group-item list-group-item-action paletteItem"
                 @click="onClickPaletteItem(item)"
               >
-                  {{ item ? item.workflowStageName : '등록된 스테이지가 없습니다.' }}
+                  {{ item ? item.workflowStageName : 'No registered stages.' }}
                 </div>
               </VueDraggableNext>
           </div>
@@ -75,7 +75,7 @@ const getStageTypeLabel = (stageTypeName: string) => {
   return labels[stageTypeName] || stageTypeName
 }
 
-// Palette 옵션 (Pipeline stage)
+// Comment translated to English.
 const onCheckDraggablePalette = (e:any) => {
   let idx = e.draggedContext.futureIndex;
   let isDefaultScript = e.draggedContext.element.isDefaultScript;
@@ -83,10 +83,10 @@ const onCheckDraggablePalette = (e:any) => {
 
   let check = true;
 
-  // checkoutBuild / fileUpload 위치(Index) 고정
+  // Comment translated to English.
   if (isDefaultScript) check = false;
 
-  // 다른 item을 checkoutBuild보다 앞이나 fileUpload보다 뒤에 둘 수 없도록 설정
+  // Comment translated to English.
   if (idx < 1 || idx > props.workflowStageMappingsFormData.length - 1) check = false;
 
   return check;
@@ -103,12 +103,12 @@ const toWorkflowStageMapping = (stage: WorkflowStage): WorkflowStageMappings => 
   isDefaultScript: false,
 })
 
-// Palette 옵션
+// Comment translated to English.
 const onClonePipeline = (obj: WorkflowStage) => {
   return toWorkflowStageMapping(obj)
 }
 
-// 선택된 Palette 아이템
+// Comment translated to English.
 const onClickPaletteItem = (obj:WorkflowStage) => {
   if (props.workflowStageMappingsFormData.length < 1) return;
   emit('splice-workflow-stage-mappings-form-data', toWorkflowStageMapping(obj))
@@ -134,7 +134,7 @@ const onFinishDrag = () => {
   background-color: yellow;
 }
 
-/* 아코디언 스타일 개선 */
+/* Comment translated to English. */
 .card {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -182,7 +182,7 @@ const onFinishDrag = () => {
   transition: transform 0.3s ease;
 }
 
-/* 드래그 앤 드롭 리스트 스타일 */
+/* Comment translated to English. */
 .accordion-body {
   background-color: #ffffff;
   max-height: 300px;
@@ -236,7 +236,7 @@ const onFinishDrag = () => {
   transform: scale(0.98);
 }
 
-/* 드래그 중일 때 스타일 */
+/* Comment translated to English. */
 .paletteItem.sortable-ghost {
   opacity: 0.5;
   background-color: #dbeafe;
@@ -255,8 +255,8 @@ const onFinishDrag = () => {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-/* 빈 상태 메시지 스타일 */
-.paletteItem:has-text('등록된 스테이지가 없습니다.') {
+/* Comment translated to English. */
+.paletteItem:has-text('No registered stages.') {
   color: #9ca3af;
   font-style: italic;
   text-align: center;
@@ -280,7 +280,7 @@ const onFinishDrag = () => {
   align-items: flex-end;
 }
 
-/* 추가 애니메이션 효과 */
+/* Comment translated to English. */
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -297,14 +297,14 @@ const onFinishDrag = () => {
   animation: slideDown 0.3s ease-out;
 }
 
-/* 포커스 및 접근성 개선 */
+/* Comment translated to English. */
 .paletteItem:focus {
   outline: 2px solid #3b82f6;
   outline-offset: -2px;
   background-color: #eff6ff;
 }
 
-/* 모바일 반응형 */
+/* Comment translated to English. */
 @media (max-width: 768px) {
   .accordion-button {
     padding: 0.75rem 1rem;

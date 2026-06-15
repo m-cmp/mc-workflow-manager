@@ -41,46 +41,29 @@ import WorkflowStageForm from './components/WorkflowStageForm.vue';
 import DeleteWorkflowStage from './components/DeleteWorkflowStage.vue';
 
 const toast = useToast()
-/**
- * @Title workflowStageList / columns
- * @Desc 
- *    workflowStageList : workflow Stage 목록 저장
- *    columns : 목록의 컬럼 저장
- */
+/* Comment translated to English. */
 const workflowStageList = ref([] as Array<WorkflowStage>)
 const columns = ref([] as Array<ColumnDefinition>)
 
-/**
- * @Title Life Cycle
- * @Desc 컬럼 set Callback 함수 호출 / workflow Stage List Callback 함수 호출
- */
+/* Comment translated to English. */
 onMounted(async () => {
   setColumns()
   await _getWorkflowStageList()
 })
 
 
-/**
- * @Title _getWorkflowStageList
- * @Desc workflowStage List Callback 함수 / workflow Stage List api 호출
- */
+/* Comment translated to English. */
 const _getWorkflowStageList = async () => {
   try {
     const { data } = await getWorkflowStageList()
     workflowStageList.value = data
   } catch(error) {
     console.log(error)
-    toast.error('데이터를 가져올 수 없습니다.')
+    toast.error('Failed to load data.')
   }
 }
 
-/**
- * @Title selectWorkflowStageIdx / selectWorkflowStageName / setColumns
- * @Desc
- *    selectWorkflowStageIdx : 수정/삭제를 위한 선택된 row의 workflowStageIdx저장
- *    selectWorkflowStageName : 삭제를 위한 선택된 row의 workflowStageName저장
- *    setColumns : 컬럼 set Callback 함수
- */
+/* Comment translated to English. */
 const selectWorkflowStageIdx = ref(0 as number)
 const selectWorkflowStageName = ref('' as string)
 const setColumns = () => {
@@ -118,10 +101,7 @@ const setColumns = () => {
   ]
 }
 
-/**
- * @Title editButtonFormatter
- * @Desc 수정 / 삭제 버튼 Formatter
- */
+/* Comment translated to English. */
 const editDeleteButtonFormatter = () => {
   return `
   <div>
@@ -142,16 +122,10 @@ const editDeleteButtonFormatter = () => {
   </div>`;
 }
 
-/**
- * @Title formMode
- * @Desc 기본값 new / workflowStageForm에 생성/수정 을 알려주는 값
- */
+/* Comment translated to English. */
 const formMode = ref('new')
 
-/**
- * @Title onClickNewBtn
- * @Desc WorkflowStage 생성버튼 클릭시 동작하는 함수 (workflowStageIdx / formMode set)
- */
+/* Comment translated to English. */
 const onClickNewBtn = () => {
   selectWorkflowStageIdx.value = 0
   formMode.value = 'new'

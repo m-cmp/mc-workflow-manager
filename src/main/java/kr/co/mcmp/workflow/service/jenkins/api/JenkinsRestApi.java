@@ -51,7 +51,7 @@ public class JenkinsRestApi {
 	private final JenkinsRestClient client;
 
     /**
-     * JenkinsClient Object 획득
+     * Get JenkinsClient object
      */
     private JenkinsClient getJenkinsClient(String url, String id, String password) {
     	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
@@ -62,7 +62,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins 연결 확인
+     * Check Jenkins connection
      */
     public boolean isConnect(String url, String id, String password) {
         try {
@@ -94,9 +94,7 @@ public class JenkinsRestApi {
         return normalizedUrl + "/api/json";
     }
 
-    /**
-     * Crumb 조회
-     */
+    /* Comment translated to English. */
     public Crumb getJenkinsCrumb(String url, String id, String password) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
 
@@ -104,7 +102,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 목록 조회
+     * List Jenkins jobs
      */
     public List<Job> getJenkinsJobList(String url, String id, String password) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -113,7 +111,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 조회
+     * Get Jenkins job
      */
     public JobInfo getJenkinsJob(String url, String id, String password, String jobName) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -127,7 +125,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 생성
+     * Create Jenkins job
      * @throws UnsupportedEncodingException
      */
     public RequestStatus createJenkinsJob(String url, String id, String password, String jobName, String configXml) throws UnsupportedEncodingException {
@@ -140,7 +138,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 수정
+     * Update Jenkins job
      * @throws UnsupportedEncodingException
      */
     public boolean updateJenkinsJob(String url, String id, String password, String jobName, String configXml) throws UnsupportedEncodingException {
@@ -340,7 +338,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 삭제
+     * Delete Jenkins job
      */
     public RequestStatus deleteJenkinsJob(String url, String id, String password, String jobName) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -349,7 +347,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job 빌드
+     * Build Jenkins job
      */
     public int buildJenkinsJob(String url, String id, String password, String jobName, Map<String, List<String>> params) {
         try {
@@ -441,7 +439,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Jenkins Job > Build Number 조회
+     * Get Jenkins job build number
      * @param url
      * @param id
      * @param password
@@ -467,9 +465,7 @@ public class JenkinsRestApi {
         }
     }
 
-    /**
-     * Jenkins Job 빌드 대기, 빌드 진행 상태 모니터링
-     */
+    /* Comment translated to English. */
     public BuildInfo waitJenkinsBuild(String url, String id, String password, String jobName, int jenkinsBuildId, int buildNumber) {
         BuildInfo buildInfo = null;
 
@@ -484,14 +480,14 @@ public class JenkinsRestApi {
 
             buildInfo = waitBuildInfoAvailable(jobsApi, jobName, buildNumber);
             while (buildInfo.building()) {
-                log.info("[ 빌드 진행 중... ] / jobName:{} / jenkins build id:{} / build queue number:{}", jobName, jenkinsBuildId, buildNumber);
+                log.info("[ Build in progress... ] / jobName:{} / jenkins build id:{} / build queue number:{}", jobName, jenkinsBuildId, buildNumber);
 
                 Thread.sleep(DEFAULT_RETRY_INTERVAL);
 
                 buildInfo = jobsApi.buildInfo(null, jobName, buildNumber);
             }
 
-            log.info("[ 빌드 종료. ]/ result:{} / building():{} / duration:{} / number:{} / jenkinsBuildId:{} / displayName:{} / fullDisplayName:{}",
+            log.info("[ Build finished. ]/ result:{} / building():{} / duration:{} / number:{} / jenkinsBuildId:{} / displayName:{} / fullDisplayName:{}",
                     buildInfo.result(), buildInfo.building(), buildInfo.duration(), buildInfo.number(), buildInfo.queueId(),
                     buildInfo.displayName(), buildInfo.fullDisplayName(), buildInfo.queueId());
 
@@ -505,7 +501,7 @@ public class JenkinsRestApi {
 
     private int resolveQueueExecutableNumber(QueueApi queueApi, int jenkinsBuildId, int fallbackBuildNumber) throws InterruptedException {
         if (jenkinsBuildId <= 0 && fallbackBuildNumber > 0) {
-            log.warn("[ 빌드 큐 ID 없음. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+            log.warn("[ Build queue ID is missing. Using expected build number. ] / queue id:{} / fallback build number:{}",
                     jenkinsBuildId, fallbackBuildNumber);
             return fallbackBuildNumber;
         }
@@ -517,25 +513,25 @@ public class JenkinsRestApi {
 
             if (currentQueueItem == null) {
                 if (fallbackBuildNumber > 0) {
-                    log.info("[ 빌드 큐 정보 없음. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+                    log.info("[ Build queue information is missing. Using expected build number. ] / queue id:{} / fallback build number:{}",
                             jenkinsBuildId, fallbackBuildNumber);
                     return fallbackBuildNumber;
                 }
 
-                log.info("[ 빌드 큐 조회 대기중... ] / queue id:{}", jenkinsBuildId);
+                log.info("[ Waiting for build queue lookup... ] / queue id:{}", jenkinsBuildId);
             } else if (currentQueueItem.cancelled()) {
                 throw new IllegalStateException("Jenkins build queue was cancelled. queue id: " + jenkinsBuildId);
             } else if (currentQueueItem.executable() != null && currentQueueItem.executable().number() > 0) {
                 return currentQueueItem.executable().number();
             } else {
-                log.info("[ 빌드 큐에서 대기중... ] / queue id:{} / url:{}", currentQueueItem.id(), currentQueueItem.url());
+                log.info("[ Waiting in build queue... ] / queue id:{} / url:{}", currentQueueItem.id(), currentQueueItem.url());
             }
 
             Thread.sleep(DEFAULT_RETRY_INTERVAL);
         }
 
         if (fallbackBuildNumber > 0) {
-            log.warn("[ 빌드 큐 대기 시간 초과. 예상 build number 사용 ] / queue id:{} / fallback build number:{}",
+            log.warn("[ Build queue wait timed out. Using expected build number. ] / queue id:{} / fallback build number:{}",
                     jenkinsBuildId, fallbackBuildNumber);
             return fallbackBuildNumber;
         }
@@ -568,7 +564,7 @@ public class JenkinsRestApi {
                 }
             } catch (RuntimeException e) {
                 lastException = e;
-                log.info("[ 빌드 정보 조회 대기중... ] / jobName:{} / build number:{}", jobName, buildNumber);
+                log.info("[ Waiting for build information... ] / jobName:{} / build number:{}", jobName, buildNumber);
             }
 
             Thread.sleep(DEFAULT_RETRY_INTERVAL);
@@ -582,7 +578,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Build Console Log 조회
+     * Get build console log
      */
     public String getJenkinsBuildConsoleLog(String url, String id, String password, String jobName, int buildNumber) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -591,7 +587,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Workflow 조회
+     * Get workflow
      */
     public Workflow getJenkinsWorkflow(String url, String id, String password, String jobName, int buildNumber) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -600,7 +596,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Pipeline Node 조회
+     * Get pipeline node
      */
     public PipelineNode getJenkinsPipelineNode(String url, String id, String password, String jobName, int buildNumber, int stageId) {
         JenkinsClient jenkinsClient = getJenkinsClient(url, id, password);
@@ -609,7 +605,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * JUnit Test 결과 조회
+     * Get JUnit test result
      */
     public ResponseEntity<JsonNode> getJunitTestReport(String baseUrl, String id, String password, String jobName, int buildNumber) {
     	String apiUrl = String.format("%s/job/%s/%d/testReport/api/json", baseUrl, jobName, buildNumber);
@@ -620,7 +616,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Build Stage View 조회
+     * Get build stage view
      */
     public ResponseEntity<WorkflowRunHistoryResDto> getWorkflow(String baseUrl, String id, String password, String jobName, int buildNumber) {
         String apiUrl = String.format("%s/job/%s/%d/wfapi/describe", baseUrl, jobName, buildNumber);
@@ -631,7 +627,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Build Stage Logs 조회
+     * Get build stage logs
      */
     public ResponseEntity<JenkinsBuildDescribeLog> getPipelineNode(String baseUrl, String id, String password, String jobName, int buildNumber, int nodeId) {
     	String apiUrl = String.format("%s/job/%s/%d/execution/node/%d/wfapi/describe", baseUrl, jobName, buildNumber,nodeId);
@@ -642,7 +638,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Build Stage Detail Log 조회
+     * Get build stage detail log
      */
     public ResponseEntity<JenkinsBuildDetailLog> getPipelineNodeLog(String baseUrl, String id, String password, String jobName, int buildNumber, int nodeId) {
         String apiUrl = String.format("%s/job/%s/%d/execution/node/%d/wfapi/log", baseUrl, jobName, buildNumber,nodeId);
@@ -653,7 +649,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * Job Pipeline Script 조회
+     * Get job pipeline script
      */
     public ResponseEntity<byte[]> getJobPipelineScript(String baseUrl, String id, String password, String jobName) {
         String apiUrl = String.format("%s/job/%s/config.xml", baseUrl, jobName);
@@ -664,7 +660,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * jenkins credential 상세 조회
+     * Get Jenkins credential detail
      */
     public ResponseEntity<JenkinsCredential> getCredential(String baseUrl, String id, String password, String credentialName) {
         String apiUrl = String.format("%s/credentials/store/system/domain/_/credential/%s/api/json/", baseUrl, credentialName);
@@ -675,7 +671,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * jenkins credential 생성
+     * Create Jenkins credential
      */
     public ResponseEntity<String> createCredential(String baseUrl, String id, String password, Crumb crumb, String credentialXml) {
         String apiUrl = String.format("%s/credentials/store/system/domain/_/createCredentials", baseUrl);
@@ -686,7 +682,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * jenkins credential 수정
+     * Update Jenkins credential
      */
     public ResponseEntity<String> updateCredential(String baseUrl, String id, String password, Crumb crumb, String credentialName, String credentialXml) {
     	String apiUrl = String.format("%s/credentials/store/system/domain/_/credential/%s/config.xml", baseUrl, credentialName);
@@ -697,7 +693,7 @@ public class JenkinsRestApi {
     }
 
     /**
-     * jenkins credential 삭제
+     * Delete Jenkins credential
      */
     public ResponseEntity<Object> deleteCredential(String baseUrl, String id, String password, Crumb crumb, String credentialName) {
     	String apiUrl = String.format("%s/credentials/store/system/domain/_/credential/%s/doDelete", baseUrl, credentialName);

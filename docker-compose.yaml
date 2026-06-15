@@ -28,7 +28,7 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - ./init.groovy.d:/usr/share/jenkins/ref/init.groovy.d
     environment:
-      # Jenkins Admin 설정
+      # Jenkins admin settings
       JENKINS_ADMIN_ID: admin
       JENKINS_ADMIN_PASSWORD: 1234567
       JAVA_OPTS: -Djenkins.install.runSetupWizard=false

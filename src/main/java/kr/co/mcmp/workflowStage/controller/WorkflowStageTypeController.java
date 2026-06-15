@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Workflow Stage Type", description = "워크플로우 스테이지 타입 관리")
+@Tag(name = "Workflow Stage Type", description = "Workflow stage type management")
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/workflowStageType")
@@ -21,19 +21,19 @@ public class WorkflowStageTypeController {
 
     private final WorkflowStageTypeService workflowStageTypeService;
 
-    @Operation(summary="워크플로우 스테이지 타입 목록")
+    @Operation(summary="List workflow stage types")
     @GetMapping("/list")
     public ResponseWrapper<List<WorkflowStageTypeDto>> getWorkflowStageList() {
         return new ResponseWrapper<>(workflowStageTypeService.getWorkflowStageTypeList());
     }
 
-    @Operation(summary="워크플로우 스테이지 타입 등록")
+    @Operation(summary="Register workflow stage type")
     @PostMapping
     public ResponseWrapper<Long> registWorkflowStage(@RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
         return new ResponseWrapper<>(workflowStageTypeService.registWorkflowStage(workflowStageTypeDto));
     }
 
-    @Operation(summary="워크플로우 스테이지 타입 수정")
+    @Operation(summary="Update workflow stage type")
     @PatchMapping("/{workflowStageTypeIdx}")
     public ResponseWrapper<Boolean> updateWorkflowStageType(@PathVariable Long workflowStageTypeIdx, @RequestBody WorkflowStageTypeDto workflowStageTypeDto) {
         if ( workflowStageTypeIdx != 0 || workflowStageTypeDto.getWorkflowStageTypeIdx() != 0 ) {
@@ -42,13 +42,13 @@ public class WorkflowStageTypeController {
         return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowStageTypeIdx");
     }
 
-    @Operation(summary="워크플로우 스테이지 타입 삭제")
+    @Operation(summary="Delete workflow stage type")
     @DeleteMapping("{workflowStageTypeIdx}")
     public ResponseWrapper<Boolean> deleteWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
         return new ResponseWrapper<>(workflowStageTypeService.deleteWorkflowStageType(workflowStageTypeIdx));
     }
 
-    @Operation(summary="워크플로우 스테이지 타입 상세")
+    @Operation(summary="Get workflow stage type detail")
     @GetMapping("/{workflowStageTypeIdx}")
     public ResponseWrapper<WorkflowStageTypeDto> detailWorkflowStageType(@PathVariable Long workflowStageTypeIdx) {
         return new ResponseWrapper<>(workflowStageTypeService.detailWorkflowStageType(workflowStageTypeIdx));

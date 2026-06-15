@@ -14,13 +14,13 @@
 					"name": "ossType",
 					"item": [
 						{
-							"name": "OSS Type 등록",
+							"name": "Register OSS Type",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"젠킨스\"\r\n}",
+									"raw": "{\r\n  \"ossTypeName\": \"JENKINS\",\r\n  \"ossTypeDesc\": \"Jenkins\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -40,7 +40,7 @@
 							"response": []
 						},
 						{
-							"name": "OSS Type 목록",
+							"name": "List OSS Types",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -58,7 +58,7 @@
 							"response": []
 						},
 						{
-							"name": "OSS Type 수정",
+							"name": "Update OSS Type",
 							"request": {
 								"method": "PATCH",
 								"header": [],
@@ -85,7 +85,7 @@
 							"response": []
 						},
 						{
-							"name": "OSS Type 삭제",
+							"name": "Delete OSS Type",
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -108,7 +108,7 @@
 					"name": "oss",
 					"item": [
 						{
-							"name": "OSS 목록",
+							"name": "List OSS",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -126,13 +126,13 @@
 							"response": []
 						},
 						{
-							"name": "OSS 등록",
+							"name": "Register OSS",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"raw": "{\r\n  \"ossDesc\": \"Jenkins\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -152,13 +152,13 @@
 							"response": []
 						},
 						{
-							"name": "OSS 수정",
+							"name": "Update OSS",
 							"request": {
 								"method": "PATCH",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossDesc\": \"TEST 젠킨스\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"raw": "{\r\n  \"ossIdx\": 0,\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossDesc\": \"TEST Jenkins\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -179,7 +179,7 @@
 							"response": []
 						},
 						{
-							"name": "OSS 삭제",
+							"name": "Delete OSS",
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -198,7 +198,7 @@
 							"response": []
 						},
 						{
-							"name": "OSS 명 중복 검사",
+							"name": "Check Duplicate OSS Name",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -230,13 +230,13 @@
 							"response": []
 						},
 						{
-							"name": "OSS 연결 확인",
+							"name": "Check OSS Connection",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"ossDesc\": \"젠킨스\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
+									"raw": "{\r\n  \"ossDesc\": \"Jenkins\",\r\n  \"ossName\": \"JENKINS\",\r\n  \"ossPassword\": \"cm9xa2Z0cHN4ajEyIyQ=\",\r\n  \"ossTypeIdx\": 1,\r\n  \"ossUrl\": \"http://10.10.30.22:9800\",\r\n  \"ossUsername\": \"admin\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -259,7 +259,7 @@
 					]
 				},
 				{
-					"name": "OSS Type 상세",
+					"name": "Get OSS Type Detail",
 					"request": {
 						"method": "GET",
 						"header": [],
@@ -285,13 +285,13 @@
 					"name": "WorkflowStageType",
 					"item": [
 						{
-							"name": "Workflow Stage Type 등록",
+							"name": "Register Workflow Stage Type",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"workflowStageTypeName\": \"Test\",\r\n    \"workflowStageTypeDesc\": \"테스트\"\r\n}",
+									"raw": "{\r\n    \"workflowStageTypeName\": \"Test\",\r\n    \"workflowStageTypeDesc\": \"Test\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -311,7 +311,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Type 목록",
+							"name": "List Workflow Stage Types",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -329,7 +329,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Type 수정",
+							"name": "Update Workflow Stage Type",
 							"request": {
 								"method": "PATCH",
 								"header": [],
@@ -356,7 +356,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Type 삭제",
+							"name": "Delete Workflow Stage Type",
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -374,7 +374,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Type 상세",
+							"name": "Get Workflow Stage Type Detail",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -397,13 +397,13 @@
 					"name": "WorkflowStage",
 					"item": [
 						{
-							"name": "Workflow Stage 등록",
+							"name": "Register Workflow Stage",
 							"request": {
 								"method": "POST",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n  \"workflowStageTypeIdx\": 1,\r\n  \"workflowStageOrder\": 1,\r\n  \"workflowStageName\": \"test_stage\",\r\n  \"workflowStageDesc\": \"테스트\",\r\n  \"workflowStageContent\": \"스크립트\"\r\n}",
+									"raw": "{\r\n  \"workflowStageTypeIdx\": 1,\r\n  \"workflowStageOrder\": 1,\r\n  \"workflowStageName\": \"test_stage\",\r\n  \"workflowStageDesc\": \"Test\",\r\n  \"workflowStageContent\": \"Script\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -423,7 +423,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage 목록",
+							"name": "List Workflow Stages",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -441,13 +441,13 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage 수정",
+							"name": "Update Workflow Stage",
 							"request": {
 								"method": "PUT",
 								"header": [],
 								"body": {
 									"mode": "raw",
-									"raw": "{\r\n    \"workflowStageIdx\": 1,\r\n    \"workflowStageTypeIdx\": 1,\r\n    \"workflowStageOrder\": 1,\r\n    \"workflowStageName\": \"test stage\",\r\n    \"workflowStageDesc\": \"테스트\",\r\n    \"workflowStageContent\": \"script\"\r\n}",
+									"raw": "{\r\n    \"workflowStageIdx\": 1,\r\n    \"workflowStageTypeIdx\": 1,\r\n    \"workflowStageOrder\": 1,\r\n    \"workflowStageName\": \"test stage\",\r\n    \"workflowStageDesc\": \"Test\",\r\n    \"workflowStageContent\": \"script\"\r\n}",
 									"options": {
 										"raw": {
 											"language": "json"
@@ -468,7 +468,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage 삭제",
+							"name": "Delete Workflow Stage",
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -486,7 +486,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage 상세",
+							"name": "Get Workflow Stage Detail",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -504,7 +504,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage 중복체크",
+							"name": "Check Duplicate Workflow Stage",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -532,7 +532,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Stage Default Script 조회",
+							"name": "Get Workflow Stage Default Script",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -562,7 +562,7 @@
 					"name": "Workflow",
 					"item": [
 						{
-							"name": "Workflow 목록",
+							"name": "List Workflows",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -580,7 +580,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 등록",
+							"name": "Register Workflow",
 							"request": {
 								"method": "POST",
 								"header": [],
@@ -606,7 +606,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 수정",
+							"name": "Update Workflow",
 							"request": {
 								"method": "PATCH",
 								"header": [],
@@ -633,7 +633,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 삭제",
+							"name": "Delete Workflow",
 							"request": {
 								"method": "DELETE",
 								"header": [],
@@ -651,7 +651,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 상세",
+							"name": "Get Workflow Detail",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -669,7 +669,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 중복 확인",
+							"name": "Check Duplicate Workflow",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -694,7 +694,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow Type 목록",
+							"name": "List Workflow Types",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -712,7 +712,7 @@
 							"response": []
 						},
 						{
-							"name": "Workflow 템플릿",
+							"name": "Get Workflow Template",
 							"request": {
 								"method": "GET",
 								"header": [],
@@ -736,7 +736,7 @@
 					"name": "Workflow History",
 					"item": [
 						{
-							"name": "Workflow History 목록",
+							"name": "List Workflow History",
 							"request": {
 								"method": "GET",
 								"header": [],

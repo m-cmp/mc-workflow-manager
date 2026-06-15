@@ -78,7 +78,7 @@ const API_MAPPER_PAGES=[
   'project_apimapper_mapper_update'
 ]
 
-/*프로젝트 타입에 따라 사용하지 않는 페이지 정의*/
+/* Comment translated to English. */
 export const UNUSED_PAGES={
   TYPE1:new Array(),
   TYPE2:new Array().concat(API_MAPPER_PAGES),
@@ -96,7 +96,7 @@ const API_MAPPER_MENU2=[
     'project_apimapper_mapper_list'
   ]
 
-/*프로젝트 타입에 따라 사용하지 않는 메뉴 정의*/
+/* Comment translated to English. */
 export const UNUSED_MENU={
   TYPE1:new Array(),
   TYPE2:new Array().concat(API_MAPPER_MENU),

@@ -62,10 +62,7 @@ const emit = defineEmits(['get-oss-list'])
 
 const firstLoadData = ref(false as boolean)
 const modalElement = ref<HTMLElement>()
-/**
- * @Title Life Cycle
- * @Desc ossIdx 값의 변화에 따라 데이터 set함수 호출  
- */
+/* Comment translated to English. */
 const workflowIdx = computed(() => props.workflowIdx);
 watch(workflowIdx, async () => {
   if (modalElement.value?.classList.contains('show')) {
@@ -82,10 +79,7 @@ onBeforeUnmount(() => {
   modalElement.value?.removeEventListener('show.bs.modal', onShowModal)
 })
 
-/**
- * @Title 초기화 Method
- * @Desc 
- */
+/* Comment translated to English. */
 const workflowLogList = ref([] as Array<WorkflowLog>)
 const setInit = async () => {
   if (!workflowIdx.value) {

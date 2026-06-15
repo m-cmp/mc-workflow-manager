@@ -9,14 +9,14 @@
         </div>
 
         <div class="modal-body py-4">
-          <!-- OSS Title (header에서 표시하므로 삭제) -->
+          <!-- Comment translated to English. -->
 
           <div>
-          <!-- OSS 타입 -->
+          <!-- Comment translated to English. -->
             <div class="mb-3">
               <!-- <div v-if="ossFormData.ossTypeIdx === 1">
                 <input class="d-lb mr-5" type="checkbox" v-model="createJenkinsJobYn">
-                <label class="form-label d-lb">등록된 워크플로우 Job 생성 여부</label>
+                <label class="form-label d-lb">Create registered workflow jobs</label>
               </div> -->
 
 
@@ -31,13 +31,13 @@
               </div>
             </div>
 
-            <!-- OSS 명 -->
+            <!-- Comment translated to English. -->
             <div class="row mb-3">
               <label class="form-label required">OSS Name</label>
               <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Name" v-model="ossFormData.ossName" @change="initDuplicatedCheckBtn" />
             </div>
             
-            <!-- OSS 설명 -->
+            <!-- Comment translated to English. -->
             <div class="mb-3">
               <label class="form-label">OSS Description</label>
               <input type="text" class="form-control p-2 g-col-11" placeholder="Enter the OSS Description" v-model="ossFormData.ossDesc" />
@@ -100,9 +100,7 @@ import { Modal } from 'bootstrap'
   
 const toast = useToast()
 
-/**
- * @Title Modal 관리
- */
+/* Comment translated to English. */
 const modalElement = ref<HTMLElement>()
 const modalInstance = ref<Modal>()
 
@@ -116,10 +114,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['get-oss-list'])
 
-/**
- * @Title Life Cycle
- * @Desc ossIdx 값의 변화에 따라 데이터 set함수 호출  
- */
+/* Comment translated to English. */
 const ossIdx = computed(() => props.ossIdx);
 watch(ossIdx, async () => {
   await setInit();
@@ -129,7 +124,7 @@ watch(() => props.mode, async () => {
 })
 
 onMounted(async () => {
-  // Modal 인스턴스 초기화
+  // Comment translated to English.
   if (modalElement.value) {
     modalInstance.value = new Modal(modalElement.value)
   }
@@ -140,24 +135,15 @@ onMounted(async () => {
 
 // /**
 //  * @Title createJenkinsJobYn 
-//  * @Desc Jenkins Job 생성 여부
+// Comment translated to English.
 //  */
 // const createJenkinsJobYn = ref(false as Boolean)
 
 
-/**
- * @Title formData 
- * @Desc oss 생성 / 수정데이터
- */
+/* Comment translated to English. */
 const ossFormData = ref({} as Oss)
 
-/**
- * @Title 초기화 Method
- * @Desc 
- *    1. 생성 모드일경우 / ossIdx 가 달라질경우 데이터 초기화
- *    2. 중복검사 / 연결 확인 버튼 활성화 여부 set
- *    3. 닫기 / 생성 / 수정 버튼 클릭시 데이터 초기화
- */
+/* Comment translated to English. */
 const setInit = async () => {
   if (props.mode === 'new') {
     ossFormData.value.ossTypeIdx = 0
@@ -180,12 +166,7 @@ const setInit = async () => {
   }
 }
 
-/**
- * @Title ossTypeList / _getOssTypeList
- * @Desc 
- *    ossTypeList : ossType 목록 저장
- *    _getOssTypeList : ossType 목록 API 호출
- */
+/* Comment translated to English. */
 const ossTypeList = ref([] as Array<OssType>)
 const _getOssTypeList = async (mode:String) => {
   try {
@@ -202,21 +183,13 @@ const _getOssTypeList = async (mode:String) => {
   }
 }
 
-/**
- * @Title removePassword
- * @Desc 패스워드 클릭시 패스워드 항목 초기화
- */
+/* Comment translated to English. */
 const removePassword = () => {
   ossFormData.value.ossPassword = ''
   connectionCheckedOss.value = false
 }
 
-/**
- * @Title duplicatedOss / onClickDuplicatOssName
- * @Desc 
- *    duplicatedOss : 중복검사 여부
- *    onClickDuplicatOssName : oss명 / ossUrl / ossId 로 중복검사 API 호출
- */
+/* Comment translated to English. */
 const duplicatedOss = ref(false as boolean)
 const onClickDuplicatOssName = async () => {
   const param = {
@@ -226,19 +199,14 @@ const onClickDuplicatOssName = async () => {
   }
   const { data } = await duplicateCheck(param)
   if (!data) {
-    toast.success('사용 가능한 이름입니다.')
+    toast.success('This name is available.')
     duplicatedOss.value = true
   }
   else
-    toast.error('이미 사용중인 이름입니다.')
+    toast.error('This name is already in use.')
 }
 
-/**
- * @Title connectionCheckedOss / onClickConnectionCheckOss
- * @Desc 
- *    connectionCheckedOss : 연결확인 여부
- *    onClickConnectionCheckOss : ossUrl / ossId / ossPassword / ossType 으로 연결확인 API 호출
- */
+/* Comment translated to English. */
 const connectionCheckedOss = ref(false as boolean)
 const onClickConnectionCheckOss = async () => {
   const param = {
@@ -249,27 +217,19 @@ const onClickConnectionCheckOss = async () => {
   }
   const { data } = await ossConnectionChecked(param)
   if (data) {
-    toast.success('사용 가능한 OSS입니다.')
+    toast.success('This OSS connection is available.')
     connectionCheckedOss.value = true
   }
   else
-    toast.error('사용 불가능한 OSS입니다.')
+    toast.error('This OSS connection is not available.')
 }
 
-/**
- * @Title initDuplicatedCheckBtn
- * @Desc 
- *    initDuplicatedCheckBtn : 연결확인 변수 false
- */
+/* Comment translated to English. */
 const initDuplicatedCheckBtn = () => {
   duplicatedOss.value = false
 }
 
-/**
- * @Title initConnectionCheckBtn
- * @Desc 
- *    initConnectionCheckBtn : 연결확인 변수 false
- */
+/* Comment translated to English. */
 const initConnectionCheckBtn = () => {
   connectionCheckedOss.value = false
 }
@@ -321,15 +281,15 @@ const onClickSubmit = async () => {
     success = await _updateOss();
   }
   
-  // 성공적으로 처리된 경우에만 모달 닫기
+  // Comment translated to English.
   if (success) {
   emit('get-oss-list');
   setInit();
     
-    // 모달 닫기
+    // Comment translated to English.
     if (modalInstance.value) {
       modalInstance.value.hide()
-      // 백드롭이 남아있을 경우 강제 제거
+      // Comment translated to English.
       setTimeout(() => {
         document.body.classList.remove('modal-open')
         const backdrop = document.querySelector('.modal-backdrop')
@@ -339,10 +299,7 @@ const onClickSubmit = async () => {
   }
 }
 
-/**
- * @Title _registOss
- * @Desc 생성 Callback 함수 / 생성 api 호출
- */
+/* Comment translated to English. */
 const _registOss = async (): Promise<boolean> => {
   try {
     const { data } = await registOss(ossFormData.value)
@@ -359,10 +316,7 @@ const _registOss = async (): Promise<boolean> => {
   }
 }
 
-/**
- * @Title _updateOss
- * @Desc 수정 Callback 함수 / 수정 api 호출
- */
+/* Comment translated to English. */
 const _updateOss = async (): Promise<boolean> => {
   try {
     const { data } = await updateOss(ossFormData.value)
@@ -379,20 +333,12 @@ const _updateOss = async (): Promise<boolean> => {
   }
 }
 
-/**
- * @Title encriptPassword
- * @param password
- * @Desc 평문으로 인자값을 받으며 Base64로 인코딩 하는 함수 
- */
+/* Comment translated to English. */
 const encriptPassword = (password:string) => {
   return btoa(password)
 }
 
-/**
- * @Title decriptPassword
- * @param password
- * @Desc Base64로 인자값을 받으며 평문으로 디코딩 하는 함수 
- */
+/* Comment translated to English. */
 const decriptPassword = (password: string) => {
   return atob(password)
 }

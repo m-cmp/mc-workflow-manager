@@ -15,7 +15,7 @@ public class WorkflowParamDto {
     private String paramValue;
     private String eventListenerYn;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowParamDto from(WorkflowParam workflowParam) {
         return WorkflowParamDto.builder()
                 .paramIdx(workflowParam.getParamIdx())
@@ -26,7 +26,7 @@ public class WorkflowParamDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowParamDto of(WorkflowParamDto workflowParamBaseData) {
         return WorkflowParamDto.builder()
                 .paramIdx(workflowParamBaseData.getParamIdx())
@@ -37,7 +37,7 @@ public class WorkflowParamDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowParam toEntity(WorkflowParamDto WorkflowParamBaseData, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return WorkflowParam.builder()
                 .paramIdx(WorkflowParamBaseData.getParamIdx())

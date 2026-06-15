@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Workflow History", description = "워크플로우 이력 관리")
+@Tag(name = "Workflow History", description = "Workflow history management")
 @RequiredArgsConstructor
 @RequestMapping("/workflow/history")
 @RestController
@@ -18,7 +18,7 @@ public class WorkflowHistoryController {
 
     private final WorkflowService workflowService;
 
-    @Operation(summary="워크플로우 이력 조회")
+    @Operation(summary="Get workflow history")
     @GetMapping("/{workflowIdx}")
     public ResponseWrapper<List<WorkflowHistoryDto>> getWorkflowHistoryList(@PathVariable Long workflowIdx, @RequestParam String dataType) {
         return new ResponseWrapper<>(workflowService.getWorkflowHistoryList(workflowIdx, dataType));

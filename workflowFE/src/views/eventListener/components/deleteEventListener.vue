@@ -10,7 +10,7 @@
         </div>
 
         <div class="modal-body py-4">
-          <h4>{{ props.eventListenerName }}을(를) 정말 삭제하시겠습니까?</h4>
+          <h4>Are you sure you want to delete {{ props.eventListenerName }}?</h4>
 
         </div>
 
@@ -18,9 +18,7 @@
           <a href="#" class="btn btn-link link-secondary" data-bs-dismiss="modal">
             Cancel
           </a>
-          <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickDelete()">
-            삭제
-          </a>
+          <a href="#" class="btn btn-primary ms-auto" data-bs-dismiss="modal"  @click="onClickDelete()">Delete</a>
         </div>
 
       </div>
@@ -44,16 +42,13 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['get-event-listener-list'])
 
-/**
- * @Title onClickDelete
- * @Desc 삭제 버튼 클릭시 동작 / 삭제 api 호출
- */
+/* Comment translated to English. */
 const onClickDelete = async () => {
   const { data } = await deleteEventListener(props.eventListenerIdx)
   if (data)
-    toast.success('삭제되었습니다.')
+    toast.success('Deleted successfully.')
   else
-    toast.error('삭제하지 못했습니다.')
+    toast.error('Failed to delete.')
   emit('get-event-listener-list')
 }
 </script>

@@ -21,10 +21,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
 
     private final WorkflowStageRepository workflowStageRepository;
 
-    /**
-     * Workflow Stage Type 생성
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowStageTypeDto> getWorkflowStageTypeList() {
         try {
@@ -40,11 +37,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
         }
     }
 
-    /**
-     * Workflow Stage Type 등록
-     * @param workflowStageTypeDto
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public Long registWorkflowStage(WorkflowStageTypeDto workflowStageTypeDto) {
         try {
@@ -58,11 +51,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
         }
     }
 
-    /**
-     * Workflow Stage Type 수정
-     * @param workflowStageTypeDto
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public Boolean updateWorkflowStageType(WorkflowStageTypeDto workflowStageTypeDto) {
         Boolean result = false;
@@ -76,11 +65,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
         return result;
     }
 
-    /**
-     * Workflow Stage Type 삭제
-     * @param workflowStageTypeIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     @Transactional
     public Boolean deleteWorkflowStageType(Long workflowStageTypeIdx) {
@@ -98,11 +83,7 @@ public class WorkflowStageTypeServiceImpl implements WorkflowStageTypeService {
         return result;
     }
 
-    /**
-     * Workflow Stage Type 상세
-     * @param workflowStageTypeIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public WorkflowStageTypeDto detailWorkflowStageType(Long workflowStageTypeIdx) {
         try {

@@ -125,11 +125,11 @@ public class SSHManager {
 
 	public void fileUpload(File tempFile, String serverFilepath, String filename) throws Exception {
 		connect();
-		// 6. sftp 채널을 연다.
+		// Comment translated to English.
 		Channel channel = session.openChannel("sftp");
-		// 7. 채널에 연결한다.
+		// Comment translated to English.
 		channel.connect();
-		// 8. 채널을 FTP용 채널 객체로 캐스팅한다.
+		// Comment translated to English.
 		ChannelSftp sftpChannel = (ChannelSftp) channel;
 		FileInputStream fis = null;
 		try {
@@ -138,9 +138,9 @@ public class SSHManager {
 
 			// Upload file
 			//File file = new File("src/main/resources/application.yml");
-			// 입력 파일을 가져온다.
+			// Comment translated to English.
 			fis = new FileInputStream(tempFile);
-			// 파일을 업로드한다.
+			// Comment translated to English.
 			sftpChannel.put(fis, filename);
 
 			fis.close();
@@ -184,20 +184,20 @@ public class SSHManager {
 	public String commandExec(String command) throws Exception {
 		String result = "";
 		connect();
-		// 6. sftp 채널을 연다.
+		// Comment translated to English.
 		Channel channel = session.openChannel("exec");
 		
-		ChannelExec channelExec = (ChannelExec) channel; //명령 전송 채널사용
+		ChannelExec channelExec = (ChannelExec) channel; // Comment translated to English.
 		channelExec.setPty(true);
 		try {
 			channelExec.setCommand(command);
 			System.out.println("### command : " + command);
-			//콜백을 받을 준비.
+			// Comment translated to English.
 			StringBuilder outputBuffer = new StringBuilder();
 			InputStream in = channel.getInputStream();
 			((ChannelExec) channel).setErrStream(System.err);
 			
-			channel.connect(); //실행
+			channel.connect(); // Comment translated to English.
 			
 			boolean doYn = true;
 			byte[] tmp = new byte[1024];

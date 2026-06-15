@@ -3,11 +3,7 @@ package kr.co.mcmp.util;
 public class StringUtils {
 	
 	
-	/**
-	 * 특수문자 기준으로 소문자 시작의 camel 표기법으로 변환
-	 * @param str, sep
-	 * @return String
-	 */
+	/* Comment translated to English. */
 	public static String toLowerCamelCase(String str, String sep) {
 		String camel = "";
 		

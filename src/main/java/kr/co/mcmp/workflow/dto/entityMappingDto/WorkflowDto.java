@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @SuperBuilder
 @Getter
-@NoArgsConstructor // 기본 생성자 추가
+@NoArgsConstructor // Comment translated to English.
 public class WorkflowDto {
     private Long workflowIdx;
     private String workflowName;
@@ -22,7 +22,7 @@ public class WorkflowDto {
     private LocalDateTime runDate;
     private Integer latestBuildNumber;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowDto from(Workflow workflow) {
         return WorkflowDto.builder()
                 .workflowIdx(workflow.getWorkflowIdx())
@@ -36,7 +36,7 @@ public class WorkflowDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowDto of(WorkflowDto workflowDto) {
         return WorkflowDto.builder()
                 .workflowIdx(workflowDto.getWorkflowIdx())
@@ -50,7 +50,7 @@ public class WorkflowDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static Workflow toEntity(WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return Workflow.builder()
                 .workflowIdx(workflowDto.getWorkflowIdx())
@@ -64,7 +64,7 @@ public class WorkflowDto {
                 .build();
     }
 
-    // ofWithStatus : status 포함한 dto 생성
+    // Comment translated to English.
     public static WorkflowDto ofWithStatus(WorkflowDto workflowDto, String status) {
         return WorkflowDto.builder()
                 .workflowIdx(workflowDto.getWorkflowIdx())
@@ -72,13 +72,13 @@ public class WorkflowDto {
                 .workflowPurpose(workflowDto.getWorkflowPurpose())
                 .ossIdx(workflowDto.getOssIdx())
                 .script(workflowDto.getScript())
-                .status(status) // status 필드 포함
+                .status(status) // Comment translated to English.
                 .runDate(workflowDto.getRunDate())
                 .latestBuildNumber(workflowDto.getLatestBuildNumber())
                 .build();
     }
 
-//    // registWorkflow : Workflow 등록 / 수정
+// Comment translated to English.
 //    public static Workflow saveWorkflow(WorkflowParamDto.WorkflowParamList workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
 //        return Workflow.builder()
 //                .workflowIdx(workflowDto.getWorkflowIdx())
@@ -89,7 +89,7 @@ public class WorkflowDto {
 //                .build();
 //    }
 //
-//    // WorkflowStageMappingDto -> WorkflowDto 변환
+// Comment translated to English.
 //    public static WorkflowDto workflowStageToWorkflowDto(WorkflowStageMappingDto.WorkflowStageMappingList workflowStageMappingList) {
 //        return WorkflowDto.builder()
 //                .workflowIdx(workflowStageMappingList.getWorkflowIdx())

@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-@Tag(name = "Workflow", description = "워크플로우 배포 관리")
+@Tag(name = "Workflow", description = "Workflow deployment management")
 @RequiredArgsConstructor
 @RequestMapping("/workflow")
 @RestController
@@ -25,13 +25,13 @@ public class WorkflowController {
     
     private final WorkflowService workflowService;
 
-    @Operation(summary="워크플로우 목록 조회")
+    @Operation(summary="List workflows")
     @GetMapping("/list")
     public ResponseWrapper<List<WorkflowListResDto>> getWorkflowList() {
         return new ResponseWrapper<>(workflowService.getWorkflowList());
     }
 
-    @Operation(summary="워크플로우 등록")
+    @Operation(summary="Register workflow")
     @PostMapping
     public ResponseWrapper<Long> registWorkflow(@RequestBody WorkflowReqDto workflowReqDto) {
 
@@ -52,7 +52,7 @@ public class WorkflowController {
     }
 
 
-    @Operation(summary="워크플로우 수정")
+    @Operation(summary="Update workflow")
     @PatchMapping("/{workflowIdx}")
     public ResponseWrapper<Boolean> updateWorkflow(@PathVariable Long workflowIdx, @RequestBody WorkflowReqDto workflowReqDto) {
         if (workflowIdx == null
@@ -68,26 +68,26 @@ public class WorkflowController {
     }
 
 
-    @Operation(summary="워크플로우 배포 삭제")
+    @Operation(summary="Delete workflow deployment")
     @DeleteMapping("/{workflowIdx}")
     public ResponseWrapper<Boolean> deleteWorkflow(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.deleteWorkflow(workflowIdx));
     }
 
-    @Operation(summary="워크플로우 연결 Event Listener 존재 여부")
+    @Operation(summary="Check whether workflow has linked event listeners")
     @GetMapping("/existEventListener/{workflowIdx}")
     public ResponseWrapper<Boolean> existEventListener(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.existEventListener(workflowIdx));
     }
 
-    @Operation(summary="워크플로우 상세 조회")
+    @Operation(summary="Get workflow detail")
     @GetMapping("/{workflowIdx}")
     public ResponseWrapper<WorkflowDetailResDto> getWorkflow(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.getWorkflow(workflowIdx));
     }
 
 
-    @Operation(summary="워크플로우 명 중복 체크", description="true : 중복 / false : 중복 아님")
+    @Operation(summary="Check duplicate workflow name", description="true: duplicate / false: not duplicate")
     @GetMapping("/name/duplicate")
     public ResponseWrapper<Boolean> isWorkflowNameDuplicated(@RequestParam String workflowName) {
         if ( StringUtils.isBlank(workflowName) ) {
@@ -98,14 +98,14 @@ public class WorkflowController {
     }
 
 
-    @Operation(summary="스테이지 타입 별 목록 조회")
+    @Operation(summary="List stages by stage type")
     @GetMapping("/workflowStageList")
     public ResponseWrapper<List<WorkflowStageTypeAndStageNameResDto>> getWorkflowStageList() {
         return new ResponseWrapper<>(workflowService.getWorkflowStageList());
     }
 
 
-    @Operation(summary="Template 조회")
+    @Operation(summary="Get template")
     @GetMapping("/template/{workflowName}")
     public ResponseWrapper<List<WorkflowStageMappingDto>> getWorkflowTemplate(@PathVariable String workflowName) {
         if ( StringUtils.isBlank(workflowName) ) {
@@ -115,32 +115,32 @@ public class WorkflowController {
     }
 
 
-    @Operation(summary="워크플로우 배포 실행")
+    @Operation(summary="Run workflow deployment")
     @GetMapping("/run/{workflowIdx}")
     public ResponseWrapper<Boolean> runWorkflowGet(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowIdx));
     }
 
 
-    @Operation(summary="워크플로우 배포 실행")
+    @Operation(summary="Run workflow deployment")
     @PostMapping("/run")
     public ResponseWrapper<Object> runWorkflowPost(@RequestBody WorkflowReqDto workflowReqDto) {
         return new ResponseWrapper<>(workflowService.runWorkflow(workflowReqDto));
     }
 
-    @Operation(summary="워크플로우 로그")
+    @Operation(summary="Get workflow log")
     @GetMapping("/log/{workflowIdx}")
     public ResponseWrapper<List<WorkflowLogResDto>> getWorkflowLog(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.getWorkflowLog(workflowIdx));
     }
 
-    @Operation(summary="워크플로우 실행 이력 조회")
+    @Operation(summary="Get workflow run history")
     @GetMapping("/runHistory/{workflowIdx}")
     public ResponseWrapper<List<WorkflowRunHistoryResDto>> getWorkflowRunHistoryList(@PathVariable Long workflowIdx) {
         return new ResponseWrapper<>(workflowService.getWorkflowRunHistoryList(workflowIdx));
     }
 
-    @Operation(summary="워크플로우 실행 이력 조회 > Stage별 이력 조회")
+    @Operation(summary="Get workflow run history by stage")
     @GetMapping("/stageHistory/{workflowIdx}")
     public ResponseWrapper<JenkinsBuildDescribeLog> getWorkflowStageHistoryList(@PathVariable Long workflowIdx, @RequestParam int buildIdx, @RequestParam int nodeIdx) {
         return new ResponseWrapper<>(workflowService.getWorkflowStageHistoryList(workflowIdx, buildIdx, nodeIdx));

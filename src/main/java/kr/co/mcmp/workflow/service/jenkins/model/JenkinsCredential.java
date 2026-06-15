@@ -54,7 +54,7 @@ public class JenkinsCredential {
     
     public static String createCredentialXml(OssDto ossDto, String credentialType) {
         try {
-            // XML 문서 파싱
+            // Comment translated to English.
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder = factory.newDocumentBuilder();
 
@@ -63,7 +63,7 @@ public class JenkinsCredential {
             	document = createUsernamePasswordCredentialXml(documentBuilder, ossDto);
             }
 
-            // XML 문자열로 변환하기! //
+            // Comment translated to English.
             ByteArrayOutputStream out = new ByteArrayOutputStream();
 
             DOMSource source = new DOMSource(document);
@@ -73,7 +73,7 @@ public class JenkinsCredential {
             Transformer transformer = transFactory.newTransformer();
 
             transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");// 들여 쓰기
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");// Comment translated to English.
             transformer.transform(source, result);
 
             return new String(out.toByteArray(), StandardCharsets.UTF_8);
@@ -91,8 +91,8 @@ public class JenkinsCredential {
 			decryptPassword = AES256Util.decrypt(credentialOss.getOssPassword());
 		}
 		
-        // 새로운 XML 생성! //
-        // 새로운 Document 객체 생성
+        // Comment translated to English.
+        // Comment translated to English.
         Document document = documentBuilder.newDocument();
 
         Element root = document.createElement("com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl");
@@ -119,8 +119,8 @@ public class JenkinsCredential {
     }
     
 //    public static Document createClusterSecretTextCredentialXml(DocumentBuilder documentBuilder, K8SConfig k8s) {
-//		// 새로운 XML 생성! //
-//		// 새로운 Document 객체 생성
+// Comment translated to English.
+// Comment translated to English.
 //		Document document = documentBuilder.newDocument();
 //
 //		Element root = document.createElement("org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl");

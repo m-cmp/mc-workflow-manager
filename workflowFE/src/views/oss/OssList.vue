@@ -53,45 +53,28 @@ import OssForm from './components/ossForm.vue';
 import DeleteOss from './components/deleteOss.vue';
 
 const toast = useToast()
-/**
- * @Title ossList / columns
- * @Desc 
- *    ossList : oss 목록 저장
- *    columns : 목록의 컬럼 저장
- */
+/* Comment translated to English. */
 const ossList = ref([] as Array<Oss>)
 const columns = ref([] as Array<ColumnDefinition>)
 
-/**
- * @Title Life Cycle
- * @Desc 컬럼 set Callback 함수 호출 / ossList Callback 함수 호출
- */
+/* Comment translated to English. */
 onMounted(async () => {
   setColumns()
   await _getOssList()
 })
 
-/**
- * @Title _getOssList
- * @Desc oss List Callback 함수 / oss List api 호출
- */
+/* Comment translated to English. */
 const _getOssList = async () => {
   try {
     const { data } = await getOssAllList()
     ossList.value = data
   } catch(error) {
     console.log(error)
-    toast.error('데이터를 가져올 수 없습니다.')
+    toast.error('Failed to load data.')
   }
 }
 
-/**
- * @Title selectOssIdx / selectOssName / setColumns
- * @Desc
- *    selectOssIdx : 수정/삭제를 위한 선택된 row의 ossIdx저장
- *    selectOssName : 삭제를 위한 선택된 row의 ossName저장
- *    setColumns : 컬럼 set Callback 함수
- */
+/* Comment translated to English. */
 const selectOssIdx = ref(0 as number)
 const selectOssName = ref('' as string)
 const setColumns = () => {
@@ -132,10 +115,7 @@ const setColumns = () => {
   ]
 }
 
-/**
- * @Title editButtonFormatter
- * @Desc 수정 / 삭제 버튼 Formatter
- */
+/* Comment translated to English. */
 const editDeleteButtonFormatter = () => {
   return `
   <div>
@@ -156,16 +136,10 @@ const editDeleteButtonFormatter = () => {
   </div>`;
 }
 
-/**
- * @Title formMode
- * @Desc 기본값 new / ossForm에 생성/수정 을 알려주는 값
- */
+/* Comment translated to English. */
 const formMode = ref('new')
 
-/**
- * @Title onClickNewBtn
- * @Desc Oss 생성버튼 클릭시 동작하는 함수 (ossIdx / formMode set)
- */
+/* Comment translated to English. */
 const onClickNewBtn = () => {
   selectOssIdx.value = 0
   formMode.value = 'new'

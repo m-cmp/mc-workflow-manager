@@ -30,7 +30,7 @@ dependencies {
 
     implementation 'com.h2database:h2'
     //implementation 'org.projectlombok:lombok:1.18.26'
-    // lombok이 제대로 작동되지 않으면 아래처럼(@Getter/@Setter등이 안먹을때)
+    // Use this configuration if Lombok annotations such as @Getter/@Setter are not processed correctly.
     compileOnly group : 'org.projectlombok', name: 'lombok', version: '1.18.22'
     annotationProcessor group : 'org.projectlombok', name: 'lombok', version: '1.18.22'
 

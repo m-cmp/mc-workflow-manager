@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 @Getter
 public enum ResponseCode {
 
-	OK(200, "정상처리 되었습니다."),
+	OK(200, "Processed successfully."),
 
 	/* common */
 	BAD_REQUEST(400, "BAD REQUEST"),
@@ -23,7 +23,7 @@ public enum ResponseCode {
 	CONFLICT(409,"CONFLICT"),
 	INTERNAL_SERVER_ERROR(500,"INTERNAL SERVER ERROR"),
 	
-	/* 공통 코드 */
+	/* Common codes */
 	COMMON_CODE_EXISTS(9001, "EXISTS COMMON CODE"),
 	COMMON_CODE_DELETE_NOT_ALLOWED(9002,"DELETE NOT ALLOWED COMMON CODE"),
 

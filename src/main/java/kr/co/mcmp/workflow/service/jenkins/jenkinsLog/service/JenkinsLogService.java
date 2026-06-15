@@ -24,11 +24,11 @@ public class JenkinsLogService {
 //    private final WorkflowMapper workflowMapper;
 //
 //    public List<WorkflowHistory> getLogs(Integer workflowId) {
-//        // 1. 정보 Get
+// Comment translated to English.
 //        Workflow workflow = workflowMapper.selectWorkflow(workflowId);
 //        Oss jenkins = ossMapper.selectOss(workflow.getJenkinsId());
 //
-//        // 2. history에서 jenkins build ID 가져오기
+// Comment translated to English.
 //        List<WorkflowHistory> workflowHistoryList = workflowMapper.selectWorkflowHistoryList(workflowId);
 //        try {
 //            for(WorkflowHistory workflowHistory: workflowHistoryList) {

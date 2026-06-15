@@ -109,7 +109,7 @@ const emit = defineEmits(['get-workflow-stage-list'])
 const workflowStageIdx = computed(() => props.workflowStageIdx);
 const workflowStageName = computed(() => props.workflowStageName);
 
-// 초기화 중 상태 플래그
+// Comment translated to English.
 const isInitializing = ref(false as boolean)
 
 watch(workflowStageIdx, async () => {
@@ -243,7 +243,7 @@ const onClickDuplicatWorkflowStageName = async () => {
     toast.error('Name is already in use.')
 }
 
-// 이름/타입 변경 시 중복체크 상태 초기화
+// Comment translated to English.
 watch(
   () => [
     workflowStageFormData.value.workflowStageName,

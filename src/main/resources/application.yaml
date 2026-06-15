@@ -8,18 +8,18 @@ spring:
       matching-strategy: ant_path_matcher
   application:
     name: workflow-manager
-  #h2 db 설정
+  # H2 database settings
   datasource:
-    url: jdbc:h2:file:./document/test/workflow # 프로젝트 루트/db/ 안에 h2.db파일(test.mv.db) 생성
+    url: jdbc:h2:file:./document/test/workflow # Creates the H2 database file under the project root.
     driver-class-name: org.h2.Driver
     username: ${DB_ID:workflow}
     password: ${DB_PW:workflow!23}
   h2:
     console:
-      enabled: true # http://localhost:18083/h2-console/으로 접속가능
+      enabled: true # Accessible at http://localhost:18083/h2-console/
       path: /h2-console
       settings:
-        web-allow-others: true # 원격연결(배포 후 외부에서) 허용
+        web-allow-others: true # Allow remote connections after deployment.
   jpa:
     hibernate:
       ddl-auto: ${DB_INIT_YN:update}

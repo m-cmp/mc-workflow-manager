@@ -12,7 +12,7 @@ router.beforeEach(async (to, from, next) => {
     console.log('## event.data.accessToken ### : ', event.data.accessToken)
     if (event.data.accessToken === undefined) {
       data = {
-        accessToken: "accesstokenExample", // 있는지 확인
+        accessToken: "accesstokenExample", // Comment translated to English.
         workspaceInfo: {
           id: "8b2df1f9-b937-4861-b5ce-855a41c346bc",
           name: "workspace2",

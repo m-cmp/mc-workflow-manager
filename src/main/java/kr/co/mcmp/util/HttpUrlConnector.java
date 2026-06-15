@@ -11,11 +11,7 @@ import java.util.List;
 
 
 
-/**
- * Http 커넥터.
- * @author hclee
- *
- */
+/* Comment translated to English. */
 public class HttpUrlConnector {
 	private String SERVER_URL;
 	
@@ -101,19 +97,14 @@ public class HttpUrlConnector {
 		}
 	}
 	
-	/**
-	 * 리스너 등록
-	 * @param l : 수신받을 리스너
-	 */
+	/* Comment translated to English. */
 	public void addHttpUrlConnectListener(HttpUrlConnectListener l) {
 		if(!listener.contains(l)) {
 			listener.add(l);
 		}
 	}
 	
-	/**
-	 * 연결 종료
-	 */
+	/* Comment translated to English. */
 	public void disconnect() {
 		try {
 			if(bos != null) {

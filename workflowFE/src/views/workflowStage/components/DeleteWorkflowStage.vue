@@ -45,16 +45,13 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['get-workflow-stage-list'])
 
-/**
- * @Title onClickDelete
- * @Desc 삭제 버튼 클릭시 동작 / 삭제 api 호출
- */
+/* Comment translated to English. */
 const onClickDelete = async () => {
   const { data } = await deleteWorkflowStage(props.workflowStageIdx)
   if (data)
-    toast.success('삭제되었습니다.')
+    toast.success('Deleted successfully.')
   else
-    toast.error('삭제하지 못했습니다.')
+    toast.error('Failed to delete.')
   emit('get-workflow-stage-list')
 }
 </script>

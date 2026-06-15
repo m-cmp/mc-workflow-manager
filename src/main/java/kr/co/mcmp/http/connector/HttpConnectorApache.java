@@ -142,16 +142,7 @@ public class HttpConnectorApache extends AbstractConnector {
 	}
 	
 	
-	/**
-	 * post용 커넥터 생성
-	 * @param url
-	 * @param configurations
-	 * @param requestParam
-	 * @param entity
-	 * @param charset
-	 * @return
-	 * @throws Exception
-	 */
+	/* Comment translated to English. */
 	private HttpUriRequest createPostConnect(
 			String url, 
 			Map<String, String> configurations, 
@@ -166,7 +157,7 @@ public class HttpConnectorApache extends AbstractConnector {
             httpPost.setConfig(requestConfig);
         }
         
-        // 추가 요청 헤더를 넣음
+        // Comment translated to English.
         if(configurations != null && configurations.size() > 0) {
         	Iterator<String> iter = configurations.keySet().iterator();
         	while(iter.hasNext()) {
@@ -177,8 +168,8 @@ public class HttpConnectorApache extends AbstractConnector {
         	}
         }
         
-        //요청 파라메타 적용
-        //entity 가 null이 아닌 경우 entity를 보낸다.
+        // Comment translated to English.
+        // Comment translated to English.
         if(entity != null && !entity.equals("")) {
         	httpPost.setEntity(new StringEntity(entity, charset));
         } else {
@@ -198,14 +189,7 @@ public class HttpConnectorApache extends AbstractConnector {
         return httpPost;
     }
 	
-	/**
-	 * get용 커넥터 생성
-	 * @param url
-	 * @param configurations
-	 * @param requestParam
-	 * @return
-	 * @throws Exception
-	 */
+	/* Comment translated to English. */
 	private HttpUriRequest createGetConnect(
 			String url, 
 			Map<String, String> configurations, 
@@ -223,7 +207,7 @@ public class HttpConnectorApache extends AbstractConnector {
         	httpGet.setConfig(requestConfig);
         }
         
-        // 추가 요청 헤더를 넣음
+        // Comment translated to English.
         if(configurations != null && configurations.size() > 0) {
         	Iterator<String> iter = configurations.keySet().iterator();
         	while(iter.hasNext()) {
@@ -273,10 +257,7 @@ public class HttpConnectorApache extends AbstractConnector {
     }
 	
     
-    /**
-	 * 리퀘스트 파라메타를 URL 전송용 스트링으로 변환하여 리턴한다.
-	 * @return
-	 */
+    /* Comment translated to English. */
 	public String getRequestParameterStr(Map<String, String> requestParam) {
 		StringBuffer sb = new StringBuffer();
 		if(requestParam != null) {

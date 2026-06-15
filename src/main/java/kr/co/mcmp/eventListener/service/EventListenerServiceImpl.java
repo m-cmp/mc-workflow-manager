@@ -185,11 +185,7 @@ public class EventListenerServiceImpl implements EventListenerService {
         }
     }
 
-    /**
-     * 배포 조회
-     * @param eventListenerYn
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowListResDto> getWorkflowList(String eventListenerYn) {
         List<WorkflowDto> workflowList = workflowRepository.findAll()
@@ -219,11 +215,7 @@ public class EventListenerServiceImpl implements EventListenerService {
         return list;
     }
 
-    /**
-     * 배포 조회
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn) {
         try {
@@ -426,14 +418,10 @@ public class EventListenerServiceImpl implements EventListenerService {
         return OssTypeDto.from(ossTypeEntity);
     }
 
-    /**
-     * WorkflowStageMappingDto 정보 조회
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public String getWorkflowRunHistoryStatus(Long workflowIdx) {
 
-        // jenkins job Name 조회
+        // Comment translated to English.
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
         if (workflowDto == null) {
             return "-";
@@ -449,7 +437,7 @@ public class EventListenerServiceImpl implements EventListenerService {
         }
 
         try {
-            // oss 조회
+            // Comment translated to English.
             OssDto ossDto = getOssDto(workflowDto.getOssIdx());
             return jenkinsService.getJenkinsBuildStage(ossDto, workflowDto.getWorkflowName(), latestBuildNumber).getStatus();
         } catch (Exception e) {

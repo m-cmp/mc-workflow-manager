@@ -8,11 +8,7 @@ public interface IConnectionResultReceiver {
 	public static final int RESULT_OK = 1004;
 	public static final int RESULT_FAIL = 1005;
 	
-	/**
-	 * 커넥션 상태 또는 결과를 전송받는다.
-	 * @param id : 상태 
-	 * @param data : 데이터
-	 */
+	/* Comment translated to English. */
 	public void onReceiveResult(int id, Object data);
 	
 }

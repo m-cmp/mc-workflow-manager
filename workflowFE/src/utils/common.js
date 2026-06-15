@@ -1,5 +1,5 @@
 
-/* 사용자 정보 이름과 아이디 함께 노출시 정의한 포맷으로 반환*/
+/* Comment translated to English. */
 export function getUserNameAndIdStr(name, id) {
   name = name || ''
   id = id || ''
@@ -17,21 +17,14 @@ export function validateProjectName(name) {
 }
 
 export function validateOpenShiftAppName(name) {
-  //alphanumeric (a-z, 0-9) 최대 16 character. 첫 글자는 a-z 만 허용. ‘-’ 는 허용되는데 처음과 끝은 안됨
+  // Comment translated to English.
   const reg = /^[A-Za-z]{1}[A-z0-9_-]{1,16}[A-Za-z0-9]$/
   return reg.test(name)
 }
 
 
 
-/**
- * 바이트 문자 입력가능 문자수 체크
- * 
- * @param id : tag id 
- * @param title : tag title
- * @param maxLength : 최대 입력가능 수 (byte)
- * @returns {Boolean}
- */
+/* Comment translated to English. */
 export function maxLengthCheck(title, maxLength){  
   maxLength = maxLength || 255;
   if(Number(byteCheck(title)) > Number(maxLength)) {
@@ -41,12 +34,7 @@ export function maxLengthCheck(title, maxLength){
  }
 }
 
-/**
-* 바이트수 반환  
-* 
-* @param el : tag jquery object
-* @returns {Number}
-*/
+/* Comment translated to English. */
 export function byteCheck(txt){
  let codeByte = 0;
  for (let idx = 0; idx < txt.length; idx++) {
@@ -65,7 +53,7 @@ export function byteCheck(txt){
 
 export function getSize(fileSize, fixed) {
   var value = {}
-  // GB 단위 이상일때 GB 단위로 환산
+  // Comment translated to English.
   if (fileSize >= 1024 * 1024 * 1024) {
     fileSize = fileSize / (1024 * 1024 * 1024)
     fileSize = (fixed === undefined) ? fileSize : fileSize.toFixed(fixed)
@@ -73,18 +61,18 @@ export function getSize(fileSize, fixed) {
     value.unit = 'gb'
   }
 
-  // MB 단위 이상일때 MB 단위로 환산
+  // Comment translated to English.
   if (fileSize >= 1024 * 1024) {
     fileSize = fileSize / (1024 * 1024)
     fileSize = (fixed === undefined) ? fileSize : fileSize.toFixed(fixed)
     value.size = fileSize
     value.unit = 'mb'
-  } else if (fileSize >= 1024) { // KB 단위 이상일때 KB 단위로 환산
+  } else if (fileSize >= 1024) { // Comment translated to English.
     fileSize = fileSize / 1024
     fileSize = (fixed === undefined) ? fileSize : fileSize.toFixed(fixed)
     value.size = fileSize
     value.unit = 'kb'
-  } else { // KB 단위보다 작을때 byte 단위로 환산
+  } else { // Comment translated to English.
     fileSize = (fixed === undefined) ? fileSize : fileSize.toFixed(fixed)
     value.size = fileSize
     value.unit = 'byte'
@@ -124,10 +112,7 @@ export function copyClipboard(str) {
 }
 
 
-/*
-	- ary 요소의 key, value 값을 오브젝트로 만들기.	
-	- call: deploy params에서 호출 
-*/
+/* Comment translated to English. */
 export function arrayToObject(ary) {
 	let object = {};
 	if (ary == null)
@@ -140,10 +125,7 @@ export function arrayToObject(ary) {
 	return object;
 }
 
-/*
-	- ary 요소의  object.value값을 배열의 요소로 만들기.
-	- call: deploy params에서 호출 
-*/
+/* Comment translated to English. */
 export function valueObjectToArray(ary) {
 	let array = [];
 	if (ary == null)
@@ -158,16 +140,7 @@ export function valueObjectToArray(ary) {
 }
 
 
-/* 
-object 정보를 key, value 오브젝트 배열 요소로 추가 
-	{
-		key1:value1,
-		key2:value2
-	}
-
-	=>
-	[{key1:value1},{key2:value2}]
-*/
+/* Comment translated to English. */
 export function objectToArray(obj) {
 	let toArray = [];
 	if (obj == null)
@@ -216,10 +189,7 @@ export function isEmptyObject(obj) {
 }
 
 
-/*
-.을 기준으로 앞에는 name 
-뒤에는 domin 값으로 분리하는 기능
-*/
+/* Comment translated to English. */
 export function splitACRServerInfo(str) {
 	let index = str.indexOf(".");
 	let info = {

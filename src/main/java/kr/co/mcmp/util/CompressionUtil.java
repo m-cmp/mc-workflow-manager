@@ -198,7 +198,7 @@ public class CompressionUtil {
 		zos.close();
 	}
 	
-	// 由ъ뒪�듃濡� �뙆�씪�쓣 諛쏆븘 zip濡� �븬異�
+	// Comment translated to English.
 	public void zip(List<File> src, OutputStream os) throws IOException {
 		ZipArchiveOutputStream zos = new ZipArchiveOutputStream(os);
 		zos.setEncoding(Charset.defaultCharset().name());

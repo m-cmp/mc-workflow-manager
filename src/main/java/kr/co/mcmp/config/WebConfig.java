@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // 모든 경로를 index.html로 리다이렉트
+        // Comment translated to English.
         registry.addViewController("/web/{spring:[\\w\\-]+}")
                 .setViewName("forward:/index.html");
         registry.addViewController("/web/**/{spring:[\\w\\-]+}")

@@ -17,7 +17,7 @@ public class WorkflowParamHistoryDto {
     private LocalDateTime runDate;
 
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowParamHistoryDto from(WorkflowParamHistory workflowParamHistory) {
         return WorkflowParamHistoryDto.builder()
                 .workflowParamHistoryIdx(workflowParamHistory.getWorkflowParamHistoryIdx())
@@ -27,7 +27,7 @@ public class WorkflowParamHistoryDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowParamHistoryDto of(WorkflowParamHistoryDto workflowParamHistoryDto) {
         return WorkflowParamHistoryDto.builder()
                 .workflowParamHistoryIdx(workflowParamHistoryDto.getWorkflowParamHistoryIdx())
@@ -37,7 +37,7 @@ public class WorkflowParamHistoryDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowParamHistory toEntity(WorkflowParamHistoryDto workflowParamHistoryDto, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return WorkflowParamHistory.builder()
                 .workflowParamHistoryIdx(workflowParamHistoryDto.getWorkflowParamHistoryIdx())

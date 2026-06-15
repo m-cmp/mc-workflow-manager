@@ -9,7 +9,7 @@
 
         <div class="modal-body py-4">
           <div>
-            <!-- Event Listener 명 -->
+            <!-- Comment translated to English. -->
             <div class="row mb-3">
               <label class="form-label required">Event Listener Name</label>
               <div class="grid gap-0 column-gap-3">
@@ -96,9 +96,7 @@ import { Modal } from 'bootstrap'
 
 const toast = useToast()
 
-/**
- * @Title Modal 관리
- */
+/* Comment translated to English. */
 const modalElement = ref<HTMLElement>()
 const modalInstance = ref<Modal>()
 
@@ -112,17 +110,14 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['get-event-listener-list'])
 
-/**
- * @Title Life Cycle
- * @Desc eventListenerIdx 값의 변화에 따라 데이터 set함수 호출  
- */
+/* Comment translated to English. */
 const eventListenerIdx = computed(() => props.eventListenerIdx);
 watch(eventListenerIdx, async () => {
   await setInit()
   await _getWorkflowList()
 });
 onMounted(async () => {
-  // Modal 인스턴스 초기화
+  // Comment translated to English.
   if (modalElement.value) {
     modalInstance.value = new Modal(modalElement.value)
     modalElement.value.addEventListener('show.bs.modal', onShowModal)
@@ -141,20 +136,11 @@ const onShowModal = async () => {
   await _getWorkflowList()
 }
 
-/**
- * @Title formData 
- * @Desc Event Listener 생성 / 수정데이터
- */
+/* Comment translated to English. */
 const eventListenerFormData = ref({} as EventListener)
 const setParamFlag = ref(false as Boolean)
 
-/**
- * @Title 초기화 Method
- * @Desc 
- *    1. 생성 모드일경우 / eventListenerIdx 가 달라질경우 데이터 초기화
- *    2. 중복검사 / 연결 확인 버튼 활성화 여부 set
- *    3. 닫기 / 생성 / 수정 버튼 클릭시 데이터 초기화
- */
+/* Comment translated to English. */
 const setInit = async () => {
   if (props.mode === 'new') {
     eventListenerFormData.value.eventListenerName = ''
@@ -190,12 +176,7 @@ const selectedWorkflowName = computed(() => {
   return selectedWorkflow.value?.workflowInfo.workflowName || eventListenerFormData.value.workflowName || ''
 })
 
-/**
- * @Title duplicatedEventListener / onClickDuplicatEventListenerName
- * @Desc 
- *    duplicatedEventListener : 중복검사 여부
- *    onClickDuplicatEventListenerName : Event Listener 명으로 중복검사 API 호출
- */
+/* Comment translated to English. */
 const duplicatedEventListener = ref(false as boolean)
 const checkedEventListenerName = ref('')
 const originalEventListenerName = ref('')
@@ -230,12 +211,7 @@ const onClickDuplicatEventListenerName = async () => {
 }
 
 
-/**
- * @Title onClickSubmit
- * @Desc 
- *     1. 생성 / 수정 버튼 클릭시 동작
- *     2. 부모로 부터 받은 mode값에 따라서 생성/수정 Callback 함수 호출후 부모에게 Event Listener목록 api 호출  
- */
+/* Comment translated to English. */
 const onClickSubmit = async () => {
   // =========================== Validation ===========================
   if (!eventListenerFormData.value.eventListenerName) {
@@ -270,15 +246,15 @@ const onClickSubmit = async () => {
     success = await _updateEventListener();
   }
   
-  // 성공적으로 처리된 경우에만 모달 닫기
+  // Comment translated to English.
   if (success) {
     emit('get-event-listener-list');
     setInit();
     
-    // 모달 닫기
+    // Comment translated to English.
     if (modalInstance.value) {
       modalInstance.value.hide()
-      // 백드롭이 남아있을 경우 강제 제거
+      // Comment translated to English.
       setTimeout(() => {
         document.body.classList.remove('modal-open')
         const backdrop = document.querySelector('.modal-backdrop')
@@ -288,10 +264,7 @@ const onClickSubmit = async () => {
   }
 }
 
-/**
- * @Title _registEventListener
- * @Desc 생성 Callback 함수 / 생성 api 호출
- */
+/* Comment translated to English. */
 const _registEventListener = async (): Promise<boolean> => {
   try {
   const { data } = await registEventListener(eventListenerFormData.value)
@@ -308,10 +281,7 @@ const _registEventListener = async (): Promise<boolean> => {
   }
 }
 
-/**
- * @Title _updateEventListener
- * @Desc 수정 Callback 함수 / 수정 api 호출
- */
+/* Comment translated to English. */
 const _updateEventListener = async (): Promise<boolean> => {
   try {
   const { data } = await updateEventListener(eventListenerFormData.value)

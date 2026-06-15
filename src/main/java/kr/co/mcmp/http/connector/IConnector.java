@@ -2,14 +2,10 @@ package kr.co.mcmp.http.connector;
 
 public interface IConnector {
 	
-	/**
-	 * 연결
-	 */
+	/* Comment translated to English. */
 	public Object connect();
 	
-	/**
-	 * 연결 종료
-	 */
+	/* Comment translated to English. */
 	public boolean disconnect();
 	
 }

@@ -594,10 +594,10 @@ const onChangeBackupFile = async (event: Event, idx: number) => {
     const backupFileParam = paramData.value[idx]
     backupFileParam.paramValue = file.name
     upsertParamValue('SCHEMA_SQL_CONTENT', content)
-    toast.success(`${file.name} 파일이 적용되었습니다.`)
+    toast.success(`${file.name} has been applied.`)
   } catch (error) {
     console.log(error)
-    toast.error('파일을 읽지 못했습니다.')
+    toast.error('Failed to read the file.')
   } finally {
     input.value = ''
   }
@@ -642,7 +642,7 @@ const removeParams = (idx: number) => {
   if(paramData.value.length !== 1)
     paramData.value.splice(idx, 1)
   else
-    toast.error('비워두셔도 됩니다.')
+    toast.error('This field can be left empty.')
 }
 </script>
 

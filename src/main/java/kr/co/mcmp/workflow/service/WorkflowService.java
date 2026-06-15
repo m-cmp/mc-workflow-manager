@@ -14,37 +14,37 @@ import java.util.List;
 
 public interface WorkflowService {
 
-    // Workflow 목록
+    // Comment translated to English.
     List<WorkflowListResDto> getWorkflowList();
 
-    // Workflow 등록
+    // Comment translated to English.
     Long registWorkflow(WorkflowReqDto workflowReqDto);
 
-    // Workflow 수정
+    // Comment translated to English.
     Boolean updateWorkflow(WorkflowReqDto workflowReqDto);
 
-    // Workflow 삭제
+    // Comment translated to English.
     Boolean deleteWorkflow(Long workflowIdx);
 
-    // Workflow 연결 Event Listener 존재 여부
+    // Comment translated to English.
     Boolean existEventListener(Long workflowIdx);
 
-    // Workflow 상세
+    // Comment translated to English.
     WorkflowDetailResDto getWorkflow(Long workflowIdx);
 
-    // Workflow 중복 체크
+    // Comment translated to English.
     Boolean isWorkflowNameDuplicated(String workflowName);
 
-    // Workflow 실행 (Idx)
+    // Comment translated to English.
     Boolean runWorkflow(Long workflowIdx);
 
-    // Workflow 실행 (Workflow 정보)
+    // Comment translated to English.
     Boolean runWorkflow(WorkflowReqDto workflowReqDto);
 
-    // Workflow 스테이지 목록
+    // Comment translated to English.
     List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList();
 
-    // Workflow 기본 템플릿 조회
+    // Comment translated to English.
     List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName);
     
     // Workflow History

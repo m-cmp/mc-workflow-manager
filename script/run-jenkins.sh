@@ -32,7 +32,7 @@ sudo docker run -itd \
         -u root \
 $APP_IMAGE
 
-# 컨테이너가 완전히 시작될 때까지 잠시 대기
+# Wait briefly until the container is fully started.
 echo "Waiting for Jenkins to start..."
 sleep 10
 

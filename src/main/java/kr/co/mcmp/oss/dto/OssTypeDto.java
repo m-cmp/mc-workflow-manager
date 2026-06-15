@@ -13,7 +13,7 @@ public class OssTypeDto {
     private String ossTypeName;
     private String ossTypeDesc;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static OssTypeDto from(OssType ossType) {
         return OssTypeDto.builder()
                 .ossTypeIdx(ossType.getOssTypeIdx())
@@ -22,7 +22,7 @@ public class OssTypeDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static OssTypeDto of(OssTypeDto ossTypeDto) {
         return OssTypeDto.builder()
                 .ossTypeIdx(ossTypeDto.getOssTypeIdx())
@@ -31,7 +31,7 @@ public class OssTypeDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static OssType toEntity(OssTypeDto ossTypeDto) {
         return OssType.builder()
                 .ossTypeIdx(ossTypeDto.getOssTypeIdx())

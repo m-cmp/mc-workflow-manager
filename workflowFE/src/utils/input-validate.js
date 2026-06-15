@@ -37,7 +37,7 @@
 export const _validateAlphaNumericHyphen= (rule, value, callback) => {
 	const reg = /^[0-9a-zA-Z-]+$/
 	if (!reg.test(value)) {
-		callback(new Error("규칙에 맞게 입력해주세요.(영문자, 숫자, (-)만 가능)"));
+		callback(new Error("Please enter a valid value. Only letters, numbers, and hyphens are allowed."));
 	} else {
 		callback()
 	}
@@ -56,7 +56,7 @@ export const _validateAlphaNumericHyphen= (rule, value, callback) => {
 
 // const _validateOpenShiftAppName = (rule, value, callback) => {
 //   const { t }  = i18n.global;
-// 	//alphanumeric (a-z, 0-9) 최대 16 character. 첫 글자는 a-z 만 허용. ‘-’ 는 허용되는데 처음과 끝은 안됨
+// Comment translated to English.
 //   const reg = /^[A-Za-z]{1}[A-z0-9_-]{1,16}[A-Za-z0-9]$/
 // 	if (!reg.test(value) || value.length > 16) {
 // 		callback(new Error(t("validation.openShiftAppNameMsg")));
@@ -67,7 +67,7 @@ export const _validateAlphaNumericHyphen= (rule, value, callback) => {
 
 // const _validateAppName = (rule, value, callback) => {
 //   const { t }  = i18n.global;
-// 	//alphanumeric (a-z, 0-9) 최대 16 character. 첫 글자는 a-z 만 허용. ‘-’ 는 허용되는데 처음과 끝은 안됨
+// Comment translated to English.
 //   const reg = /^[a-z]{1}[a-z0-9_-]{1,16}$/
 // 	if (!reg.test(value) || value.length > 16) {
 // 		callback(new Error(t("validation.appNameMsg")));
@@ -100,18 +100,18 @@ export const _validateAlphaNumericHyphen= (rule, value, callback) => {
 export const _validateLength = (rule, value, callback) => {
     if (value.length < rule.length) {
         if (rule.length == 2) {
-            callback(new Error("2자 이상 입력해주세요."));
+            callback(new Error("Please enter at least 2 characters."));
             return
         }
         if (rule.length == 3) {
-            callback(new Error("3자 이상 입력해주세요."));
+            callback(new Error("Please enter at least 3 characters."));
             return
         }
         if (rule.length == 4) {
-            callback(new Error("4자 이상 입력해주세요."));
+            callback(new Error("Please enter at least 4 characters."));
             return
         }
-        callback(new Error("내용을 입력해주세요."));
+        callback(new Error("Please enter a value."));
     } else {
       callback()
     }

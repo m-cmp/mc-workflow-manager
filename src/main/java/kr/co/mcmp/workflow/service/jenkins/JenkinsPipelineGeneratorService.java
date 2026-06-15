@@ -10,13 +10,10 @@ import java.util.List;
 @Service
 public class JenkinsPipelineGeneratorService {
 
-	/**
-	 * Template 조회 (Workflow)
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName) {
 
-		// Checkout And Build 파이프라인(CHECKOUTBUILD)
+		// Comment translated to English.
 		WorkflowStageMappingDto startPipeline = WorkflowStageMappingDto.setWorkflowTemplate(getStartPipelineWorkflow(workflowName));
 
 		// Docker Image or WAR File Upload(FILEUPLOAD)
@@ -29,9 +26,7 @@ public class JenkinsPipelineGeneratorService {
 		return pipelines;
 	}
 
-	/**
-	 * Pipeline 시작 부분 생성
-	 */
+	/* Comment translated to English. */
 	private String getStartPipelineWorkflow(String workflowName) {
 		StringBuffer sb = new StringBuffer();
 
@@ -70,9 +65,7 @@ public class JenkinsPipelineGeneratorService {
 
 		return sb.toString();
 	}
-	/**
-	 * Pipeline 끝 부분 생성
-	 */
+	/* Comment translated to English. */
 	public String getEndPipeline() {
 		StringBuffer sb = new StringBuffer();
 

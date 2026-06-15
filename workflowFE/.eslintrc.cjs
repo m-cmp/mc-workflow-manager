@@ -13,7 +13,7 @@ module.exports = {
     ecmaVersion: 'latest'
   },
   rules: {
-    // should always be multi-word 적용 X
+    // Disable the always multi-word rule.
     'vue/multi-word-component-names' : 0
   },
 }

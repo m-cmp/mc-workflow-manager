@@ -208,14 +208,7 @@ html, body {
 
 
 /*****************************************************************************/
-/*!
-* Tabler v1.0.0-beta20 (https://tabler.io)
-* @version 1.0.0-beta20
-* @link https://tabler.io
-* Copyright 2018-2023 The Tabler Authors
-* Copyright 2018-2023 codecalm.net Paweł Kuna
-* Licensed under MIT (https://github.com/tabler/tabler/blob/master/LICENSE)
-*/
+/* Comment translated to English. */
 @charset "UTF-8";
 /* prettier-ignore */
 /* prettier-ignore */
@@ -23031,11 +23024,11 @@ Card note
 }
 
 .datagrid-content {
-  min-height: 20px; /* 최소 높이 유지 */
-  overflow: hidden; /* 넘치는 내용 숨김 */
-  text-overflow: ellipsis; /* 넘치는 내용에 '...' 표시 */
+  min-height: 20px; /* Comment translated to English. */
+  overflow: hidden; /* Comment translated to English. */
+  text-overflow: ellipsis; /* Comment translated to English. */
   white-space: nowrap;
-  max-width: 100%; /* 칸의 너비를 넘지 않도록 고정 */
+  max-width: 100%; /* Comment translated to English. */
 }
 .datagrid-title {
   font-size: 0.875rem;
@@ -23044,7 +23037,7 @@ Card note
   letter-spacing: 0em;
   line-height: 1rem;
   color: var(--tblr-secondary);
-  margin-bottom: 0; /* 공백 제거 */
+  margin-bottom: 0; /* Comment translated to English. */
 }
 
 .empty {

@@ -15,13 +15,13 @@ import java.util.stream.Collectors;
 
 @SuperBuilder
 @Getter
-@NoArgsConstructor // 기본 생성자 추가
+@NoArgsConstructor // Comment translated to English.
 public class WorkflowReqDto {
     private WorkflowDto workflowInfo;
     private List<WorkflowParamDto> workflowParams;
     private List<WorkflowStageMappingDto> workflowStageMappings;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowReqDto from(Workflow workflow, List<WorkflowParam> workflowParams, List<WorkflowStageMapping> workflowStageMappings) {
         return WorkflowReqDto.builder()
                 .workflowInfo            (WorkflowDto.from(workflow))
@@ -30,7 +30,7 @@ public class WorkflowReqDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowReqDto of(WorkflowDto workflowDto, List<WorkflowParamDto> workflowParams, List<WorkflowStageMappingDto> workflowStageMappings) {
         return WorkflowReqDto.builder()
                 .workflowInfo(workflowDto)

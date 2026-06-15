@@ -10,7 +10,7 @@
     </div>
     <div class="p-1">
       <div class="grid gap-0 g-col-12">
-        <!-- 스크립트 구역 -->        
+        <!-- Comment translated to English. -->
         <div class="p-2 g-col-8"  v-if="workflowStageMappingsFormData">
           <VueDraggableNext 
             :list="workflowStageMappingsFormData" 
@@ -30,7 +30,7 @@
           </VueDraggableNext>
         </div>
         <div v-else>
-          <span>스크립트 생성 버튼을 클릭해주세요</span>
+          <span>Click Create Script first.</span>
         </div>
 
         <div class="p-2 g-col-4">
@@ -45,7 +45,7 @@
         </div>
       </div>
 
-      <!-- 구분 구역 -->
+      <!-- Comment translated to English. -->
     </div>
   </div>
 </template>
@@ -83,7 +83,7 @@ onMounted(() => {
   _getScriptList()
 })
 
-// ================================================================================= 스크립트 생성 버튼 클릭
+// Comment translated to English.
 
 const { workflowStageMappingsFormData }  = toRefs(props)
 
@@ -91,7 +91,7 @@ const onClickCreateScript = () => {
   emit('on-click-create-script')
 }
 
-// ================================================================================= key: 파이프라인 구분 / value: 파이프라인 
+// Comment translated to English.
 const pipelineScriptList = ref([] as any)
 const _getScriptList = async () => {
   try {
@@ -103,12 +103,12 @@ const _getScriptList = async () => {
   }
 }
 
-// ================================================================================= draggable 옵션 (우측 Pipeline Title)
+// Comment translated to English.
 const onCheckDraggableEditor = (e:any) => {
   let idx = e.draggedContext.futureIndex;
   let isDefaultScript = e.draggedContext.element.isDefaultScript;
 
-  // checkoutBuild / fileUpload 위치 고정 위해 사용
+  // Comment translated to English.
   let check = true;
   if (isDefaultScript) check = false;
   if (idx < 1 || idx > workflowStageMappingsFormData.value.length - 1) check = false;
@@ -116,7 +116,7 @@ const onCheckDraggableEditor = (e:any) => {
   return check;
 }
 
-// =================================================================================  draggable 옵션 (readOnly로 바꿔준다.)
+// Comment translated to English.
 const dragFlag = ref(false as boolean)
 const onStartDrag = (e: any) => {
   dragFlag.value = true;
@@ -126,7 +126,7 @@ const onFinishDrag = (e: any) => {
   setPipelineOrder();
 }
 
-// =================================================================================  파이프라인 순서 set
+// Comment translated to English.
 const setPipelineOrder = () => {
   let cnt = 1;
   workflowStageMappingsFormData.value.forEach((stage:WorkflowStageMappings) => {
@@ -141,10 +141,10 @@ const setPipelineOrder = () => {
   });
 }
 
-// ================================================================================= 파이프라인에서 삭제 버튼 클릭시 동작
+// Comment translated to English.
 const onDeletePipeline = (idx: any) => {
   if (idx == 0 || idx == workflowStageMappingsFormData.value.length - 1) return;
-  if (!confirm("파이프라인을 삭제하시겠습니까?")) return false;
+  if (!confirm("Do you want to delete this pipeline?")) return false;
   workflowStageMappingsFormData.value.splice(idx, 1);
 }
 

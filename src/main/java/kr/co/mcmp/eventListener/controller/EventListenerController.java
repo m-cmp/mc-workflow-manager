@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-@Tag(name = "event Listener", description = "이벤트 리스너 관리")
+@Tag(name = "event Listener", description = "Event listener management")
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/eventlistener")
@@ -27,13 +27,13 @@ public class EventListenerController {
 
     private final EventListenerService eventListenerService;
 
-    @Operation(summary = "Event Listener 목록 조회", description = "Event Listener  모든 목록조회" )
+    @Operation(summary = "List event listeners", description = "List all event listeners" )
     @GetMapping("/list")
     public ResponseWrapper<List<ResponseEventListenerDto>> getEventListenerList() {
         return new ResponseWrapper<>(eventListenerService.getEventListenerList());
     }
 
-    @Operation(summary="Event Listener 등록")
+    @Operation(summary="Register event listener")
     @PostMapping
     public ResponseWrapper<Long> registEventListner(@RequestBody RequestEventListenerDto requestEventListenerDto) {
         ResponseWrapper<Long> invalidResponse = validateEventListenerRequest(requestEventListenerDto);
@@ -44,7 +44,7 @@ public class EventListenerController {
         return new ResponseWrapper<>(eventListenerService.registEventListner(requestEventListenerDto));
     }
 
-    @Operation(summary = "Event Listener 수정", description = "Event Listener 수정")
+    @Operation(summary = "Update event listener", description = "Update event listener")
     @PatchMapping("/{eventListenerIdx}")
     public ResponseWrapper<Boolean> updateEventListner(@PathVariable Long eventListenerIdx, @RequestBody RequestEventListenerDto requestEventListenerDto) {
         if (eventListenerIdx == null
@@ -62,19 +62,19 @@ public class EventListenerController {
         return new ResponseWrapper<>(eventListenerService.updateEventListener(requestEventListenerDto));
     }
 
-    @Operation(summary = "Event Listener 삭제", description = "Event Listener 삭제")
+    @Operation(summary = "Delete event listener", description = "Delete event listener")
     @DeleteMapping("/{eventListenerIdx}")
     public ResponseWrapper<Boolean> deleteEventListner(@PathVariable Long eventListenerIdx) {
         return new ResponseWrapper<>(eventListenerService.deleteEventListener(eventListenerIdx));
     }
 
-    @Operation(summary = "Event Listener 상세 조회", description = "Event Listener 상세조회" )
+    @Operation(summary = "Get event listener detail", description = "Get event listener detail" )
     @GetMapping("/{eventListenerIdx}")
     public ResponseWrapper<ResponseEventListenerDto> detailEventListener(@PathVariable Long eventListenerIdx) {
         return new ResponseWrapper<>(eventListenerService.detailEventListener(eventListenerIdx));
     }
 
-    @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
+    @Operation(summary = "Run event listener", description = "Run event listener")
     @GetMapping("/run/{eventListenerIdx}")
     public ResponseWrapper<Boolean> runEventListener(
             @PathVariable Long eventListenerIdx,
@@ -82,31 +82,31 @@ public class EventListenerController {
         return new ResponseWrapper<>(eventListenerService.runEventListener(eventListenerIdx, params));
     }
 
-    @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
+    @Operation(summary = "Run event listener", description = "Run event listener")
     @PostMapping("/run/{eventListenerIdx}")
     public ResponseWrapper<Boolean> runEventListenerPost(@PathVariable Long eventListenerIdx, @RequestBody Map<String, String> params) {
         return new ResponseWrapper<>(eventListenerService.runEventListenerPost(eventListenerIdx, params));
     }
 
-    @Operation(summary = "Event Listener 실행", description = "Event Listener 실행")
+    @Operation(summary = "Run event listener", description = "Run event listener")
     @PutMapping("/run/{eventListenerIdx}")
     public ResponseWrapper<Boolean> runEventListenerPut(@PathVariable Long eventListenerIdx, @RequestBody Map<String, String> params) {
         return new ResponseWrapper<>(eventListenerService.runEventListenerPut(eventListenerIdx, params));
     }
 
-    @Operation(summary = "Event Listener Workflow 목록", description = "Event Listener Workflow 목록")
+    @Operation(summary = "List event listener workflows", description = "List event listener workflows")
     @GetMapping("/workflowList/{eventListenerYn}")
     public ResponseWrapper<List<WorkflowListResDto>> getWorkflowList(@PathVariable String eventListenerYn) {
         return new ResponseWrapper<>(eventListenerService.getWorkflowList(eventListenerYn));
     }
 
-    @Operation(summary="Event Listener 중복체크")
+    @Operation(summary="Check duplicate event listener")
     @GetMapping("/duplicate")
     public ResponseWrapper<Boolean> isEventListenerDuplicated(@RequestParam String eventlistenerName) {
         return new ResponseWrapper<>(eventListenerService.isEventListenerDuplicated(eventlistenerName));
     }
 
-    @Operation(summary="워크플로우 상세 조회")
+    @Operation(summary="Get workflow detail")
     @GetMapping("/workflowDetail/{workflowIdx}/{evnetListenerYn}")
     public ResponseWrapper<WorkflowDetailResDto> getWorkflowDetail(@PathVariable Long workflowIdx, @PathVariable String evnetListenerYn) {
         return new ResponseWrapper<>(eventListenerService.getWorkflowDetail(workflowIdx, evnetListenerYn));

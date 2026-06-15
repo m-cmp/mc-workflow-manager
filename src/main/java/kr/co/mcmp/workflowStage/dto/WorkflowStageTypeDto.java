@@ -11,7 +11,7 @@ public class WorkflowStageTypeDto {
     private String workflowStageTypeName;
     private String workflowStageTypeDesc;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowStageTypeDto from(WorkflowStageType workflowStageType) {
         return WorkflowStageTypeDto.builder()
                 .workflowStageTypeIdx(workflowStageType.getWorkflowStageTypeIdx())
@@ -20,7 +20,7 @@ public class WorkflowStageTypeDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowStageTypeDto of(WorkflowStageTypeDto workflowStageTypeDto) {
         return WorkflowStageTypeDto.builder()
                 .workflowStageTypeIdx(workflowStageTypeDto.getWorkflowStageTypeIdx())
@@ -29,7 +29,7 @@ public class WorkflowStageTypeDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowStageType toEntity(WorkflowStageTypeDto workflowStageTypeDto) {
         return WorkflowStageType.builder()
                 .workflowStageTypeIdx(workflowStageTypeDto.getWorkflowStageTypeIdx())
@@ -38,7 +38,7 @@ public class WorkflowStageTypeDto {
                 .build();
     }
 
-    // saveWorkflowStageType : 타입 저장
+    // Comment translated to English.
     public static WorkflowStageType saveWorkflowStageType(String workflowStageTypeName, String workflowStageTypeDesc) {
         return WorkflowStageType.builder()
                 .workflowStageTypeName(workflowStageTypeName)

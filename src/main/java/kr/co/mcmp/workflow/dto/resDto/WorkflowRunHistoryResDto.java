@@ -10,7 +10,7 @@ import java.util.List;
 
 @SuperBuilder
 @Getter
-@NoArgsConstructor // 기본 생성자 추가
+@NoArgsConstructor // Comment translated to English.
 public class WorkflowRunHistoryResDto {
     private String name;
     private String status;

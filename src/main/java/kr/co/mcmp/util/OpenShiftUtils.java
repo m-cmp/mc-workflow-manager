@@ -19,9 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class OpenShiftUtils {
 	
-	/*
-	 * Image 이름에서 ImageStreamTag 를 생성  
-	 */
+	/* Comment translated to English. */
 	public static String genImageStreamTag(String imageName) {
 		String imageStreamTag = null;
 		
@@ -33,9 +31,7 @@ public class OpenShiftUtils {
 		return imageStreamTag;
 	}
 	
-	/*
-	 * UTC 시간에서 로컬 시간으로 변경
-	 */
+	/* Comment translated to English. */
 	public static String convDateFormatUtcToLocal(String utc) throws ParseException {
 		return convDateFormatUtcToLocal(utc, null, "yyyy-MM-dd HH:mm:ss", null);
 	}
@@ -66,9 +62,7 @@ public class OpenShiftUtils {
 		return local;
 	}
 	
-	/*
-	 * byte 에서 size 로 변경. 1024 단위 계산.
-	 */
+	/* Comment translated to English. */
     public static String byteCountToSize(long bytes) {
     	int unit = 1024;
     	int scale = 1;

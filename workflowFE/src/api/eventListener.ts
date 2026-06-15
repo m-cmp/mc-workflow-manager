@@ -2,32 +2,32 @@ import request from "@/common/request";
 import type { EventListener } from "@/views/type/type";
 
 
-// Event Listener 목록
+// Comment translated to English.
 export const getEventListenerList = () => {
   return request.get('/eventlistener/list')
 }
 
-// Event Listener 상세
+// Comment translated to English.
 export function getEventListenerDetailInfo(eventlistenerIdx:number) {
   return request.get("/eventlistener/" + eventlistenerIdx);
 }
 
-// 중복확인
+// Comment translated to English.
 export function duplicateCheck(eventListenerName:string) {
   return request.get(`/eventlistener/duplicate?eventlistenerName=${encodeURIComponent(eventListenerName)}`)
 }
 
-// Event Listener 등록
+// Comment translated to English.
 export function registEventListener(param: EventListener) {
   return request.post(`/eventlistener`, param)
 }
 
-// Event Listener 수정
+// Comment translated to English.
 export function updateEventListener(param: EventListener) {
   return request.patch(`/eventlistener/${param.eventListenerIdx}`, param)
 }
 
-// Event Listener 삭제
+// Comment translated to English.
 export function deleteEventListener(eventlistenerIdx: number) {
   return request.delete(`/eventlistener/${eventlistenerIdx}`)
 }

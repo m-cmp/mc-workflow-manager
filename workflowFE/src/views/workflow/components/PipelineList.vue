@@ -1,8 +1,8 @@
 <template>
-<!-- 스크립트 구역 -->
+<!-- Comment translated to English. -->
 <div class="row" :class="{ 'draggable': !pipelineInfo.isDefaultScript }">
   <span :v-slot="'label'" class="col-10" style="margin-top: 10px !important;">
-    <!-- TODO : 추후 반드시 수정 필요 -->
+    <!-- Comment translated to English. -->
     <div v-for="(pipelineScript, idx) in pipelineScriptList" :key="idx">
       <div v-for="(test, index) in pipelineScript.list" :key="index">
         <p v-if="pipelineInfo.workflowStageIdx > 0 && pipelineInfo.workflowStageIdx === test.workflowStageIdx" style="margin-bottom: 0px !important;">

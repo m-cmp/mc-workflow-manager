@@ -44,23 +44,20 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits(['get-workflow-list'])
 
-/**
- * @Title onClickDelete
- * @Desc 삭제 버튼 클릭시 동작 / 삭제 api 호출
- */
+/* Comment translated to English. */
 const onClickDelete = async () => {
   const { data: hasEventListener } = await existEventListener(props.workflowIdx)
   if (hasEventListener) {
-    toast.error('Event Listener가 연결된 Workflow는 삭제할 수 없습니다.')
+    toast.error('Workflows linked to an Event Listener cannot be deleted.')
     emit('get-workflow-list')
     return
   }
 
   const { data } = await deleteWorkflow(props.workflowIdx)
   if (data)
-    toast.success('삭제되었습니다.')
+    toast.success('Deleted successfully.')
   else
-    toast.error('삭제하지 못했습니다.')
+    toast.error('Failed to delete.')
   emit('get-workflow-list')
 }
 </script>

@@ -30,7 +30,7 @@ sudo docker run -d \
   	    -v $HOME/mcmp/oss/mariadb:/var/lib/mysql \
 $APP_IMAGE
 
-# 컨테이너가 완전히 시작될 때까지 잠시 대기
+# Wait briefly until the container is fully started.
 echo "Waiting for MariaDB to start..."
 sleep 10
 
@@ -40,5 +40,5 @@ DB_PASSWORD="mcmp"
 DB_NAME="mcmp"
 SQL_FILE_PATH=$HOME/mcmp/git/mc-workflow-manager/ddl_20240618.sql
 
-# MariaDB 명령어 실행
+# Run the MariaDB command.
 sudo docker exec -i $APP_NAME mysql -u $DB_USER -p$DB_PASSWORD $DB_NAME < $SQL_FILE_PATH

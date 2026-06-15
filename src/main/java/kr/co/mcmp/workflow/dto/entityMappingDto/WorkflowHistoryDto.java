@@ -18,7 +18,7 @@ public class WorkflowHistoryDto {
     private String userId;
     private LocalDateTime date;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowHistoryDto from(WorkflowHistory workflowHistory) {
         return WorkflowHistoryDto.builder()
                 .workflowHistoryIdx(workflowHistory.getWorkflowHistoryIdx())
@@ -30,7 +30,7 @@ public class WorkflowHistoryDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowHistoryDto of(WorkflowHistoryDto workflowHistoryDto) {
         return WorkflowHistoryDto.builder()
                 .workflowHistoryIdx(workflowHistoryDto.getWorkflowHistoryIdx())
@@ -42,7 +42,7 @@ public class WorkflowHistoryDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowHistory toEntity(WorkflowHistoryDto workflowHistoryDto, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return WorkflowHistory.builder()
                 .workflowHistoryIdx(workflowHistoryDto.getWorkflowHistoryIdx())

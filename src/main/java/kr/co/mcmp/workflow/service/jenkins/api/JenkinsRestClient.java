@@ -18,7 +18,7 @@ import java.nio.charset.Charset;
 @Component
 public class JenkinsRestClient {
     /**
-     * Basic 인증 방식 API 호출
+     * Call API with Basic authentication
      * @param apiUrl
      * @param username, password
      * @param httpMethod
@@ -32,7 +32,7 @@ public class JenkinsRestClient {
     	String plainTextPassword = Base64Util.base64Decoding(AES256Util.decrypt(password));
 
     	
-        // header 설정
+        // Set headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(new MediaType("application", "json", Charset.forName("UTF-8")));
         headers.setBasicAuth(Base64Util.base64Encoding(username+":"+plainTextPassword));
@@ -40,21 +40,11 @@ public class JenkinsRestClient {
     	return request(apiUrl, headers, body, httpMethod, clazz);
     }
 
-    /**
-     * jenkins API 호출
-     * @param apiUrl
-     * @param username, password
-     * @param httpMethod
-     * @param body
-     * @param clazz
-     * @param <T>
-     * @param <U>
-     * @return
-     */
+    /* Comment translated to English. */
     public <T, U> ResponseEntity<T> requestJenkinsCrumbAPI(String apiUrl, String username, String password, Crumb crumb, HttpMethod httpMethod, U body, Class<T> clazz) {
     	String plainTextPassword = AES256Util.decrypt(password);
     	
-        // header 설정
+        // Set headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(new MediaType("application", "xml", Charset.forName("UTF-8")));
         headers.setBasicAuth(Base64Util.base64Encoding(username+":"+plainTextPassword));
@@ -65,7 +55,7 @@ public class JenkinsRestClient {
     }
 
     /**
-     * API 호출 (공통)
+     * Call common API
      * @param apiUrl
      * @param httpMethod
      * @param clazz

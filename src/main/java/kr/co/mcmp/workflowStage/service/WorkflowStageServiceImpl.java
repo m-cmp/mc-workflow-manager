@@ -125,17 +125,17 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
             Boolean existsWorkflowType = workflowStageTypeRepository.existsByWorkflowStageTypeName(workflowStageTypeName);
 
             if(existsWorkflowType) {
-                // 1. 타입 Dto 조회
+                // Comment translated to English.
                 WorkflowStageTypeDto workflowStageTypeDto =
                         WorkflowStageTypeDto.from(workflowStageTypeRepository.findByWorkflowStageTypeName(workflowStageTypeName));
-                // 2. 스테이지 Dto 조회
+                // Comment translated to English.
                 List<WorkflowStageDto> workflowStageDtoList =
                         workflowStageRepository.findByWorkflowStageTypeOrderByStageOrder(WorkflowStageTypeDto.toEntity(workflowStageTypeDto))
                                 .stream()
                                 .map(WorkflowStageDto::from)
                                 .collect(Collectors.toList());
 
-                // 3. 없을경우 default 스크립트 만들어서 set
+                // Comment translated to English.
                 if ( CollectionUtils.isEmpty(workflowStageDtoList) ) {
                     StringBuffer sb = new StringBuffer();
 
@@ -143,12 +143,12 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
                     JenkinsPipelineUtil.appendLine(sb, "steps {", 3);
                     JenkinsPipelineUtil.appendLine(sb, "echo '>>>>>STAGE: " + workflowStageTypeName + "'", 4);
                     JenkinsPipelineUtil.appendLine(sb, "", 1);
-                    JenkinsPipelineUtil.appendLine(sb, "// 스크립트를 작성해주세요.", 4);
+                    JenkinsPipelineUtil.appendLine(sb, "// Write the script here.", 4);
                     JenkinsPipelineUtil.appendLine(sb, "}", 3);
                     JenkinsPipelineUtil.appendLine(sb, "}", 2);
                     JenkinsPipelineUtil.appendLine(sb, "", 1);
 
-                    // 스테이지 Dto에 타입Idx, 스크립트만 넣어서 리스트에 넣어준다.
+                    // Comment translated to English.
                     WorkflowStageDto workflowStageDto =
                             WorkflowStageDto.setWorkflowStageDefaultScript(workflowStageTypeDto.getWorkflowStageTypeIdx(), sb.toString());
                     workflowStageDtoList.add(workflowStageDto);
@@ -162,12 +162,12 @@ public class WorkflowStageServiceImpl implements WorkflowStageService {
                 JenkinsPipelineUtil.appendLine(sb, "steps {", 3);
                 JenkinsPipelineUtil.appendLine(sb, "echo '>>>>>STAGE: " + workflowStageTypeName + "'", 4);
                 JenkinsPipelineUtil.appendLine(sb, "", 1);
-                JenkinsPipelineUtil.appendLine(sb, "// 스크립트를 작성해주세요.", 4);
+                JenkinsPipelineUtil.appendLine(sb, "// Write the script here.", 4);
                 JenkinsPipelineUtil.appendLine(sb, "}", 3);
                 JenkinsPipelineUtil.appendLine(sb, "}", 2);
                 JenkinsPipelineUtil.appendLine(sb, "", 1);
 
-                // 스테이지 Dto에 타입Idx, 스크립트만 넣어서 리스트에 넣어준다.
+                // Comment translated to English.
                 List<WorkflowStageDto> workflowStageDtoList =
                         WorkflowStageDto.setWorkflowStageDefaultScriptList(0L, sb.toString());
                 return workflowStageDtoList;

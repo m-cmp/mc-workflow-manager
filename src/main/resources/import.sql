@@ -482,9 +482,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 publicIPs.each { ip ->
                     ip.each { inip ->
                         def cleanIp = inip.toString().replaceAll(/[\[\]]/, '''')
-                        retry(30) { // 최대 30번 재시도
-                            sleep 10 // 10초 대기
-                            timeout(time: 5, unit: ''MINUTES'') { // 5분 타임아웃
+                        retry(30) { // Retry up to 30 times
+                            sleep 10 // Wait 10 seconds
+                            timeout(time: 5, unit: ''MINUTES'') { // 5 minute timeout
                                 sh """
                                     ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${MCI}.pem cb-user@${cleanIp} ''echo "VM is ready"''
                                 """
@@ -599,13 +599,13 @@ docker stop k8s-tools
 -- Step 4-1: Insert category-managed workflow stages
 -- category: infra, k8s, app, database, utility
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
-(17, 'infra', '인프라'),
-(18, 'k8s', '인프라 - K8s'),
-(19, 'app', '앱 배포'),
-(20, 'database', '데이터 - Backup / Restore'),
-(21, 'utility', '공통 / 유틸');
+(17, 'infra', 'Infrastructure'),
+(18, 'k8s', 'Infrastructure - K8s'),
+(19, 'app', 'Application Deployment'),
+(20, 'database', 'Data - Backup / Restore'),
+(21, 'utility', 'Common / Utility');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (17, 17, 1, 'infra-create', 'INFRA 생성 (CSP별 spec 기반)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (17, 17, 1, 'infra-create', 'Create INFRA by CSP spec', '
     stage("infra-create") {
         steps {
             echo ">>>>> STAGE: infra-create"
@@ -715,7 +715,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (18, 17, 2, 'infra-get', 'INFRA 단건 조회', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (18, 17, 2, 'infra-get', 'Get single INFRA', '
     stage("infra-get") {
         steps {
             echo ">>>>> STAGE: infra-get"
@@ -730,7 +730,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (19, 17, 3, 'infra-list', 'INFRA 목록 조회', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (19, 17, 3, 'infra-list', 'List INFRA', '
     stage("infra-list") {
         steps {
             echo ">>>>> STAGE: infra-list"
@@ -744,7 +744,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (20, 17, 4, 'infra-update', 'INFRA 스펙 변경 (resize 등)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (20, 17, 4, 'infra-update', 'Update INFRA spec, such as resize', '
     stage("infra-update") {
         steps {
             echo ">>>>> STAGE: infra-update"
@@ -762,7 +762,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (21, 17, 5, 'infra-delete', 'INFRA 삭제', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (21, 17, 5, 'infra-delete', 'Delete INFRA', '
     stage("infra-delete") {
         steps {
             echo ">>>>> STAGE: infra-delete"
@@ -777,7 +777,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (22, 17, 6, 'infra-start', 'INFRA 시작', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (22, 17, 6, 'infra-start', 'Start INFRA', '
     stage("infra-start") {
         steps {
             echo ">>>>> STAGE: infra-start"
@@ -792,7 +792,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (23, 17, 7, 'infra-stop', 'INFRA 중지', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (23, 17, 7, 'infra-stop', 'Stop INFRA', '
     stage("infra-stop") {
         steps {
             echo ">>>>> STAGE: infra-stop"
@@ -807,7 +807,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (24, 17, 8, 'infra-reboot', 'INFRA 재시작', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (24, 17, 8, 'infra-reboot', 'Reboot INFRA', '
     stage("infra-reboot") {
         steps {
             echo ">>>>> STAGE: infra-reboot"
@@ -822,7 +822,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (25, 17, 9, 'infra-ssh-connect-check', 'INFRA SSH 연결 확인', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (25, 17, 9, 'infra-ssh-connect-check', 'Check INFRA SSH connectivity', '
     stage("infra-ssh-connect-check") {
         steps {
             echo ">>>>> STAGE: infra-ssh-connect-check"
@@ -932,7 +932,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (50, 17, 10, 'multi-csp-vm-deploy', '10종 CSP 대상 INFRA(VM) 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (50, 17, 10, 'multi-csp-vm-deploy', 'Deploy INFRA(VM) across 10 CSPs', '
     stage("multi-csp-vm-deploy") {
         steps {
             echo ">>>>> STAGE: multi-csp-vm-deploy"
@@ -992,7 +992,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (52, 17, 11, 'multi-csp-vm-delete', 'multi-csp-vm-deploy로 생성된 INFRA(VM) 일괄 삭제', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (52, 17, 11, 'multi-csp-vm-delete', 'Delete INFRA(VM) created by multi-csp-vm-deploy', '
     stage("multi-csp-vm-delete") {
         steps {
             echo ">>>>> STAGE: multi-csp-vm-delete"
@@ -1067,7 +1067,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (26, 18, 1, 'k8s-cluster-create', 'K8s 클러스터 생성', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (26, 18, 1, 'k8s-cluster-create', 'Create K8s cluster', '
     stage("k8s-cluster-create") {
         steps {
             echo ">>>>> STAGE: k8s-cluster-create"
@@ -1245,7 +1245,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (27, 18, 2, 'k8s-cluster-get', '클러스터 단건 조회', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (27, 18, 2, 'k8s-cluster-get', 'Get single cluster', '
     stage("k8s-cluster-get") {
         steps {
             echo ">>>>> STAGE: k8s-cluster-get"
@@ -1259,7 +1259,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (28, 18, 3, 'k8s-cluster-list', '클러스터 목록 조회', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (28, 18, 3, 'k8s-cluster-list', 'List clusters', '
     stage("k8s-cluster-list") {
         steps {
             echo ">>>>> STAGE: k8s-cluster-list"
@@ -1273,7 +1273,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (29, 18, 4, 'k8s-cluster-update', '클러스터 수정 (노드 수 등)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (29, 18, 4, 'k8s-cluster-update', 'Update cluster, such as node count', '
     stage("k8s-cluster-update") {
         steps {
             echo ">>>>> STAGE: k8s-cluster-update"
@@ -1295,7 +1295,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (30, 18, 5, 'k8s-cluster-delete', '클러스터 삭제', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (30, 18, 5, 'k8s-cluster-delete', 'Delete cluster', '
     stage("k8s-cluster-delete") {
         steps {
             echo ">>>>> STAGE: k8s-cluster-delete"
@@ -1310,7 +1310,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (31, 18, 6, 'k8s-nodegroup-add', '노드그룹 추가', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (31, 18, 6, 'k8s-nodegroup-add', 'Add node group', '
     stage("k8s-nodegroup-add") {
         steps {
             echo ">>>>> STAGE: k8s-nodegroup-add"
@@ -1354,7 +1354,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (32, 18, 7, 'k8s-nodegroup-remove', '노드그룹 제거', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (32, 18, 7, 'k8s-nodegroup-remove', 'Remove node group', '
     stage("k8s-nodegroup-remove") {
         steps {
             echo ">>>>> STAGE: k8s-nodegroup-remove"
@@ -1368,7 +1368,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (33, 18, 8, 'k8s-kubeconfig-get', 'kubeconfig 조회', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (33, 18, 8, 'k8s-kubeconfig-get', 'Get kubeconfig', '
     stage("k8s-kubeconfig-get") {
         steps {
             echo ">>>>> STAGE: k8s-kubeconfig-get"
@@ -1501,7 +1501,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (51, 18, 9, 'multi-csp-k8s-cluster-deploy', '8종 CSP 대상 K8s Cluster 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (51, 18, 9, 'multi-csp-k8s-cluster-deploy', 'Deploy K8s clusters across 8 CSPs', '
     stage("multi-csp-k8s-cluster-deploy") {
         steps {
             echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
@@ -1588,7 +1588,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (53, 18, 10, 'multi-csp-k8s-cluster-delete', 'multi-csp-k8s-cluster-deploy로 생성된 K8s Cluster 일괄 삭제', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (53, 18, 10, 'multi-csp-k8s-cluster-delete', 'Delete K8s clusters created by multi-csp-k8s-cluster-deploy', '
     stage("multi-csp-k8s-cluster-delete") {
         steps {
             echo ">>>>> STAGE: multi-csp-k8s-cluster-delete"
@@ -1808,7 +1808,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (34, 19, 1, 'app-deploy-helm', 'Helm chart 기반 앱 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (34, 19, 1, 'app-deploy-helm', 'Deploy app with Helm chart', '
     stage("app-deploy-helm") {
         steps {
             echo ">>>>> STAGE: app-deploy-helm"
@@ -2000,7 +2000,7 @@ ${helmInstallCommand}
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (35, 19, 2, 'app-deploy-manifest', 'K8s manifest 기반 앱 배포', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (35, 19, 2, 'app-deploy-manifest', 'Deploy app with K8s manifest', '
     stage("app-deploy-manifest") {
         steps {
             echo ">>>>> STAGE: app-deploy-manifest"
@@ -2018,7 +2018,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (36, 19, 3, 'app-deploy-status-check', '배포 상태 확인 (pod/deployment ready)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (36, 19, 3, 'app-deploy-status-check', 'Check deployment status (pod/deployment ready)', '
     stage("app-deploy-status-check") {
         steps {
             echo ">>>>> STAGE: app-deploy-status-check"
@@ -2040,7 +2040,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (37, 19, 4, 'app-undeploy', '앱 삭제', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (37, 19, 4, 'app-undeploy', 'Delete app', '
     stage("app-undeploy") {
         steps {
             echo ">>>>> STAGE: app-undeploy"
@@ -2063,7 +2063,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (38, 19, 5, 'app-rollback', '이전 버전 롤백', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (38, 19, 5, 'app-rollback', 'Roll back to previous version', '
     stage("app-rollback") {
         steps {
             echo ">>>>> STAGE: app-rollback"
@@ -2081,7 +2081,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'MariaDB 설치', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'Install MariaDB', '
     stage("mariadb-install") {
         steps {
             echo ">>>>> STAGE: mariadb-install"
@@ -2123,7 +2123,7 @@ EOF"""
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (39, 20, 2, 'db-backup-export', 'DB 백업 파일 export', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (39, 20, 2, 'db-backup-export', 'Export DB backup file', '
     stage("db-backup-export") {
         steps {
             echo ">>>>> STAGE: db-backup-export"
@@ -2161,7 +2161,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (40, 20, 3, 'db-backup-import', '백업 파일 import (restore)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (40, 20, 3, 'db-backup-import', 'Import backup file (restore)', '
     stage("db-backup-import") {
         steps {
             echo ">>>>> STAGE: db-backup-import"
@@ -2245,7 +2245,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (41, 20, 5, 'db-data-insert', '초기 데이터 insert', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (41, 20, 5, 'db-data-insert', 'Insert initial data', '
     stage("db-data-insert") {
         steps {
             echo ">>>>> STAGE: db-data-insert"
@@ -2283,7 +2283,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (42, 20, 6, 'db-data-verify', '데이터 적재 결과 확인', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (42, 20, 6, 'db-data-verify', 'Verify loaded data', '
     stage("db-data-verify") {
         steps {
             echo ">>>>> STAGE: db-data-verify"
@@ -2321,7 +2321,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (43, 21, 1, 'ssh-command-exec', 'SSH 원격 명령 실행', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (43, 21, 1, 'ssh-command-exec', 'Execute remote SSH command', '
     stage("ssh-command-exec") {
         steps {
             echo ">>>>> STAGE: ssh-command-exec"
@@ -2337,7 +2337,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (44, 21, 2, 'http-request', 'REST API 호출', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (44, 21, 2, 'http-request', 'Call REST API', '
     stage("http-request") {
         steps {
             echo ">>>>> STAGE: http-request"
@@ -2358,7 +2358,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (45, 21, 3, 'wait-for-condition', '조건 충족까지 대기 (polling)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (45, 21, 3, 'wait-for-condition', 'Wait until condition is met (polling)', '
     stage("wait-for-condition") {
         steps {
             echo ">>>>> STAGE: wait-for-condition"
@@ -2383,7 +2383,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (46, 21, 4, 'notification-send', '결과 알림 발송 (Slack 등)', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (46, 21, 4, 'notification-send', 'Send result notification, such as Slack', '
     stage("notification-send") {
         steps {
             echo ">>>>> STAGE: notification-send"
@@ -2401,7 +2401,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (47, 21, 5, 'script-exec', '쉘 스크립트 실행', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (47, 21, 5, 'script-exec', 'Run shell script', '
     stage("script-exec") {
         steps {
             echo ">>>>> STAGE: script-exec"
@@ -2412,7 +2412,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (54, 21, 6, 'namespace-ensure', 'Tumblebug Namespace 확인 및 생성', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (54, 21, 6, 'namespace-ensure', 'Check and create Tumblebug namespace', '
     stage("namespace-ensure") {
         steps {
             echo ">>>>> STAGE: namespace-ensure"

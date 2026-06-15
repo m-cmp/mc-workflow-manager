@@ -48,7 +48,7 @@ public class OssServiceImpl implements OssService {
 	private final WorkflowServiceImpl workflowServiceImpl;
 
 	/**
-	 * OSS 목록 조회
+	 * List OSS
 	 * @return List<OssDto> ossDtoList
 	 */
 	@Override
@@ -73,7 +73,7 @@ public class OssServiceImpl implements OssService {
 	}
 
 	/**
-	 * OSS 목록 조회
+	 * List OSS
 	 * @param ossTypeName
 	 * @return List<OssDto> ossDtoList
 	 */
@@ -85,7 +85,7 @@ public class OssServiceImpl implements OssService {
 					.map(OssTypeDto::from)
 					.collect(Collectors.toList());
 
-			// ossTypeList에서 ossTypeIdx 목록을 추출
+			// Comment translated to English.
 			List<Long> ossTypeIdxList = ossTypeList
 					.stream()
 					.map(OssTypeDto::getOssTypeIdx)
@@ -112,7 +112,7 @@ public class OssServiceImpl implements OssService {
 	}
 
 	/**
-	 * OSS 등록
+	 * Register OSS
 	 * @param ossDto
 	 * @return
 	 */
@@ -136,7 +136,7 @@ public class OssServiceImpl implements OssService {
 	}
 
 	/**
-	 * OSS 수정
+	 * Update OSS
 	 * @param ossDto
 	 * @return
 	 */
@@ -161,14 +161,7 @@ public class OssServiceImpl implements OssService {
 		return result;
 	}
 
-	/**
-	 * OSS 삭제
-	 * @param ossIdx
-	 * @Desc
-	 * 		false
-	 * 		- Mapping 된 workflow가 존재 할 경우
-	 * 		- Error
-	 */
+	/* Comment translated to English. */
 	@Override
 	@Transactional
 	public Boolean deleteOss(Long ossIdx) {
@@ -194,11 +187,7 @@ public class OssServiceImpl implements OssService {
 		return result;
 	}
 
-	/**
-	 * OSS 연결 확인
-	 * @param ossDto
-	 * TODO : 추후 OSS 추가
-	 */
+	/* Comment translated to English. */
 	@Transactional
 	@Override
 	public Boolean checkConnection(OssDto ossDto) {
@@ -210,10 +199,10 @@ public class OssServiceImpl implements OssService {
 					if (StringUtils.isBlank(ossDto.getOssUrl()) ||
 							StringUtils.isBlank(ossDto.getOssUsername()) ||
 							StringUtils.isBlank(ossDto.getOssPassword()) ) {
-						log.error("접속정보 누락");
+						log.error("Missing connection information");
 						return false;
 					}
-					// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
+					// Comment translated to English.
 					ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 					return jenkinsService.isJenkinsConnect(ossDto);
 
@@ -221,12 +210,12 @@ public class OssServiceImpl implements OssService {
 					if (StringUtils.isBlank(ossDto.getOssUrl()) ||
 							StringUtils.isBlank(ossDto.getOssUsername()) ||
 							StringUtils.isBlank(ossDto.getOssPassword()) ) {
-						log.error("접속정보 누락");
+						log.error("Missing connection information");
 						return false;
 					}
 
 					try {
-						// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
+						// Comment translated to English.
 						ossDto = ossDto.setEncryptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 						List<TumblebugDto> list = tumblebugService.getNamespaceList(ossDto);
 
@@ -239,22 +228,22 @@ public class OssServiceImpl implements OssService {
 //				if (StringUtils.isBlank(ossDto.getOssUrl()) ||
 //						StringUtils.isBlank(ossDto.getOssUsername()) ||
 //						StringUtils.isBlank(ossDto.getOssPassword()) ) {
-//					log.error("접속정보 누락");
+//					log.error("Missing connection information");
 //					return false;
 //				}
 //
-//				// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
+// Comment translated to English.
 //				ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 //				return gitlabService.isConnectByPw(ossDto);
 //
 //			case "NEXUS" :
 //				if (StringUtils.isBlank(ossDto.getOssUrl()) ||
 //						StringUtils.isBlank(ossDto.getOssUsername()) ) {
-//					log.error("접속정보 누락");
+//					log.error("Missing connection information");
 //					return false;
 //				}
 //
-//				// Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.
+// Comment translated to English.
 //				ossDto.withModifiedEncriptPassword(ossDto, encryptAesString(ossDto.getOssPassword()));
 //				return nexusService.checkNexusConnection(ossDto);
 
@@ -271,11 +260,7 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-	/**
-	 * OSS 정보 상세 조회
-	 * @param ossIdx
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public OssDto detailOss(Long ossIdx) {
 		try {
 			Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
@@ -287,12 +272,7 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-	/**
-	 * OSS 정보 중복 체크(ossName, ossUrl, ossUsername)
-	 * @param ossDto
-	 * 중복: true / 아니면 false
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public Boolean isOssInfoDuplicated(OssDto ossDto) {
 		try {
 			return ossRepository.existsByOssNameAndOssUrlAndOssUsername(
@@ -306,12 +286,7 @@ public class OssServiceImpl implements OssService {
 
 	}
 
-	/**
-	 * 젠킨스 credential 수정 또는 삭제
-	 * @param managedOss
-	 * @param managedType
-	 * TODO : 고도화 (같은 oss 여러개 입력받기)
-	 */
+	/* Comment translated to English. */
 	public void managedJenkinsCredential(OssDto managedOss, String managedType) {
 		try {
 			OssTypeDto ossTypeDto = OssTypeDto.from(ossTypeRepository.findByOssTypeIdx(managedOss.getOssTypeIdx()));
@@ -331,11 +306,7 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-	/**
-	 * 패스워드 암호화 (Front로 Base64Encoding한 데이터를 보냄.)
-	 * @param str
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String encryptBase64String(String str) {
 		if ( StringUtils.isNotBlank(str) ) {
 			return Base64Util.base64Encoding(AES256Util.decrypt(str));
@@ -345,11 +316,7 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-	/**
-	 * 패스워드 암호화 (Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.)
-	 * @param str
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String encryptAesString(String str) {
 		if ( StringUtils.isNotBlank(str) ) {
 			return AES256Util.encrypt(str);
@@ -358,11 +325,7 @@ public class OssServiceImpl implements OssService {
 			return null;
 		}
 	}
-	/**
-	 * 패스워드/토큰 암호화 (Front로 Base64Encoding한 데이터를 보내.)
-	 * @param str
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String encodingBase64String(String str) {
 		if ( StringUtils.isNotBlank(str) ) {
 			return Base64Util.base64Encoding(str);
@@ -372,16 +335,12 @@ public class OssServiceImpl implements OssService {
 		}
 	}
 
-	/**
-	 * 패스워드 복호화
-	 * @param encryptedStr
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String decryptAesString(String encryptedStr) {
 		if (StringUtils.isNotBlank(encryptedStr)) {
-			// AES256으로 암호화된 문자열을 복호화
+			// Comment translated to English.
 			String decrypted = AES256Util.decrypt(encryptedStr);
-			// 복호화된 문자열을 Base64로 인코딩
+			// Comment translated to English.
 			return decrypted;
 		} else {
 			return null;

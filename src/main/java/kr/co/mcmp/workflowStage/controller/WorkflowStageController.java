@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Workflow Stage", description = "워크플로우 스테이지 관리")
+@Tag(name = "Workflow Stage", description = "Workflow stage management")
 @Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/workflowStage")
@@ -22,19 +22,19 @@ public class WorkflowStageController {
 
     private final WorkflowStageService workflowStageService;
 
-    @Operation(summary="워크플로우 스테이지 목록")
+    @Operation(summary="List workflow stages")
     @GetMapping("/list")
     public ResponseWrapper<List<WorkflowStageDto>> getWorkflowStageList() {
         return new ResponseWrapper<>(workflowStageService.getWorkflowStageList());
     }
 
-    @Operation(summary="워크플로우 스테이지 등록")
+    @Operation(summary="Register workflow stage")
     @PostMapping
     public ResponseWrapper<Long> registWorkflowStage(@RequestBody WorkflowStageDto workflowStageDto) {
         return new ResponseWrapper<>(workflowStageService.registWorkflowStage(workflowStageDto));
     }
 
-    @Operation(summary="워크플로우 스테이지 수정")
+    @Operation(summary="Update workflow stage")
     @PatchMapping("/{workflowStageIdx}")
     public ResponseWrapper<Boolean> updateWorkflowStage(@PathVariable Long workflowStageIdx, @RequestBody WorkflowStageDto workflowStageDto) {
         if ( workflowStageIdx != 0 || workflowStageDto.getWorkflowStageIdx() != 0 ) {
@@ -43,19 +43,19 @@ public class WorkflowStageController {
         return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "workflowStageIdx");
     }
 
-    @Operation(summary="워크플로우 스테이지 삭제")
+    @Operation(summary="Delete workflow stage")
     @DeleteMapping("/{workflowStageIdx}")
     public ResponseWrapper<Boolean> deleteWorkflowStage(@PathVariable Long workflowStageIdx) {
         return new ResponseWrapper<>(workflowStageService.deleteWorkflowStage(workflowStageIdx));
     }
 
-    @Operation(summary="워크플로우 스테이지 상세")
+    @Operation(summary="Get workflow stage detail")
     @GetMapping("/{workflowStageIdx}")
     public ResponseWrapper<WorkflowStageDto> detailWorkflowStage(@PathVariable Long workflowStageIdx) {
         return new ResponseWrapper<>(workflowStageService.detailWorkflowStage(workflowStageIdx));
     }
 
-    @Operation(summary="워크플로우 스테이지 명 중복 체크", description="true : 중복 / false : 중복 아님")
+    @Operation(summary="Check duplicate workflow stage name", description="true: duplicate / false: not duplicate")
     @GetMapping("/duplicate")
     public ResponseWrapper<Boolean> isWorkflowStageNameDuplicated(@RequestParam String workflowStageTypeName, @RequestParam String workflowStageName) {
         if ( StringUtils.isBlank(workflowStageTypeName) ) {
@@ -68,7 +68,7 @@ public class WorkflowStageController {
         return new ResponseWrapper<>(workflowStageService.isWorkflowStageNameDuplicated(workflowStageTypeName, workflowStageName));
     }
 
-    @Operation(summary="워크플로우 스테이지 생성시 > 기본 스크립트 조회")
+    @Operation(summary="Get default script when creating workflow stage")
     @GetMapping("/default/script/{workflowStageTypeName}")
     public ResponseWrapper<List<WorkflowStageDto>> getDefaultWorkflowStage(@PathVariable String workflowStageTypeName) {
         return new ResponseWrapper<>(workflowStageService.getDefaultWorkflowStage(workflowStageTypeName));

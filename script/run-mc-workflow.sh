@@ -4,15 +4,15 @@ echo "==========================================================================
 echo "WORKFLOW MANAGER RUN START"
 echo "======================================================================================"
 
-# 현재 프로젝트 경로
+# Current project path
 PROJECT_PATH=${PROJECT_ROOT}
-#DB 볼륨 생성
+# Create DB volume
 mkdir ${PROJECT_PATH}/DB
 DB_VOLUME_PATH=${PROJECT_PATH}/DB
 
-# Application 명
+# Application name
 APP_NAME=mc-workflow-manager
-# Application 이미지 명
+# Application image name
 APP_IMAGE=mc-workflow-manager:v0.2.1
 
 echo -e "Start ${LGREEN} $APP_NAME ${NC}"

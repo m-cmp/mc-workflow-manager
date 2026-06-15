@@ -22,7 +22,7 @@ public class WorkflowStageMappingDto {
     private String stageContent;
     private List<WorkflowParamDto> defaultParams;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowStageMappingDto from(WorkflowStageMapping workflowStageMapping) {
         return WorkflowStageMappingDto.builder()
                 .mappingIdx(workflowStageMapping.getMappingIdx())
@@ -51,7 +51,7 @@ public class WorkflowStageMappingDto {
         return builder.build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowStageMappingDto of(WorkflowStageMappingDto workflowStageMappingDto) {
         return WorkflowStageMappingDto.builder()
                 .mappingIdx(workflowStageMappingDto.getMappingIdx())
@@ -65,7 +65,7 @@ public class WorkflowStageMappingDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowStageMapping toEntity(WorkflowStageMappingDto workflowStageMappingBaseData, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return WorkflowStageMapping.builder()
                 .mappingIdx(workflowStageMappingBaseData.getMappingIdx())

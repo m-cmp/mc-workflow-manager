@@ -13,7 +13,7 @@ public class WorkflowStageTypeAndStageNameResDto {
     private String label;
     private List<WorkflowStageDto> list;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowStageTypeAndStageNameResDto of(String title, List<WorkflowStageDto> list) {
         return WorkflowStageTypeAndStageNameResDto.builder()
                 .title(title)

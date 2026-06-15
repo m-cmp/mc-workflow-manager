@@ -22,7 +22,7 @@ public class ResponseEventListenerDto {
     private String eventListenerCallUrl;
     private List<WorkflowParamDto> workflowParams;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static ResponseEventListenerDto from(EventListener eventListener, List<WorkflowParamDto> workflowParams) {
         return ResponseEventListenerDto.builder()
                 .eventListenerIdx(eventListener.getEventListenerIdx())
@@ -35,7 +35,7 @@ public class ResponseEventListenerDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static ResponseEventListenerDto of(ResponseEventListenerDto eventListenerDto) {
         return ResponseEventListenerDto.builder()
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
@@ -45,7 +45,7 @@ public class ResponseEventListenerDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static EventListener toEntity(ResponseEventListenerDto eventListenerDto, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return EventListener.builder()
                 .eventListenerIdx(eventListenerDto.getEventListenerIdx())
@@ -55,7 +55,7 @@ public class ResponseEventListenerDto {
                 .build();
     }
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static ResponseEventListenerDto fromGetList(EventListener eventListener) {
         return ResponseEventListenerDto.builder()
                 .eventListenerIdx(eventListener.getEventListenerIdx())

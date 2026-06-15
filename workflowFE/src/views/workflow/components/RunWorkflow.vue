@@ -38,7 +38,7 @@
             :workflow-param-data="workflowFormData.workflowParams"
             :workflow-stage-mappings="workflowFormData.workflowStageMappings || []"
           />
-          <!-- 파라미터 -->
+          <!-- Parameters -->
           <ParamForm 
             v-if="!loading && workflowFormData.workflowParams"
             :popup="true"
@@ -136,7 +136,7 @@ const loadWorkflowDetail = async () => {
     workflowFormData.value = data
   } catch (error) {
     console.log(error)
-    toast.error('워크플로우 실행 파라미터를 불러오지 못했습니다.')
+    toast.error('Failed to load workflow run parameters.')
   } finally {
     loading.value = false
   }
@@ -144,7 +144,7 @@ const loadWorkflowDetail = async () => {
 
 /**
  * @Title onClickRun
- * @Desc 실행 버튼 클릭시 동작 / 실행 api 호출
+ * @Desc Handles the run button click and calls the run API.
  */
 const onClickRun = async () => {
   if (running.value || loading.value) {
@@ -152,7 +152,7 @@ const onClickRun = async () => {
   }
 
   if (!workflowFormData.value.workflowInfo) {
-    toast.error('워크플로우 실행 파라미터를 불러오지 못했습니다.')
+    toast.error('Failed to load workflow run parameters.')
     return
   }
 
@@ -167,19 +167,19 @@ const onClickRun = async () => {
       return
     }
 
-    await setRunProgressMessage('Workflow 실행 요청 중')
+    await setRunProgressMessage('Requesting workflow run')
     const { data } = await runWorkflow(buildRunWorkflowPayload())
-    await completeRunProgressStep('Workflow 실행 요청 완료')
+    await completeRunProgressStep('Workflow run request completed')
     if (data) {
-      toast.success('워크플로우 실행 요청이 접수되었습니다.')
+      toast.success('Workflow run request has been submitted.')
       closeModal()
     } else {
-      toast.error('워크플로우 실행 요청을 처리하지 못했습니다.')
+      toast.error('Failed to process workflow run request.')
     }
     emit('get-workflow-list')
   } catch (error) {
     console.log(error)
-    toast.error('워크플로우 실행 요청을 처리하지 못했습니다.')
+    toast.error('Failed to process workflow run request.')
   } finally {
     running.value = false
     stopRunProgress()
@@ -207,7 +207,7 @@ const startRunProgress = async () => {
     active: true,
     completed: 0,
     total: getRunProgressStepCount(),
-    message: '실행 전 검증 준비 중',
+    message: 'Preparing pre-run validation',
   }
   await flushRunProgressRender()
 }
@@ -255,17 +255,17 @@ const reviewInfraDynamicBeforeRun = async () => {
   }
 
   try {
-    await setRunProgressMessage('Infra 사전 검증 중')
+    await setRunProgressMessage('Running infra pre-run validation')
     const { data } = await reviewMcInfraDynamic(getResourceCatalogNamespace(), payload)
-    await completeRunProgressStep('Infra 사전 검증 완료')
+    await completeRunProgressStep('Infra pre-run validation completed')
     if (hasInfraReviewError(data)) {
-      toast.error(`Infra 사전 검증 실패: ${getInfraReviewMessage(data)}`)
+      toast.error(`Infra pre-run validation failed: ${getInfraReviewMessage(data)}`)
       return false
     }
     return true
   } catch (error) {
     console.log(error)
-    toast.error('Infra 사전 검증 요청을 처리하지 못했습니다.')
+    toast.error('Failed to process infra pre-run validation request.')
     return false
   }
 }
@@ -347,7 +347,7 @@ const getInfraReviewMessage = (reviewResult: any) => {
   const messages = collectObjectValuesByKey(reviewResult, ['message', 'details', 'detail', 'reason', 'errorMessage'])
     .map((value) => String(value || '').trim())
     .filter(Boolean)
-  return messages[0] || '선택한 Image/Spec 조합으로 생성할 수 없습니다.'
+  return messages[0] || 'The selected Image/Spec combination cannot create resources.'
 }
 
 const collectObjectValuesByKey = (value: any, keys: Array<string>): Array<any> => {
@@ -399,7 +399,7 @@ const validateRunParameters = async () => {
   }
 
   if (invalidKeys.length > 0) {
-    toast.error(`${invalidKeys.join(', ')} 값을 현재 Region/Connection에 맞게 다시 선택해주세요.`)
+    toast.error(`Please reselect ${invalidKeys.join(', ')} for the current Region/Connection.`)
     return false
   }
 
@@ -423,11 +423,11 @@ const validateSpecValue = async (prefix: string, csp: string, invalidKeys: Array
     return
   }
 
-  await setRunProgressMessage(`${specKey} 목록 검증 중`)
+  await setRunProgressMessage(`Validating ${specKey} list`)
   if (!(await isCatalogResourceValueAvailable('spec', specValue, csp, region, connectionName))) {
     invalidKeys.push(specKey)
   }
-  await completeRunProgressStep(`${specKey} 목록 검증 완료`)
+  await completeRunProgressStep(`${specKey} list validation completed`)
 }
 
 const validateImageValue = async (prefix: string, csp: string, invalidKeys: Array<string>) => {
@@ -453,11 +453,11 @@ const validateImageValue = async (prefix: string, csp: string, invalidKeys: Arra
     return
   }
 
-  await setRunProgressMessage(`${imageKey} 목록 검증 중`)
+  await setRunProgressMessage(`Validating ${imageKey} list`)
   if (!(await isCatalogResourceValueAvailable('image', imageValue, csp, region, connectionName, specValue, useKubernetesImage))) {
     invalidKeys.push(imageKey)
   }
-  await completeRunProgressStep(`${imageKey} 목록 검증 완료`)
+  await completeRunProgressStep(`${imageKey} list validation completed`)
 }
 
 const getWorkflowStageNames = () => {

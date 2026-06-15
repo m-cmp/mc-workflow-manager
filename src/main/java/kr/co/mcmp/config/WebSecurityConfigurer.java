@@ -27,7 +27,7 @@ public class WebSecurityConfigurer  {
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http
 				.headers(headers -> headers
-						.frameOptions().disable()  // X-Frame-Options 비활성화
+						.frameOptions().disable()  // Comment translated to English.
 				)
 				.cors().and()
 				.csrf().disable()

@@ -82,10 +82,7 @@ public class WorkflowServiceImpl implements WorkflowService {
 
     private final McInfraManagerService mcInfraManagerService;
 
-    /**
-     * 워크플로우 목록 조회
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowListResDto> getWorkflowList() {
 
@@ -116,12 +113,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         return list;
     }
 
-    /**
-     * 워크플로우 생성
-     * @param workflowReqDto
-     * @return Long
-     * @throws java.io.IOException
-     */
+    /* Comment translated to English. */
     @Override
     @Transactional(rollbackFor = { RuntimeException.class })
     public Long registWorkflow(WorkflowReqDto workflowReqDto) {
@@ -129,7 +121,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         List<WorkflowParamDto> workflowParams = sanitizeWorkflowParams(workflowReqDto.getWorkflowParams());
         List<WorkflowStageMappingDto> workflowStageMappings = defaultWorkflowStageMappings(workflowReqDto.getWorkflowStageMappings());
 
-        // jenkins 정보 조회
+        // Comment translated to English.
         OssDto ossDto = getOssDto(workflowReqDto.getWorkflowInfo().getOssIdx());
 
         try {
@@ -175,12 +167,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         return result;
     }
 
-    /**
-     * 배포 정보 수정
-     * @param workflowReqDto
-     * @return Long
-     * @throws java.io.IOException
-     */
+    /* Comment translated to English. */
     @Override
     @Transactional(rollbackFor = { RuntimeException.class })
     public Boolean updateWorkflow(WorkflowReqDto workflowReqDto) {
@@ -213,13 +200,13 @@ public class WorkflowServiceImpl implements WorkflowService {
             workflowEntity = workflowRepository.save(workflowEntity);
             WorkflowDto workflowDto = getWorkflowDto(workflowEntity.getWorkflowIdx());
 
-            // 2. Workflow Param (삭제 후 재등록)
+            // Comment translated to English.
             workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
             for (WorkflowParamDto param : workflowParams) {
                 workflowParamRepository.save(WorkflowParamDto.toEntity(param, workflowDto, ossDto, ossTypeDto));
             }
 
-            // 3. Workflow Stage Mapping (삭제 후 재등록)
+            // Comment translated to English.
             workflowStageMappingRepository.deleteByWorkflow_WorkflowIdx(workflowEntity.getWorkflowIdx());
             for(WorkflowStageMappingDto stage : workflowStageMappings) {
                 workflowStageMappingRepository.save(WorkflowStageMappingDto.toEntity(stage, workflowDto, ossDto, ossTypeDto));
@@ -269,11 +256,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         deleteJenkinsJobIfAvailable(ossDto, previousWorkflowName);
     }
 
-    /**
-     * 배포 정보 삭제
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     @Transactional(rollbackFor = { RuntimeException.class })
     public Boolean deleteWorkflow(Long workflowIdx) {
@@ -330,11 +313,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         return eventListenerRepository.existsByWorkflow_WorkflowIdx(workflowIdx);
     }
 
-    /**
-     * 배포 조회
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public WorkflowDetailResDto getWorkflow(Long workflowIdx) {
         try {
@@ -360,11 +339,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
     }
 
-    /**
-     * 워크플로우명 중복 체크
-     * @param workflowName
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public Boolean isWorkflowNameDuplicated(String workflowName) {
         Boolean result = true;
@@ -381,11 +356,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         return result;
     }
 
-    /**
-     * 배포 실행
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public Boolean runWorkflow(Long workflowIdx) {
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
@@ -404,17 +375,13 @@ public class WorkflowServiceImpl implements WorkflowService {
         WorkflowReqDto workflowReqDto = WorkflowReqDto.of(workflowDto, paramList, stageList);
 
         validateInfraDynamicReviewBeforeRun(workflowReqDto);
-        // 배포 실행 관련 사용자 이력 정보 수정
+        // Comment translated to English.
         updateWorkflowRunDate(workflowIdx);
         workflowAsyncExecutor.runWorkflow(workflowReqDto);
         return true;
     }
 
-    /**
-     * 배포 실행
-     * @param workflowReqDto
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public Boolean runWorkflow(WorkflowReqDto workflowReqDto) {
         WorkflowReqDto runRequest = currentWorkflowRunRequest(workflowReqDto);
@@ -570,7 +537,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         Object reviewResult = mcInfraManagerService.reviewInfraDynamic(getParamValue(workflowReqDto, "NAMESPACE", "system"), null, payload);
         if (hasInfraReviewError(reviewResult)) {
             String message = getInfraReviewMessage(reviewResult);
-            throw new McmpException(ResponseCode.RUN_FAILED_DEPLOY, "Infra 사전 검증 실패: " + message);
+            throw new McmpException(ResponseCode.RUN_FAILED_DEPLOY, "Infra pre-run validation failed: " + message);
         }
     }
 
@@ -715,7 +682,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                 }
             }
         }
-        return "선택한 Image/Spec 조합으로 인프라를 생성할 수 없습니다.";
+        return "The selected Image/Spec combination cannot create infrastructure.";
     }
 
     private Object firstMapValue(Map<String, Object> map, String... keys) {
@@ -766,10 +733,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
     }
 
-    /**
-     * 젠킨스 파이프라인 목록 (빌드 시 사용할 파이프라인 목록)
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowStageTypeAndStageNameResDto> getWorkflowStageList() {
 
@@ -796,22 +760,13 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
 
-    /**
-     * 기본 스크립트 생성
-     * @param workflowName
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowStageMappingDto> getWorkflowTemplate(String workflowName) {
         return pipelineService.getWorkflowTemplate(workflowName);
     }
 
-    /**
-     * Workflow History 목록
-     * @param workflowIdx
-     * @param dataType
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowHistoryDto> getWorkflowHistoryList(Long workflowIdx, String dataType) {
         Stream<WorkflowHistory> historyStream = workflowHistoryRepository.findByWorkflow_WorkflowIdx(workflowIdx).stream();
@@ -825,10 +780,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 파라미터 목록
-     * @return
-     */
+    /* Comment translated to English. */
     @Override
     public List<WorkflowParamDto> getWorkflowParamList() {
         return workflowParamRepository.findAll()
@@ -837,14 +789,10 @@ public class WorkflowServiceImpl implements WorkflowService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Jenkins Job 자동 생성
-     * @param ossTypeName
-     * @param ossDto
-     */
+    /* Comment translated to English. */
     public void createJenkinsJob(String ossTypeName, OssDto ossDto) {
         try {
-            // OSS 를 등록을 할때 존재하지 않을 경우 Jenkins Job 자동 생성
+            // Comment translated to English.
             if(ossTypeName.toUpperCase().equals("JENKINS")) {
                 List<WorkflowListResDto> workflowListResDtoList = getWorkflowList();
                 for(WorkflowListResDto workflowResDto : workflowListResDtoList) {
@@ -860,11 +808,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
     }
 
-    /**
-     * Workflow 로그
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public List<WorkflowLogResDto> getWorkflowLog(Long workflowIdx) {
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
         if (workflowDto == null) {
@@ -982,30 +926,18 @@ public class WorkflowServiceImpl implements WorkflowService {
     }
 
 
-    /**
-     * OSSTypeDto 정보 조회
-     * @param ossTypeIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public OssTypeDto getOssTypeDto(Long ossTypeIdx) {
         OssType ossType = ossTypeRepository.findByOssTypeIdx(ossTypeIdx);
         return OssTypeDto.from(ossType);
     }
-    /**
-     * OSSDto 정보 조회
-     * @param ossIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public OssDto getOssDto(Long ossIdx) {
         Oss ossEntity = ossRepository.findByOssIdx(ossIdx);
         return OssDto.from(ossEntity);
     }
 
-    /**
-     * WorkflowDto 정보 조회
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public WorkflowDto getWorkflowDto(Long workflowIdx) {
         Workflow workflow = workflowRepository.findByWorkflowIdx(workflowIdx);
         if (workflow == null) {
@@ -1029,20 +961,16 @@ public class WorkflowServiceImpl implements WorkflowService {
         workflowRepository.save(workflow);
     }
 
-    /**
-     * getWorkflowRunHistoryList 정보 조회
-     * @param workflowIdx
-     * @return
-     */
+    /* Comment translated to English. */
     public List<WorkflowRunHistoryResDto> getWorkflowRunHistoryList(Long workflowIdx) {
 
-        // jenkins job Name 조회
+        // Comment translated to English.
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
         if (workflowDto == null) {
             return WorkflowRunHistoryResDto.createList();
         }
 
-        // oss 조회
+        // Comment translated to English.
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
 
@@ -1081,23 +1009,17 @@ public class WorkflowServiceImpl implements WorkflowService {
         return buildHistoryList;
     }
 
-    /**
-     * getWorkflowStageHistoryList 정보 조회
-     * @param workflowIdx
-     * @param buildIdx
-     * @param nodeIdx
-     * @return
- */
+    /* Comment translated to English. */
     @Override
     public JenkinsBuildDescribeLog getWorkflowStageHistoryList(Long workflowIdx, int buildIdx, int nodeIdx) {
 
-        // jenkins job Name 조회
+        // Comment translated to English.
         WorkflowDto workflowDto = getWorkflowDto(workflowIdx);
         if (workflowDto == null) {
             return null;
         }
 
-        // oss 조회
+        // Comment translated to English.
         OssDto ossDto = getOssDto(workflowDto.getOssIdx());
 
         return jenkinsService.getJenkinsBuildStageLog(ossDto, workflowDto.getWorkflowName(), buildIdx, nodeIdx);

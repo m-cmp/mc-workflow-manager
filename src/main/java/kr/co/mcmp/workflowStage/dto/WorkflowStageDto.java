@@ -25,7 +25,7 @@ public class WorkflowStageDto {
     private List<WorkflowParamDto> defaultParams;
 
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static WorkflowStageDto from(WorkflowStage workflowStage) {
         return WorkflowStageDto.builder()
                 .workflowStageIdx(workflowStage.getWorkflowStageIdx())
@@ -39,7 +39,7 @@ public class WorkflowStageDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static WorkflowStageDto of(WorkflowStageDto workflowStageDto) {
         return WorkflowStageDto.builder()
                 .workflowStageIdx(workflowStageDto.getWorkflowStageIdx())
@@ -53,7 +53,7 @@ public class WorkflowStageDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static WorkflowStage toEntity(WorkflowStageDto workflowStageDto, WorkflowStageTypeDto workflowStageTypeDto) {
         return WorkflowStage.builder()
                 .workflowStageIdx(workflowStageDto.getWorkflowStageIdx())

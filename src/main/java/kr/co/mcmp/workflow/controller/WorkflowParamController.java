@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-@Tag(name = "Workflow Param", description = "워크플로우 파라미터 관리")
+@Tag(name = "Workflow Param", description = "Workflow parameter management")
 @RequiredArgsConstructor
 @RequestMapping("/workflow/param")
 @RestController
@@ -20,7 +20,7 @@ public class WorkflowParamController {
 
     private final WorkflowService workflowService;
 
-    @Operation(summary="워크플로우 파라미터 목록 조회")
+    @Operation(summary="List workflow parameters")
     @GetMapping("/list")
     public ResponseWrapper<List<WorkflowParamDto>> getWorkflowParamList() {
         return new ResponseWrapper<>(workflowService.getWorkflowParamList());

@@ -16,7 +16,7 @@ import java.nio.charset.Charset;
 @Component
 public class TumblebugRestClient {
     /**
-     * Basic 인증 방식 API 호출
+     * Call API with Basic authentication
      * @param apiUrl
      * @param httpMethod
      * @param body
@@ -26,7 +26,7 @@ public class TumblebugRestClient {
      * @return
      */
     public <T, U> ResponseEntity<T> requestByBasicAuth(String apiUrl, String userName, String passWord, HttpMethod httpMethod, U body, Class<T> clazz) {
-        // header 설정
+        // Set headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(new MediaType("application", "json", Charset.forName("UTF-8")));
         headers.setBasicAuth(Base64Util.base64Encoding(userName+":"+passWord));
@@ -35,7 +35,7 @@ public class TumblebugRestClient {
     }
 
     /**
-     * API 호출 (공통)
+     * Call common API
      * @param apiUrl
      * @param httpMethod
      * @param clazz

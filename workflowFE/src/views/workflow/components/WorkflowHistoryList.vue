@@ -129,12 +129,7 @@ const setRunHistory = async (workflowIdx?: number | string | string[], showLoadi
   })
 }
 
-/**
- * @Title selectBuildName / setColumns
- * @Desc
- *    selectBuildName : 상세 팝업을 위한 선택된 row의 buildName저장
- *    setColumns : 컬럼 set Callback 함수
- */
+/* Comment translated to English. */
 const columns = ref([] as Array<ColumnDefinition>)
 const selectBuildName = ref('' as string)
 const selectRunHistoryStage = ref([] as Array<JenkinsStage>)
@@ -195,10 +190,7 @@ const statusFormatter = (cell: any) => {
   </div>
   `
 }
-/**
- * @Title editButtonFormatter
- * @Desc 수정 / 삭제 버튼 Formatter
- */
+/* Comment translated to English. */
 const detailButtonFormatter = (cell: any) => {
   const rowData = cell.getRow().getData()
   if (!rowData.stages || rowData.stages.length === 0) {

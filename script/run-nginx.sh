@@ -6,32 +6,32 @@ echo "==========================================================================
 
 cd $HOME
 
-# mcmp 디렉토리 확인 및 생성
+# Check and create the mcmp directory.
 if [ ! -d "$HOME/mcmp/oss/nginx" ]; then
   mkdir -p "$HOME/mcmp/oss/nginx"
   chown 1000:1000 "$HOME/mcmp/oss/nginx"
   echo "Created mcmp/nginx directory"
 fi
 
-# 색상 코드 설정
+# Color code settings
 LGREEN='\033[1;32m'
 NC='\033[0m' # No Color
 
-# 애플리케이션 이름 및 이미지
+# Application name and image
 APP_NAME=nginx
 APP_IMAGE=nginx
 
-# Docker 이미지 풀링
+# Pull Docker image
 echo -e "docker pull ${LGREEN}${APP_NAME}${NC} image."
 sudo docker pull $APP_IMAGE
 
-# 기존 nginx 컨테이너가 있으면 종료 및 삭제
+# Stop and remove an existing nginx container.
 if sudo docker ps -a | grep -q nginx; then
   sudo docker stop nginx
   sudo docker rm nginx
 fi
 
-# Docker 컨테이너 실행
+# Run Docker container
 echo -e "Start ${LGREEN}${APP_NAME}${NC}"
 
 sudo docker run -itd \
@@ -42,11 +42,11 @@ sudo docker run -itd \
   -u root \
   $APP_IMAGE
 
-# 컨테이너가 완전히 시작될 때까지 잠시 대기
+# Wait briefly until the container is fully started.
 echo "Waiting for NGINX to start..."
 sleep 10
 
-# 연결된 볼륨 및 NGINX 상태 확인
+# Check mounted volumes and NGINX status.
 echo "Checking mounted volumes..."
 sudo docker inspect nginx | grep '"Source":' | grep -E 'html|conf.d'
 

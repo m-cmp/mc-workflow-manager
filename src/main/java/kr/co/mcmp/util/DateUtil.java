@@ -8,11 +8,7 @@ import java.util.Date;
 public class DateUtil {
 	
 	
-	/**
-	 * time 부터 그날의 00:00시 까지의 시간을 구해 ms 단위로 리턴한다.
-	 * @param time
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public static long getTimeMidnight(long time) {
 		Calendar c = Calendar.getInstance();
 		c.setTimeInMillis(time);

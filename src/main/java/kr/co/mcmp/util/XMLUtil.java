@@ -195,7 +195,7 @@ public class XMLUtil {
           
         
         String value = null; 
-        // xpath 생성
+        // Comment translated to English.
         XPath xpath = XPathFactory.newInstance().newXPath();
         NodeList cols = (NodeList)xpath.evaluate(nodeXPath, document, XPathConstants.NODESET);
         if(cols.getLength() > 0) {

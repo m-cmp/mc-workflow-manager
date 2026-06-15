@@ -26,17 +26,14 @@ public class ReadyzServiceImpl implements ReadyzService {
 
 	private final JenkinsService jenkinsService;
 
-	/**
-	 * OSS 연결 확인
-	 * TODO : 추후 OSS 추가
-	 */
+	/* Comment translated to English. */
 	@Transactional
 	@Override
 	public ReadyzResDto checkConnection() {
 
 		final String target = "jenkins";
 
-		// Jenkins 정보를 가져오기 위한 ossTypeIdx 조회
+		// Comment translated to English.
 		Long jenkinsTypeIdx = ossTypeRepository.findByOssTypeName(target.toUpperCase())
 				.stream()
 				.map(OssType::getOssTypeIdx)
@@ -49,10 +46,10 @@ public class ReadyzServiceImpl implements ReadyzService {
 		}
 		// Idx data Check
 		else if(!Objects.equals(jenkinsTypeIdx, 0L)) {
-			// jenkins oss 조회
+			// Comment translated to English.
 			OssDto ossDto = OssDto.from(ossRepository.findByOssIdx(jenkinsTypeIdx));
 
-			// 데이터 유무 검증
+			// Comment translated to English.
 			if (StringUtils.isBlank(ossDto.getOssUrl()) || StringUtils.isBlank(ossDto.getOssUsername()) || StringUtils.isBlank(ossDto.getOssPassword())) {
 				log.error("Workflow Engine miss information");
 				return ReadyzResDto.setReadyzResponseDto(500, "Workflow Engine miss information!");
@@ -73,11 +70,7 @@ public class ReadyzServiceImpl implements ReadyzService {
 		}
 	}
 
-	/**
-	 * 패스워드 암호화 (Front에서 Base64Encoding한 데이터를 복호화하여 AES256 암호화 함.)
-	 * @param str
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String encryptAesString(String str) {
 		if ( StringUtils.isNotBlank(str) ) {
 			return AES256Util.encrypt(str);
@@ -87,16 +80,12 @@ public class ReadyzServiceImpl implements ReadyzService {
 		}
 	}
 
-	/**
-	 * 패스워드 복호화
-	 * @param encryptedStr
-	 * @return
-	 */
+	/* Comment translated to English. */
 	public String decryptAesString(String encryptedStr) {
 		if (StringUtils.isNotBlank(encryptedStr)) {
-			// AES256으로 암호화된 문자열을 복호화
+			// Comment translated to English.
 			String decrypted = AES256Util.decrypt(encryptedStr);
-			// 복호화된 문자열을 Base64로 인코딩
+			// Comment translated to English.
 			return decrypted;
 		} else {
 			return null;

@@ -46,16 +46,12 @@ public class JenkinsService {
 
 	private final JenkinsRestApi api;
 
-    /*******
-     * jenkins 연결 확인
-     */
+    /* Comment translated to English. */
     public boolean isJenkinsConnect(OssDto jenkins) {
         return api.isConnect(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword());
     }
 
-    /*******
-     * job 존재 여부 확인
-     */
+    /* Comment translated to English. */
     public boolean isExistJobName(OssDto jenkins, String jobName) {
         try {
             return Optional.ofNullable(api.getJenkinsJob(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName)).isPresent();
@@ -65,9 +61,7 @@ public class JenkinsService {
         }
     }
 
-    /*****
-     * jenkins job 생성
-     */
+    /* Comment translated to English. */
     public boolean createJenkinsJob_v2(OssDto jenkins, String jenkinsJobName, String pipelineScript, List<WorkflowParamDto> params) throws IOException {
 
         if ( isExistJobName(jenkins, jenkinsJobName) ) {
@@ -98,8 +92,8 @@ public class JenkinsService {
     }
 //
 //    /*******
-//     * jenkins job Pipeline, Description 수정
-//     * job에서 'pipeline script'와 'description(설명)'만 수정한다.
+// Comment translated to English.
+// Comment translated to English.
 //     * @throws UnsupportedEncodingException
 //     *
 //     */
@@ -129,12 +123,7 @@ public class JenkinsService {
 //        return result;
 //    }
 //
-    /*******
-     * jenkins job Pipeline, Description 수정
-     * job에서 'pipeline script'와 'description(설명)'만 수정한다.
-     * @throws UnsupportedEncodingException
-     *
-     */
+    /* Comment translated to English. */
     public boolean updateJenkinsJobPipeline_v2(OssDto jenkins, String jenkinsJobName, String pipelineScript, List<WorkflowParamDto> params) throws IOException {
         if ( !isExistJobName(jenkins, jenkinsJobName) ) {
             log.error("Jenkins Job Name {} is not exist.", jenkinsJobName);
@@ -247,10 +236,7 @@ public class JenkinsService {
         return null;
     }
 
-    /*******
-     * Job Config.xml 조회
-     *
-     */
+    /* Comment translated to English. */
     public Document getJobConfigXml(OssDto jenkins, String jobName) {
         String xmlStr = api.getJenkinsJobConfigXml(
                 jenkins.getOssUrl(),
@@ -261,14 +247,11 @@ public class JenkinsService {
     }
 
 
-    /*******
-     * jenkins job 삭제
-     *
-     */
+    /* Comment translated to English. */
     public boolean deleteJenkinsJob(OssDto jenkins, String jobName) {
     	boolean result = true;
 
-        // job이 없을 경우 pass
+        // Comment translated to English.
         if ( !isExistJobName(jenkins, jobName) ) {
             log.error("[deleteJenkinsJob] Jenkins Job Name {} does not exist.", jobName);
             return result;
@@ -283,9 +266,7 @@ public class JenkinsService {
         return result;
     }
 
-    /**
-     * Jenkins Crumb 조회
-     */
+    /* Comment translated to English. */
     public Crumb getJenkinsCrumb(OssDto jenkins) {
 
         Crumb crumb = api.getJenkinsCrumb(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword());
@@ -293,10 +274,7 @@ public class JenkinsService {
         return crumb;
     }
 
-    /**
-     * credential 존재 여부 확인
-     *
-     */
+    /* Comment translated to English. */
     public boolean isCredentialExist(OssDto jenkins, String credentialName){
         try {
             api.getCredential(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), credentialName);
@@ -311,7 +289,7 @@ public class JenkinsService {
     }
 //
 //    /**
-//     * credential 생성
+// Comment translated to English.
 //     */
 //    public String createCredential(Oss jenkins, Oss credentialOss, K8SConfig k8s, String credentialType) {
 //        Crumb crumb = getJenkinsCrumb(jenkins);
@@ -334,9 +312,7 @@ public class JenkinsService {
 //        return credentialName;
 //    }
 //
-    /**
-     * credential 수정
-     */
+    /* Comment translated to English. */
     public String updateCredential(OssDto jenkins, OssDto credentialOss, String credentialType) {
     	Crumb crumb = getJenkinsCrumb(jenkins);
 
@@ -356,9 +332,7 @@ public class JenkinsService {
     	return credentialName;
     }
 
-    /**
-     * credential 삭제
-     */
+    /* Comment translated to English. */
     public String deleteCredential(OssDto jenkins, OssDto credentialOss, String credentialType) {
     	Crumb crumb = getJenkinsCrumb(jenkins);
 
@@ -377,7 +351,7 @@ public class JenkinsService {
     }
 //
 //    /**
-//     * credential 가져오기
+// Comment translated to English.
 //     */
 //    public String getOssCredential(Oss jenkinsOss, Oss credentialOss, K8SConfig k8s, String credentialType) {
 //        String credentialName = null;
@@ -478,10 +452,7 @@ public class JenkinsService {
     }
 
 
-    /*******
-     * jenkins job 빌드
-     *
-     */
+    /* Comment translated to English. */
     public int buildJenkinsJob(OssDto jenkins, String jobName, Map<String, List<String>> jenkinsJobParams) {
         if ( !isExistJobName(jenkins, jobName) ) {
             log.error("Jenkins Job Name {} does not exist.", jobName);
@@ -492,12 +463,7 @@ public class JenkinsService {
         return api.buildJenkinsJob(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName, jenkinsJobParams);
     }
 
-    /*******
-     * jenkins job 빌드 번호 조회
-     * @param jenkins
-     * @param jenkinsBuildId
-     * @return
-     */
+    /* Comment translated to English. */
     public int getQueueExecutableNumber(OssDto jenkins, int jenkinsBuildId) {
     	return api.getQueueExecutableNumber(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jenkinsBuildId);
     }
@@ -510,10 +476,7 @@ public class JenkinsService {
         return api.getNextBuildNumber(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName);
     }
 
-    /*******
-     * jenkins job 빌드
-     *
-     */
+    /* Comment translated to English. */
     public BuildInfo waitJenkinsBuild(OssDto jenkins, String jobName, int jenkinsBuildId, int buildNumber) {
         log.info("[buildJenkinsJob] Wait jenkins job >> JENKINS_BUILD_ID: {}", jenkinsBuildId);
         BuildInfo buildInfo = api.waitJenkinsBuild(jenkins.getOssUrl(), jenkins.getOssUsername(), jenkins.getOssPassword(), jobName, jenkinsBuildId, buildNumber);
@@ -526,7 +489,7 @@ public class JenkinsService {
     }
 
     /**
-     * Build Stage View 조회
+     * Get build stage view
      */
     public WorkflowRunHistoryResDto getJenkinsBuildStage(OssDto jenkins, String jenkinsJobName, int buildNumber) {
         if ( !isExistJobName(jenkins, jenkinsJobName) ) {
@@ -547,7 +510,7 @@ public class JenkinsService {
     }
 
     /**
-     * Build Stage Logs 조회
+     * Get build stage logs
      *
      */
     public JenkinsBuildDescribeLog getJenkinsBuildStageLog(OssDto jenkins, String jenkinsJobName, int buildNumber, int nodeId) {

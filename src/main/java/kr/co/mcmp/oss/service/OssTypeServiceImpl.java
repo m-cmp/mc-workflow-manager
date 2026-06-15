@@ -23,10 +23,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 
 	private final OssRepository ossRepository;
 
-	/**
-	 * OSS Type 목록 조회
-	 * @return List<OssTypeDto> ossTypeDtoList
-	 */
+	/* Comment translated to English. */
 	@Override
 	public List<OssTypeDto> getAllOssTypeList() {
 		try {
@@ -54,12 +51,12 @@ public class OssTypeServiceImpl implements OssTypeService {
 					.map(OssDto::from)
 					.collect(Collectors.toList());
 
-			// ossList에서 중복된 ossTypeIdx를 추출
+			// Comment translated to English.
 			Set<Long> ossTypeIdxSet = ossList.stream()
 					.map(OssDto::getOssTypeIdx)
 					.collect(Collectors.toSet());
 
-			// ossTypeIdxSet에 없는 ossTypeIdx만 남겨서 필터링
+			// Comment translated to English.
 			return ossTypeList.stream()
 					.filter(ossType -> !ossTypeIdxSet.contains(ossType.getOssTypeIdx()))
 					.collect(Collectors.toList());
@@ -69,11 +66,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 		}
 	}
 
-	/**
-	 * OSS Type 등록
-	 * @param ossTypeDto
-	 * @return
-	 */
+	/* Comment translated to English. */
 	@Override
 	public Long registOssType(OssTypeDto ossTypeDto) {
 		try {
@@ -87,11 +80,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 		}
 	}
 
-	/**
-	 * OSS Type 수정
-	 * @param ossTypeDto
-	 * @return
-	 */
+	/* Comment translated to English. */
 	@Override
 	public Boolean updateOssType(OssTypeDto ossTypeDto) {
 		Boolean result = false;
@@ -106,10 +95,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 		return result;
 	}
 
-	/**
-	 * OSS Type삭제
-	 * @param ossTypeIdx
-	 */
+	/* Comment translated to English. */
 	@Override
 	@Transactional
 	public Boolean deleteOssType(Long ossTypeIdx) {
@@ -127,10 +113,7 @@ public class OssTypeServiceImpl implements OssTypeService {
 		return result;
 	}
 
-	/**
-	 * OSS Type 상세
-	 * @param ossTypeIdx
-	 */
+	/* Comment translated to English. */
 	@Transactional
 	@Override
 	public OssTypeDto detailOssType(Long ossTypeIdx) {

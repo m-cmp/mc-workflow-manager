@@ -31,7 +31,7 @@ public class NumberUtil {
 //			if (giga.signum() == 0) {
 //				return "0";
 //			}
-//			//return giga.stripTrailingZeros().toPlainString();		// trailing zero 제거
+// Comment translated to English.
 //			return giga.toPlainString();
 //		}
 
@@ -43,7 +43,7 @@ public class NumberUtil {
 			if (giga.signum() == 0) {
 				return "0";
 			}
-			//String padding = "#";		// trailing zero 제거
+			// Comment translated to English.
 			String padding = "0";
 			String format = "#,##0" + (scale > 0 ? "." + StringUtils.leftPad("", scale, padding) : "");
 			DecimalFormat df = new DecimalFormat(format);

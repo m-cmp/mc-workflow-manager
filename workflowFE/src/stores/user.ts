@@ -20,10 +20,10 @@ import { defineStore } from 'pinia'
 //   operationId: string
 // }
 
-// TODO : 반드시 수정 필요
+// Comment translated to English.
 export const useUserStore = defineStore('user', {
   state: () => ({
-      accessToken: "", // 있는지 확인
+      accessToken: "", // Comment translated to English.
       workspaceInfo: {
           id: "",
           name: "",

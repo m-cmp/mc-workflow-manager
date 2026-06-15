@@ -53,28 +53,17 @@ import DeleteEventListener from './components/deleteEventListener.vue';
 import { Modal } from 'bootstrap'
 
 const toast = useToast()
-/**
- * @Title eventListenerList / columns
- * @Desc 
- *    eventListenerList : eventListener 목록 저장
- *    columns : 목록의 컬럼 저장
- */
+/* Comment translated to English. */
 const eventListenerList = ref([] as Array<EventListener>)
 const columns = ref([] as Array<ColumnDefinition>)
 
-/**
- * @Title Life Cycle
- * @Desc 컬럼 set Callback 함수 호출 / eventListenerList Callback 함수 호출
- */
+/* Comment translated to English. */
 onMounted(async () => {
   setColumns()
   await _getEventListenerList()
 })
 
-/**
- * @Title _getEventListenerList
- * @Desc Event Listener List Callback 함수 / Event Listener List api 호출
- */
+/* Comment translated to English. */
 const _getEventListenerList = async () => {
   try {
     const { data } = await getEventListenerList()    
@@ -86,7 +75,7 @@ const _getEventListenerList = async () => {
 
   } catch(error) {
     console.log(error)
-    toast.error('데이터를 가져올 수 없습니다.')
+    toast.error('Failed to load data.')
   }
 }
 const setEventListenerUrl = (eventListenerCallUrl:string) => {
@@ -95,13 +84,7 @@ const setEventListenerUrl = (eventListenerCallUrl:string) => {
 }
 
 
-/**
- * @Title selectEventListenerIdx / selectEventListenerName / setColumns
- * @Desc
- *    selectEventListenerIdx : 수정/삭제를 위한 선택된 row의 eventListenerIdx저장
- *    selectEventListenerName : 삭제를 위한 선택된 row의 eventListenerName저장
- *    setColumns : 컬럼 set Callback 함수
- */
+/* Comment translated to English. */
 const selectEventListenerIdx = ref(0 as number)
 const selectEventListenerName = ref('' as string)
 const setColumns = () => {
@@ -156,36 +139,23 @@ const showModal = async (modalId: string) => {
   }
 }
 
-/**
- * @Title editButtonFormatter
- * @Desc 수정 / 삭제 버튼 Formatter
- */
+/* Comment translated to English. */
 const editDeleteButtonFormatter = () => {
   return `
   <div>
     <button
       class='btn btn-primary d-none d-sm-inline-block mr-5'
-      id='edit-btn'>
-      수정
-    </button>
+      id='edit-btn'>Edit</button>
     <button
       class='btn btn-danger d-none d-sm-inline-block'
-      id='delete-btn'>
-      삭제
-    </button>
+      id='delete-btn'>Delete</button>
   </div>`;
 }
 
-/**
- * @Title formMode
- * @Desc 기본값 new / eventListenerForm에 생성/수정 을 알려주는 값
- */
+/* Comment translated to English. */
 const formMode = ref('new')
 
-/**
- * @Title onClickNewBtn
- * @Desc EventListener 생성버튼 클릭시 동작하는 함수 (eventListnerIdx / formMode set)
- */
+/* Comment translated to English. */
 const onClickNewBtn = async () => {
   selectEventListenerIdx.value = 0
   formMode.value = 'new'

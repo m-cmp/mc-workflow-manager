@@ -29,7 +29,7 @@ public class GlobalExceptionHandler {
     }
     
     /**
-     * Exception 발생시
+     * When an exception occurs
      */
     @ExceptionHandler(Exception.class)
     protected ResponseWrapper<String> handleException(Exception e) {
@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     }
 
 //    /**
-//     * RestClientResponseException 발생시
+//     * RestClientResponseWhen an exception occurs
 //     */
 //    @ExceptionHandler(RestClientResponseException.class)
 //    @ResponseStatus(HttpStatus.OK)
@@ -49,13 +49,13 @@ public class GlobalExceptionHandler {
 //        return new ResponseStatus(ResponseCode.API_REQUEST_ERROR);
 //    }
     
-    /*ResponseCode 로 Exception 발생시 */
+    /* Comment translated to English. */
     @ExceptionHandler(value = {McmpException.class})
     protected ResponseWrapper<String> handleGeneralException(McmpException de) {
     	return new ResponseWrapper<>(de.getResponseCode(), de.getDetail());
     }
 
-    /*ResponseCode 로 Exception 발생시 */
+    /* Comment translated to English. */
     @ExceptionHandler(value = {AlreadyExistsException.class})
     protected ResponseWrapper<String> handleGeneralException(AlreadyExistsException de) {
     	return new ResponseWrapper<>(de.getResponseCode(), de.getDetail());

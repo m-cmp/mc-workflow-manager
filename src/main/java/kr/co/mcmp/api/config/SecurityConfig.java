@@ -16,13 +16,13 @@
 //@EnableWebSecurity
 //public class SecurityConfig {
 //
-//	//인증없이 접근이 필요한 api를 여기에 추가하세요
+// Comment translated to English.
 //	@Bean
 //	@Order(0)
 //	public SecurityFilterChain resources(HttpSecurity http) throws Exception {
 //	    return http.cors().configurationSource(corsConfigurationSource())
 //	    			.and()
-//	    			.csrf().disable()										// csrf 사용안함
+// Comment translated to English.
 //	    			.requestMatchers(matchers -> matchers.antMatchers("/**"))
 //			        .requestCache(RequestCacheConfigurer::disable)
 //			        .securityContext(AbstractHttpConfigurer::disable)
@@ -30,7 +30,7 @@
 //			        .build();
 //	}
 //
-//	// CORS 허용 적용
+// Comment translated to English.
 //	public CorsConfigurationSource corsConfigurationSource() {
 //		CorsConfiguration configuration = new CorsConfiguration();
 //

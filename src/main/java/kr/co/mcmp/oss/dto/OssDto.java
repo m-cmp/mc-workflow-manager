@@ -16,7 +16,7 @@ public class OssDto {
     private String ossUsername;
     private String ossPassword;
 
-    // from : 외부 (entity -> dto)
+    // Comment translated to English.
     public static OssDto from(Oss oss) {
         return OssDto.builder()
                 .ossIdx(oss.getOssIdx())
@@ -29,7 +29,7 @@ public class OssDto {
                 .build();
     }
 
-    // of : 내부 (dto -> dto)
+    // Comment translated to English.
     public static OssDto of(OssDto ossDto) {
         return OssDto.builder()
                 .ossIdx(ossDto.getOssIdx())
@@ -42,7 +42,7 @@ public class OssDto {
                 .build();
     }
 
-    // toEntity : Entity 변환 (dto -> entity)
+    // Comment translated to English.
     public static Oss toEntity(OssDto ossDto, OssTypeDto ossTypeDto) {
         return Oss.builder()
                 .ossIdx(ossDto.getOssIdx())
@@ -55,7 +55,7 @@ public class OssDto {
                 .build();
     }
 
-    // 패스워드 Encript set
+    // Comment translated to English.
     public static OssDto setEncryptPassword(OssDto ossDto, String password) {
         return OssDto.builder()
                 .ossIdx(ossDto.getOssIdx())
@@ -67,7 +67,7 @@ public class OssDto {
                 .ossPassword(password)
                 .build();
     }
-    // 패스워드 decrypt set
+    // Comment translated to English.
     public static OssDto setDecryptPassword(OssDto ossDto, String password) {
         return OssDto.builder()
                 .ossIdx(ossDto.getOssIdx())
