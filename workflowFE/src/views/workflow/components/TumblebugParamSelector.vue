@@ -210,6 +210,7 @@ interface VmSelectionDefault {
   zone: string
   specId: string
   imageId: string
+  k8sVersion?: string
 }
 
 interface Props {
@@ -288,6 +289,13 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     specId: 'azure+koreacentral+Standard_D2s_v3',
     imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
   },
+  gcp: {
+    region: 'asia-northeast3',
+    connectionName: 'gcp-asia-northeast3',
+    zone: 'asia-northeast3-a',
+    specId: 'gcp+asia-northeast3+e2-medium',
+    imageId: 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260612',
+  },
   ibm: {
     region: 'jp-osa',
     connectionName: 'ibm-jp-osa',
@@ -315,6 +323,17 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'ap-seoul-1',
     specId: 'tencent+ap-seoul+BF1.MEDIUM2',
     imageId: 'img-487zeit5',
+  },
+}
+
+const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
+  gcp: {
+    region: 'asia-northeast3',
+    connectionName: 'gcp-asia-northeast3',
+    zone: 'asia-northeast3-a',
+    specId: 'gcp+asia-northeast3+e2-medium',
+    imageId: 'UBUNTU_CONTAINERD',
+    k8sVersion: '1.34.3-gke.1051003',
   },
 }
 
@@ -398,6 +417,7 @@ watch(isKubernetesImageWorkflow, async (enabled) => {
   kubernetesImageEnabled.value = enabled
   if (!isInitializingSelection.value) {
     selectedImage.value = ''
+    applyVmSelectionDefault()
     await loadMcInfraK8sVersions()
     await loadMcInfraImages()
     applyInfraSelectionParams()
@@ -528,14 +548,21 @@ const getVmSelectionDefault = () => {
   return vmSelectionDefaults[infraProvider.value.toLowerCase()]
 }
 
+const getSelectionDefault = () => {
+  return (kubernetesImageEnabled.value || isKubernetesImageWorkflow.value)
+    ? k8sSelectionDefaults[infraProvider.value.toLowerCase()]
+    : getVmSelectionDefault()
+}
+
 const applyVmSelectionDefault = () => {
-  const defaults = getVmSelectionDefault()
+  const defaults = getSelectionDefault()
   if (!defaults) return
   selectedRegion.value = selectedRegion.value || defaults.region
   selectedConnectionName.value = selectedConnectionName.value || defaults.connectionName
   selectedZone.value = selectedZone.value || defaults.zone
   selectedSpec.value = selectedSpec.value || defaults.specId
   selectedImage.value = selectedImage.value || defaults.imageId
+  selectedK8sVersion.value = selectedK8sVersion.value || defaults.k8sVersion || ''
 }
 
 const syncSelectionFromCurrentCspParams = () => {
@@ -543,12 +570,12 @@ const syncSelectionFromCurrentCspParams = () => {
     return
   }
 
-  const defaults = getVmSelectionDefault()
+  const defaults = getSelectionDefault()
   const resourceIdParts = parseTumblebugResourceId(getCurrentCspParamValue('SPEC_ID') || getCurrentCspParamValue('IMAGE_ID'))
   selectedRegion.value = getCurrentCspParamValue('REGION') || resourceIdParts.region || defaults?.region || ''
   selectedImage.value = getCurrentCspParamValue('IMAGE_ID') || defaults?.imageId || ''
   selectedSpec.value = getCurrentCspParamValue('SPEC_ID') || defaults?.specId || ''
-  selectedK8sVersion.value = getCurrentCspParamValue('K8S_VERSION')
+  selectedK8sVersion.value = getCurrentCspParamValue('K8S_VERSION') || defaults?.k8sVersion || ''
   selectedConnectionName.value = getCurrentCspParamValue('CONNECTION_NAME') || defaults?.connectionName || ''
   selectedZone.value = getCurrentCspParamValue('ZONE') || defaults?.zone || ''
 }
@@ -867,6 +894,13 @@ const ensureSelectedK8sVersionOption = () => {
     : getWorkflowParamValue('K8S_VERSION')
   if (currentVersion && isSelectedValueInOptions(currentVersion, k8sVersionOptions.value)) {
     selectedK8sVersion.value = currentVersion
+    applyInfraSelectionParams()
+    return
+  }
+
+  const defaultVersion = getSelectionDefault()?.k8sVersion
+  if (defaultVersion && isSelectedValueInOptions(defaultVersion, k8sVersionOptions.value)) {
+    selectedK8sVersion.value = defaultVersion
     applyInfraSelectionParams()
     return
   }

@@ -229,27 +229,27 @@ Status legend:
 | `O` | Tested successfully |
 | `X` | Not available for this scenario |
 | `Testing` | Still under test |
-| `Partial` | Known scenario limitation remains |
+| `△` | Known scenario limitation remains |
 | `Not Support` | Not supported in this release |
 
 ### VM Workflow Test Values
 
 | Item | Alibaba | AWS | Azure | GCP | IBM | KT | NCP | NHN | OpenStack | Tencent |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| VM | O | O | O | Testing | O | Testing | O | O | Not Support | O |
-| VM Spec | `alibaba+ap-northeast-2+ecs.e-c1m1.large` / `ecs.e-c1m1.large` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_D2s_v3` / `Standard_D2s_v3` | Testing | `ibm+jp-osa+bxf-2x8` / `bxf-2x8` | Testing | `ncp+kr+c2-g3` / `c2-g3` | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2` |
-| VM Image | `ubuntu_22_04_x64_20G_alibase_20260522.vhd` / Ubuntu 22.04 64 bit | `ami-00b4561fe1d28c285` / ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20260602 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | Testing | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Testing | `104630229` / ubuntu-24.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `img-487zeit5` / Ubuntu Server 22.04 LTS 64bit |
-| VM Zone | `ap-northeast-2a` | `ap-northeast-1a` | `1` | Testing | `jp-osa-1` | Testing | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
+| VM | O | O | O | O | O | Testing | O | O | Not Support | O |
+| VM Spec | `alibaba+ap-northeast-2+ecs.e-c1m1.large` / `ecs.e-c1m1.large` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_D2s_v3` / `Standard_D2s_v3` | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bxf-2x8` / `bxf-2x8` | Testing | `ncp+kr+c2-g3` / `c2-g3` | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2` |
+| VM Image | `ubuntu_22_04_x64_20G_alibase_20260522.vhd` / Ubuntu 22.04 64 bit | `ami-00b4561fe1d28c285` / ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20260602 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | `https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260612` / Canonical, Ubuntu, 22.04 LTS, amd64 jammy image built on 2026-06-12 | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Testing | `104630229` / ubuntu-24.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `img-487zeit5` / Ubuntu Server 22.04 LTS 64bit |
+| VM Zone | `ap-northeast-2a` | `ap-northeast-1a` | `1` | `asia-northeast3-a` | `jp-osa-1` | Testing | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
 
 ### K8s Workflow Test Values
 
-| Item | Alibaba                                                                                                                         | AWS | Azure | GCP | IBM | KT | NCP | NHN | OpenStack | Tencent                                       |
-| --- |---------------------------------------------------------------------------------------------------------------------------------| --- | --- | --- | --- | --- | --- | --- | --- |-----------------------------------------------|
-| K8s | O                                                                                                                               | O | O | Testing | X | Testing | Partial (app install issue) | O | Not Support | O                                             |
-| K8s Spec | `alibaba+ap-northeast-1+ecs.c7.xlarge / ecs.c7.xlarge`                                                                          | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_A2_v2` / `Standard_A2_v2` | Testing | `ibm+jp-osa+bx2-2x8` / `bx2-2x8` | Testing | `ncp+kr+c2-g3` / `c2-g3` | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2`                          |
-| K8s Image | `aliyun_3_x64_20G_container_optimized_alibase_20260513.vhd` / Alibaba Cloud Linux 3.2104 LTS 64 bit Container-Optimized Edition | `AL2023_x86_64_STANDARD` / EKS Node - AL2023, containerd, x86_64 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | Testing | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Testing | `23214590` / ubuntu-22.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `img-487zeit5` / Ubuntu Server 22.04 LTS 64bit |
-| K8s Zone | `ap-northeast-1b`                                                                                                               | `ap-northeast-1a` | `1` | Testing | `jp-osa-1` | Testing | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1`                                  |
-| K8s Version | `1.34.3-aliyun.1` / `1.34`                                                                                                      | `1.33` | `1.33.3` / `1.33` | Testing | `1.33.6` / `1.33` | Testing | `1.33.4-nks.1` / `1.33` | `v1.33.4` / `1.33` | Not Support | `1.30.0` / `1.30`                             |
+| Item | Alibaba | AWS | Azure | GCP | IBM | KT | NCP | NHN | OpenStack | Tencent |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| K8s | O | O | O | O | X | Testing | △ (app install issue) | O | Not Support | O |
+| K8s Spec | `alibaba+ap-northeast-1+ecs.c7.xlarge` / `ecs.c7.xlarge` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_A2_v2` / `Standard_A2_v2` | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bx2-2x8` / `bx2-2x8` | Testing | `ncp+kr+c2-g3` / `c2-g3` | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2` |
+| K8s Image | `aliyun_3_x64_20G_container_optimized_alibase_20260513.vhd` / Alibaba Cloud Linux 3.2104 LTS 64 bit Container-Optimized Edition | `AL2023_x86_64_STANDARD` / EKS Node - AL2023, containerd, x86_64 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | `UBUNTU_CONTAINERD` / GKE Node - Ubuntu 22.04, containerd, x86_64/ARM64 | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Testing | `23214590` / ubuntu-22.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `img-487zeit5` / Ubuntu Server 22.04 LTS 64bit |
+| K8s Zone | `ap-northeast-1a` | `ap-northeast-1a` | `1` | `asia-northeast3-a` | `jp-osa-1` | Testing | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
+| K8s Version | `1.34.3-aliyun.1` / `1.34` | `1.33` | `1.33.3` / `1.33` | `1.34.3-gke.1051003` / `1.34` | `1.33.6` / `1.33` | Testing | `1.33.4-nks.1` / `1.33` | `v1.33.4` / `1.33` | Not Support | `1.30.0` / `1.30` |
 
 ## Requirements
 

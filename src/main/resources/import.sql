@@ -275,11 +275,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     } else if (CPS == "gcp") {
                         call_tumblebug_create_cluster_payload = """{ \
                             "imageId": "default", \
-                            "specId": "gcp+asia-east1+e2-standard-4", \
-                            "connectionName": "gcp-asia-east1", \
+                            "specId": "gcp+asia-northeast3+e2-medium", \
+                            "connectionName": "gcp-asia-northeast3", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.33.5-gke.1125000" \
+                            "version": "1.34.3-gke.1051003" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -1503,7 +1503,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!kubeconfig.readLines().any { it.trim().startsWith("server:") }) {
                     error "kubeconfig server was not found after decoding Tumblebug response"
                 }
-                if (kubeconfig.contains("aws-iam-authenticator")
+                if (kubeconfig.contains("exec:")
                         && params.TUMBLEBUG?.trim()
                         && params.NAMESPACE?.trim()
                         && params.K8S_CLUSTER_ID?.trim()) {
@@ -3230,12 +3230,12 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'AZURE_SPEC_ID', '', 'N'),
 (104, 'AZURE_IMAGE_ID', '', 'N'),
 (104, 'AZURE_K8S_VERSION', '', 'N'),
-(104, 'GCP_REGION', 'asia-east1', 'N'),
-(104, 'GCP_CONNECTION_NAME', 'gcp-asia-east1', 'N'),
+(104, 'GCP_REGION', 'asia-northeast3', 'N'),
+(104, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (104, 'GCP_ZONE', '', 'N'),
 (104, 'GCP_SPEC_ID', '', 'N'),
 (104, 'GCP_IMAGE_ID', '', 'N'),
-(104, 'GCP_K8S_VERSION', '', 'N'),
+(104, 'GCP_K8S_VERSION', '1.34.3-gke.1051003', 'N'),
 (104, 'NCP_REGION', 'kr1', 'N'),
 (104, 'NCP_CONNECTION_NAME', 'ncp-kr1', 'N'),
 (104, 'NCP_ZONE', '', 'N'),

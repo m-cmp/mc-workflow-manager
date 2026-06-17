@@ -375,7 +375,7 @@ public class WorkflowStageDto {
 
         addCspK8sParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2");
         addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral");
-        addCspK8sParams(result, "GCP", "asia-east1", "gcp-asia-east1");
+        addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "1.34.3-gke.1051003");
         addCspK8sParams(result, "NCP", "kr1", "ncp-kr1");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1");
         addCspK8sParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2");
@@ -408,12 +408,16 @@ public class WorkflowStageDto {
     }
 
     private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName) {
+        addCspK8sParams(result, prefix, region, connectionName, "");
+    }
+
+    private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName, String k8sVersion) {
         result.add(param(prefix + "_REGION", region));
         result.add(param(prefix + "_CONNECTION_NAME", connectionName));
         result.add(param(prefix + "_ZONE", ""));
         result.add(param(prefix + "_SPEC_ID", ""));
         result.add(param(prefix + "_IMAGE_ID", ""));
-        result.add(param(prefix + "_K8S_VERSION", ""));
+        result.add(param(prefix + "_K8S_VERSION", k8sVersion));
     }
 
     private static List<WorkflowParamDto> params(WorkflowParamDto... params) {
