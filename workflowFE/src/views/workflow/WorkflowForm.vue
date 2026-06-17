@@ -1700,6 +1700,10 @@ const getSelectedOptionLabel = (options: Array<InfraOption>, value: string) => {
   return options.find((option) => option.value === value)?.label || value
 }
 
+const getDefaultK8sRootDiskType = () => {
+  return infraProvider.value?.trim().toLowerCase() === 'alibaba' ? 'cloud_essd' : 'default'
+}
+
 const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
   const stageName = typeof stage === 'string' ? stage : stage?.workflowStageName
   if (!stageName) return
@@ -1755,7 +1759,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'K8S_DESIRED_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MIN_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MAX_NODE_SIZE', paramValue: '3', eventListenerYn: 'N' },
-      { paramKey: 'ROOT_DISK_TYPE', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'ROOT_DISK_TYPE', paramValue: getDefaultK8sRootDiskType(), eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_SIZE', paramValue: '30', eventListenerYn: 'N' },
       { paramKey: 'K8S_NODEGROUP_CREATE_IF_MISSING', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '360', eventListenerYn: 'N' },
@@ -1876,6 +1880,11 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
         return selectedSpec.value || paramValue
       case 'K8S_VERSION':
         return selectedK8sVersion.value || existingValue || paramValue
+      case 'ROOT_DISK_TYPE':
+        if ((stageName || '').trim().toLowerCase() === 'k8s-cluster-create') {
+          return getDefaultK8sRootDiskType()
+        }
+        return existingValue || paramValue
       case 'INFRA_ID':
         return existingValue || paramValue || defaultInfraId
       case 'K8S_CLUSTER_ID':

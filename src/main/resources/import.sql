@@ -1078,11 +1078,19 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def desiredNodeSize = (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger()
                 def minNodeSize = (params.K8S_MIN_NODE_SIZE ?: "1").toInteger()
                 def maxNodeSize = (params.K8S_MAX_NODE_SIZE ?: "3").toInteger()
+                def resolveK8sRootDiskType = { csp ->
+                    def diskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                    if (csp?.equalsIgnoreCase("alibaba") && diskType.equalsIgnoreCase("default")) {
+                        return "cloud_essd"
+                    }
+                    return diskType
+                }
                 if (!payload) {
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def region = params.REGION ?: ""
                     def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
                     def imageId = params.IMAGE_ID?.trim() ?: ""
+                    def rootDiskType = resolveK8sRootDiskType(provider)
                     def usesProviderManagedK8sImage = provider?.equalsIgnoreCase("azure") || provider?.equalsIgnoreCase("ibm") || provider?.equalsIgnoreCase("ncp") || provider?.equalsIgnoreCase("tencent")
                     if (!params.SPEC_ID?.trim()) {
                         error "SPEC_ID is required"
@@ -1103,7 +1111,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         desiredNodeSize: desiredNodeSize,
                         minNodeSize: minNodeSize,
                         maxNodeSize: maxNodeSize,
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
                     if (imageId) {
@@ -1198,21 +1206,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "k8s cluster is ready but node group is missing: ${statusResponse}"
                     }
                     echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
-                    def nodeGroupZone = ""
-                    if (!nodeGroupZone) {
-                        def zoneMarker = "\"key\":\"ZoneId\",\"value\":\""
-                        def zoneIndex = (statusResponse ?: "").indexOf(zoneMarker)
-                        if (zoneIndex >= 0) {
-                            def zoneStart = zoneIndex + zoneMarker.length()
-                            def zoneEnd = statusResponse.indexOf("\"", zoneStart)
-                            if (zoneEnd > zoneStart) {
-                                nodeGroupZone = statusResponse.substring(zoneStart, zoneEnd)
-                            }
-                        }
-                    }
-                    if (!nodeGroupZone) {
-                        nodeGroupZone = params.ZONE?.trim() ?: ""
-                    }
+                    def nodeGroupZone = params.ZONE?.trim() ?: ""
                     if (!nodeGroupZone) {
                         def assignedZoneMarker = "\"assignedZone\":\""
                         def assignedZoneIndex = (statusResponse ?: "").indexOf(assignedZoneMarker)
@@ -1224,7 +1218,19 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             }
                         }
                     }
+                    if (!nodeGroupZone) {
+                        def zoneMarker = "\"key\":\"ZoneId\",\"value\":\""
+                        def zoneIndex = (statusResponse ?: "").indexOf(zoneMarker)
+                        if (zoneIndex >= 0) {
+                            def zoneStart = zoneIndex + zoneMarker.length()
+                            def zoneEnd = statusResponse.indexOf("\"", zoneStart)
+                            if (zoneEnd > zoneStart) {
+                                nodeGroupZone = statusResponse.substring(zoneStart, zoneEnd)
+                            }
+                        }
+                    }
                     echo "k8s node group resolved zone: ${nodeGroupZone}"
+                    def nodeGroupRootDiskType = resolveK8sRootDiskType(params.CSP ?: params.PROVIDER ?: "")
                     def nodeGroupMap = [
                         name: nodeGroupName,
                         specId: params.SPEC_ID,
@@ -1232,7 +1238,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         desiredNodeSize: desiredNodeSize,
                         minNodeSize: minNodeSize,
                         maxNodeSize: maxNodeSize,
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: nodeGroupRootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
                     if (params.IMAGE_ID?.trim()) {
@@ -1342,6 +1348,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!payload) {
                     def imageId = params.IMAGE_ID?.trim() ?: ""
                     def provider = params.CSP ?: params.PROVIDER ?: ""
+                    def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                    if (provider?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "cloud_essd"
+                    }
                     def usesProviderManagedK8sImage = provider?.equalsIgnoreCase("azure") || provider?.equalsIgnoreCase("ibm") || provider?.equalsIgnoreCase("ncp") || provider?.equalsIgnoreCase("tencent")
                     if (!params.SPEC_ID?.trim()) {
                         error "SPEC_ID is required"
@@ -1356,7 +1366,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
                     if (imageId) {
@@ -1557,6 +1567,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
                     def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
                     def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
+                    def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                    if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "cloud_essd"
+                    }
                     if (!specId || !imageId) {
                         error "SPEC_ID and IMAGE_ID are required for ${csp}"
                     }
@@ -1575,7 +1589,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
                     if (connectionName) {
@@ -2727,6 +2741,10 @@ pipeline {
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
                         def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                         def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
+                        def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                        if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                            rootDiskType = "cloud_essd"
+                        }
                         def usesProviderManagedK8sImage = csp?.equalsIgnoreCase("azure") || csp?.equalsIgnoreCase("ibm") || csp?.equalsIgnoreCase("ncp") || csp?.equalsIgnoreCase("tencent")
                         if (!specId) {
                             error "SPEC_ID is required for ${csp}"
@@ -2748,7 +2766,7 @@ pipeline {
                             desiredNodeSize: (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger(),
                             minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                             maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
-                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                            rootDiskType: rootDiskType,
                             rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                         ]
                         if (imageId) {
