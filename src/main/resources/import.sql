@@ -1137,6 +1137,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 echo "k8s-cluster-create payload: ${payload}"
                 def option = params.K8S_CREATE_OPTION ? "?option=${params.K8S_CREATE_OPTION}" : ""
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def clusterCreated = false
                 def existingResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
                 if (existingResponse.contains("Http_Status_code:2")) {
                     echo "k8s cluster already exists. reuse existing cluster: ${params.K8S_CLUSTER_ID}"
@@ -1146,10 +1147,15 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (!response.contains("Http_Status_code:2")) {
                         error "k8s-cluster-create failed: ${response}"
                     }
+                    clusterCreated = true
+                }
+                if (clusterCreated) {
+                    echo "k8s cluster create accepted. Wait 60 seconds before status polling."
+                    sleep time: 60, unit: "SECONDS"
                 }
                 def readyStatuses = (params.K8S_READY_STATUS ?: "Active,Running").split(",").collect { it.trim().toLowerCase() }.findAll { it }
-                def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "360").toInteger()
-                def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
+                def statusAttempts = (params.K8S_STATUS_MAX_ATTEMPTS ?: "60").toInteger()
+                def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "60").toInteger()
                 def statusResponse = ""
                 def currentStatus = ""
                 def hasNodeGroupInfo = { response ->
@@ -1201,60 +1207,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "k8s-cluster-create status check failed: ${statusResponse}"
                 }
                 def createNodeGroupIfMissing = !(params.K8S_NODEGROUP_CREATE_IF_MISSING?.trim()?.equalsIgnoreCase("false"))
-                if (!hasNodeGroupInfo(statusResponse)) {
-                    if (!createNodeGroupIfMissing) {
-                        error "k8s cluster is ready but node group is missing: ${statusResponse}"
-                    }
-                    echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
-                    def nodeGroupZone = params.ZONE?.trim() ?: ""
-                    if (!nodeGroupZone) {
-                        def assignedZoneMarker = "\"assignedZone\":\""
-                        def assignedZoneIndex = (statusResponse ?: "").indexOf(assignedZoneMarker)
-                        if (assignedZoneIndex >= 0) {
-                            def assignedZoneStart = assignedZoneIndex + assignedZoneMarker.length()
-                            def assignedZoneEnd = statusResponse.indexOf("\"", assignedZoneStart)
-                            if (assignedZoneEnd > assignedZoneStart) {
-                                nodeGroupZone = statusResponse.substring(assignedZoneStart, assignedZoneEnd)
-                            }
-                        }
-                    }
-                    if (!nodeGroupZone) {
-                        def zoneMarker = "\"key\":\"ZoneId\",\"value\":\""
-                        def zoneIndex = (statusResponse ?: "").indexOf(zoneMarker)
-                        if (zoneIndex >= 0) {
-                            def zoneStart = zoneIndex + zoneMarker.length()
-                            def zoneEnd = statusResponse.indexOf("\"", zoneStart)
-                            if (zoneEnd > zoneStart) {
-                                nodeGroupZone = statusResponse.substring(zoneStart, zoneEnd)
-                            }
-                        }
-                    }
-                    echo "k8s node group resolved zone: ${nodeGroupZone}"
-                    def nodeGroupRootDiskType = resolveK8sRootDiskType(params.CSP ?: params.PROVIDER ?: "")
-                    def nodeGroupMap = [
-                        name: nodeGroupName,
-                        specId: params.SPEC_ID,
-                        nodeGroupSize: desiredNodeSize,
-                        desiredNodeSize: desiredNodeSize,
-                        minNodeSize: minNodeSize,
-                        maxNodeSize: maxNodeSize,
-                        rootDiskType: nodeGroupRootDiskType,
-                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
-                    ]
-                    if (params.IMAGE_ID?.trim()) {
-                        nodeGroupMap.imageId = params.IMAGE_ID.trim()
-                    }
-                    if (nodeGroupZone) {
-                        nodeGroupMap.zone = nodeGroupZone
-                    }
-                    def nodeGroupPayload = groovy.json.JsonOutput.toJson(nodeGroupMap)
-                    writeFile file: "k8s-nodegroup-add.json", text: nodeGroupPayload
-                    echo "k8s-nodegroup-add payload: ${nodeGroupPayload}"
-                    def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add.json ${auth}""", returnStdout: true).trim()
-                    echo nodeGroupResponse
-                    if (!nodeGroupResponse.contains("Http_Status_code:2") && !nodeGroupResponse.toLowerCase().contains("already")) {
-                        error "k8s-nodegroup-add failed: ${nodeGroupResponse}"
-                    }
+                def waitForNodeGroupReadiness = { reason ->
+                    echo "wait for k8s node group readiness. reason=${reason}"
                     for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                         statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
                         if (isKubeconfigReadyInStatus(statusResponse)) {
@@ -1270,6 +1224,93 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (!isKubeconfigReadyInStatus(statusResponse)) {
                         error "k8s node group or kubeconfig was not ready: ${statusResponse}"
                     }
+                }
+                if (!hasNodeGroupInfo(statusResponse)) {
+                    if (!createNodeGroupIfMissing) {
+                        error "k8s cluster is ready but node group is missing: ${statusResponse}"
+                    }
+                    def missingConfirmed = true
+                    for (int missingAttempt = 1; missingAttempt <= 3; missingAttempt++) {
+                        if (missingAttempt > 1) {
+                            sleep time: statusIntervalSeconds, unit: "SECONDS"
+                            statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}?option=status" ${auth}""", returnStdout: true).trim()
+                        }
+                        if (hasNodeGroupInfo(statusResponse)) {
+                            echo "k8s node group appeared before create request. confirmation ${missingAttempt}/3."
+                            missingConfirmed = false
+                            break
+                        }
+                        echo "k8s node group is missing after cluster ready. confirmation ${missingAttempt}/3: ${statusResponse}"
+                    }
+                    if (!missingConfirmed) {
+                        waitForNodeGroupReadiness("node group appeared during missing confirmation")
+                    } else {
+                        echo "k8s node group is missing. Create node group ${nodeGroupName} with k8sNodeGroupDynamic."
+                        def nodeGroupZone = params.ZONE?.trim() ?: ""
+                        if (!nodeGroupZone) {
+                            def assignedZoneMarker = "\"assignedZone\":\""
+                            def assignedZoneIndex = (statusResponse ?: "").indexOf(assignedZoneMarker)
+                            if (assignedZoneIndex >= 0) {
+                                def assignedZoneStart = assignedZoneIndex + assignedZoneMarker.length()
+                                def assignedZoneEnd = statusResponse.indexOf("\"", assignedZoneStart)
+                                if (assignedZoneEnd > assignedZoneStart) {
+                                    nodeGroupZone = statusResponse.substring(assignedZoneStart, assignedZoneEnd)
+                                }
+                            }
+                        }
+                        if (!nodeGroupZone) {
+                            def zoneMarker = "\"key\":\"ZoneId\",\"value\":\""
+                            def zoneIndex = (statusResponse ?: "").indexOf(zoneMarker)
+                            if (zoneIndex >= 0) {
+                                def zoneStart = zoneIndex + zoneMarker.length()
+                                def zoneEnd = statusResponse.indexOf("\"", zoneStart)
+                                if (zoneEnd > zoneStart) {
+                                    nodeGroupZone = statusResponse.substring(zoneStart, zoneEnd)
+                                }
+                            }
+                        }
+                        echo "k8s node group resolved zone: ${nodeGroupZone}"
+                        def nodeGroupRootDiskType = resolveK8sRootDiskType(params.CSP ?: params.PROVIDER ?: "")
+                        def nodeGroupMap = [
+                            name: nodeGroupName,
+                            specId: params.SPEC_ID,
+                            nodeGroupSize: desiredNodeSize,
+                            desiredNodeSize: desiredNodeSize,
+                            minNodeSize: minNodeSize,
+                            maxNodeSize: maxNodeSize,
+                            rootDiskType: nodeGroupRootDiskType,
+                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                        ]
+                        if (params.IMAGE_ID?.trim()) {
+                            nodeGroupMap.imageId = params.IMAGE_ID.trim()
+                        }
+                        if (nodeGroupZone) {
+                            nodeGroupMap.zone = nodeGroupZone
+                        }
+                        def nodeGroupPayload = groovy.json.JsonOutput.toJson(nodeGroupMap)
+                        writeFile file: "k8s-nodegroup-add.json", text: nodeGroupPayload
+                        echo "k8s-nodegroup-add payload: ${nodeGroupPayload}"
+                        def nodeGroupAccepted = false
+                        for (int nodeGroupCreateAttempt = 1; nodeGroupCreateAttempt <= 3; nodeGroupCreateAttempt++) {
+                            echo "k8s-nodegroup-add request attempt ${nodeGroupCreateAttempt}/3"
+                            def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add.json ${auth}""", returnStdout: true).trim()
+                            echo nodeGroupResponse
+                            if (nodeGroupResponse.contains("Http_Status_code:2") || nodeGroupResponse.toLowerCase().contains("already")) {
+                                nodeGroupAccepted = true
+                                break
+                            }
+                            if (nodeGroupCreateAttempt == 3) {
+                                error "k8s-nodegroup-add failed after 3 attempts: ${nodeGroupResponse}"
+                            }
+                            echo "k8s-nodegroup-add was not accepted. Wait ${statusIntervalSeconds} seconds before retry."
+                            sleep time: statusIntervalSeconds, unit: "SECONDS"
+                        }
+                        if (nodeGroupAccepted) {
+                            waitForNodeGroupReadiness("node group create accepted")
+                        }
+                    }
+                } else if (!isKubeconfigReadyInStatus(statusResponse)) {
+                    waitForNodeGroupReadiness("node group already exists")
                 }
             }
         }
@@ -3171,8 +3212,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'ROOT_DISK_SIZE', '30', 'N'),
 (103, 'K8S_CREATE_OPTION', '', 'N'),
 (103, 'K8S_NODEGROUP_CREATE_IF_MISSING', 'true', 'N'),
-(103, 'K8S_STATUS_MAX_ATTEMPTS', '360', 'N'),
-(103, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
+(103, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
+(103, 'K8S_STATUS_INTERVAL_SECONDS', '60', 'N'),
 (103, 'K8S_READY_STATUS', 'Active,Running', 'N'),
 (103, 'KUBECONFIG_CONTENT', '', 'N'),
 (103, 'KUBE_NAMESPACE', 'default', 'N'),

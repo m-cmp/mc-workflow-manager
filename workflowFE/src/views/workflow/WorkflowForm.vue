@@ -1856,8 +1856,8 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'ROOT_DISK_TYPE', paramValue: getDefaultK8sRootDiskType(), eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_SIZE', paramValue: '30', eventListenerYn: 'N' },
       { paramKey: 'K8S_NODEGROUP_CREATE_IF_MISSING', paramValue: 'true', eventListenerYn: 'N' },
-      { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '360', eventListenerYn: 'N' },
-      { paramKey: 'K8S_STATUS_INTERVAL_SECONDS', paramValue: '10', eventListenerYn: 'N' },
+      { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
+      { paramKey: 'K8S_STATUS_INTERVAL_SECONDS', paramValue: '60', eventListenerYn: 'N' },
       { paramKey: 'K8S_READY_STATUS', paramValue: 'Active,Running', eventListenerYn: 'N' },
     ],
     'k8s-kubeconfig-get': [

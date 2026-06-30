@@ -141,8 +141,8 @@ public class WorkflowStageDto {
                     param("ROOT_DISK_SIZE", "30"),
                     param("K8S_CREATE_OPTION", ""),
                     param("K8S_NODEGROUP_CREATE_IF_MISSING", "true"),
-                    param("K8S_STATUS_MAX_ATTEMPTS", "360"),
-                    param("K8S_STATUS_INTERVAL_SECONDS", "10"),
+                    param("K8S_STATUS_MAX_ATTEMPTS", "60"),
+                    param("K8S_STATUS_INTERVAL_SECONDS", "60"),
                     param("K8S_READY_STATUS", "Active,Running"));
             case "multi-csp-k8s-cluster-deploy" -> multiCspK8sParams();
             case "multi-csp-k8s-cluster-delete" -> multiCspK8sDeleteParams();
