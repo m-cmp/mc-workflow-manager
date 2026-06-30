@@ -331,12 +331,14 @@ public class WorkflowStageDto {
         addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
                 "alibaba+ap-northeast-2+ecs.e-c1m1.large", "ubuntu_22_04_x64_20G_alibase_20260522.vhd");
         addCspVmParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
-                "aws+ap-northeast-1+t3.small", "ami-00b4561fe1d28c285");
+                "aws+ap-northeast-1+t3.small", "ami-091de58da07595152");
         addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202603110");
-        addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "", "", "");
+                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202606110");
+        addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
+                "gcp+asia-northeast3+e2-medium",
+                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260612");
         addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
-                "ibm+jp-osa+bxf-2x8", "r034-ed053bf7-43c9-4b64-844b-77918ac3d597");
+                "ibm+jp-osa+bxf-2x8", "r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4");
         addCspVmParams(result, "KT", "kr1", "kt-kr1", "", "", "");
         addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
                 "ncp+kr+c2-g3", "104630229");
@@ -373,14 +375,22 @@ public class WorkflowStageDto {
                 param("K8S_STATUS_INTERVAL_SECONDS", "10"),
                 param("K8S_READY_STATUS", "Active,Running"));
 
-        addCspK8sParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2");
-        addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral");
-        addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "1.34.3-gke.1051003");
-        addCspK8sParams(result, "NCP", "kr1", "ncp-kr1");
-        addCspK8sParams(result, "NHN", "kr1", "nhn-kr1");
-        addCspK8sParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2");
-        addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul");
-        addCspK8sParams(result, "IBM", "jp-osa", "ibm-jp-osa");
+        addCspK8sParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
+                "aws+ap-northeast-1+t3.small", "AL2023_x86_64_STANDARD", "1.33");
+        addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
+                "azure+koreacentral+Standard_A2_v2", "Canonical:ubuntu-22_04-lts:server:22.04.202606110", "1.33.3");
+        addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
+                "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.33.12-gke.1000000");
+        addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
+                "ncp+kr+c2-g3", "23214590", "1.33.4-nks.1");
+        addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
+                "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2", "v1.33.4");
+        addCspK8sParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1b",
+                "alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge", "Ubuntu", "1.34.3-aliyun.1");
+        addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "Ap-seoul-2",
+                "tencent+ap-seoul+BF1.MEDIUM2", "ubuntu22.04x86_64", "1.32.2");
+        addCspK8sParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
+                "ibm+jp-osa+bx2-2x8", "r034-ed053bf7-43c9-4b64-844b-77918ac3d597", "1.33.6");
         return result;
     }
 
@@ -412,11 +422,16 @@ public class WorkflowStageDto {
     }
 
     private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName, String k8sVersion) {
+        addCspK8sParams(result, prefix, region, connectionName, "", "", "", k8sVersion);
+    }
+
+    private static void addCspK8sParams(List<WorkflowParamDto> result, String prefix, String region, String connectionName,
+                                        String zone, String specId, String imageId, String k8sVersion) {
         result.add(param(prefix + "_REGION", region));
         result.add(param(prefix + "_CONNECTION_NAME", connectionName));
-        result.add(param(prefix + "_ZONE", ""));
-        result.add(param(prefix + "_SPEC_ID", ""));
-        result.add(param(prefix + "_IMAGE_ID", ""));
+        result.add(param(prefix + "_ZONE", zone));
+        result.add(param(prefix + "_SPEC_ID", specId));
+        result.add(param(prefix + "_IMAGE_ID", imageId));
         result.add(param(prefix + "_K8S_VERSION", k8sVersion));
     }
 

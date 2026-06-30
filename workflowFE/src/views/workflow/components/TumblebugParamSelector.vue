@@ -280,14 +280,14 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     connectionName: 'aws-ap-northeast-1',
     zone: 'ap-northeast-1a',
     specId: 'aws+ap-northeast-1+t3.small',
-    imageId: 'ami-00b4561fe1d28c285',
+    imageId: 'ami-091de58da07595152',
   },
   azure: {
     region: 'koreacentral',
     connectionName: 'azure-koreacentral',
     zone: '1',
     specId: 'azure+koreacentral+Standard_D2s_v3',
-    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
+    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202606110',
   },
   gcp: {
     region: 'asia-northeast3',
@@ -301,7 +301,7 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     connectionName: 'ibm-jp-osa',
     zone: 'jp-osa-1',
     specId: 'ibm+jp-osa+bxf-2x8',
-    imageId: 'r034-ed053bf7-43c9-4b64-844b-77918ac3d597',
+    imageId: 'r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4',
   },
   ncp: {
     region: 'kr',
@@ -327,13 +327,69 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
 }
 
 const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
+  alibaba: {
+    region: 'ap-northeast-1',
+    connectionName: 'alibaba-ap-northeast-1',
+    zone: 'ap-northeast-1b',
+    specId: 'alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge',
+    imageId: 'Ubuntu',
+    k8sVersion: '1.34.3-aliyun.1',
+  },
+  aws: {
+    region: 'ap-northeast-1',
+    connectionName: 'aws-ap-northeast-1',
+    zone: 'ap-northeast-1a',
+    specId: 'aws+ap-northeast-1+t3.small',
+    imageId: 'AL2023_x86_64_STANDARD',
+    k8sVersion: '1.33',
+  },
+  azure: {
+    region: 'koreacentral',
+    connectionName: 'azure-koreacentral',
+    zone: '1',
+    specId: 'azure+koreacentral+Standard_A2_v2',
+    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202606110',
+    k8sVersion: '1.33.3',
+  },
   gcp: {
     region: 'asia-northeast3',
     connectionName: 'gcp-asia-northeast3',
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+e2-medium',
     imageId: 'UBUNTU_CONTAINERD',
-    k8sVersion: '1.34.3-gke.1051003',
+    k8sVersion: '1.33.12-gke.1000000',
+  },
+  ibm: {
+    region: 'jp-osa',
+    connectionName: 'ibm-jp-osa',
+    zone: 'jp-osa-1',
+    specId: 'ibm+jp-osa+bx2-2x8',
+    imageId: 'r034-ed053bf7-43c9-4b64-844b-77918ac3d597',
+    k8sVersion: '1.33.6',
+  },
+  ncp: {
+    region: 'kr',
+    connectionName: 'ncp-kr',
+    zone: 'KR-1',
+    specId: 'ncp+kr+c2-g3',
+    imageId: '23214590',
+    k8sVersion: '1.33.4-nks.1',
+  },
+  nhn: {
+    region: 'kr1',
+    connectionName: 'nhn-kr1',
+    zone: 'kr-pub-a',
+    specId: 'nhn+kr1+m2.c1m2',
+    imageId: '0f07c795-2a46-44fc-a61b-fa0d96763ce2',
+    k8sVersion: 'v1.33.4',
+  },
+  tencent: {
+    region: 'ap-seoul',
+    connectionName: 'tencent-ap-seoul',
+    zone: 'Ap-seoul-2',
+    specId: 'tencent+ap-seoul+BF1.MEDIUM2',
+    imageId: 'ubuntu22.04x86_64',
+    k8sVersion: '1.32.2',
   },
 }
 
