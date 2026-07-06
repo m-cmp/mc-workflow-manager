@@ -13,10 +13,12 @@
     <!-- Data card -->
     <div class="card card-flush w-100">
       <div class="card-body">
-        <Tabulator
-          :columns="columns"
-          :table-data="workflowList"
-        />
+        <div class="workflow-list-table">
+          <Tabulator
+            :columns="columns"
+            :table-data="workflowList"
+          />
+        </div>
       </div>
     </div>
 
@@ -172,36 +174,51 @@ const setColumns = () => {
     {
       title: "Workflow Name",
       field: "workflowInfo.workflowName",
-      width: '30%'
+      minWidth: 220,
+      widthGrow: 3,
+      cssClass: 'workflow-text-cell',
+      variableHeight: true,
     },
     {
       title: "Purpose",
       field: "workflowInfo.workflowPurpose",
-      width: '10%'
+      minWidth: 150,
+      widthGrow: 1.2,
+      cssClass: 'workflow-text-cell',
+      variableHeight: true,
     },
     {
       title: "Status",
       field: "workflowInfo.status",
-      width: '10%',
-      formatter: statusFormatter
+      minWidth: 150,
+      widthGrow: 1,
+      formatter: statusFormatter,
+      variableHeight: true,
     },
     {
       title: "Params Count",
       formatter: paramsCountFomatter,
-      width: '10%',
-      // widthShrink: 1,
+      minWidth: 120,
+      widthGrow: 0.8,
+      hozAlign: 'center',
     },
     {
       title: "Last Run Date",
       field: "runDate",
-      width: '20%',
+      minWidth: 170,
+      widthGrow: 1.6,
       formatter: runDateFormatter,
-      // widthShrink: 5,
+      cssClass: 'workflow-text-cell',
+      variableHeight: true,
     },
     {
       title: "Action",
-      width: '20%',
+      minWidth: 260,
+      widthGrow: 2,
       formatter: buttonFormatter,
+      cssClass: 'workflow-action-cell',
+      headerSort: false,
+      variableHeight: true,
       cellClick: async(e, cell) => {
         const target = e.target as HTMLElement;
         const btnFlag = target?.getAttribute('id')
@@ -277,26 +294,73 @@ const runDateFormatter = (cell: any) => {
 }
 const buttonFormatter = () => {
   return `
-    <div>
+    <div class='workflow-action-buttons'>
       <button
-        class='btn btn-primary d-none d-sm-inline-block'
-        id='detail-btn'
-        style='margin-right: 5px'>
+        class='btn btn-primary'
+        id='detail-btn'>
           Detail
       </button>
-      <button class='btn btn-danger d-none d-sm-inline-block'
-        id='delete-btn'
-        style='margin-right: 5px'>
+      <button class='btn btn-danger'
+        id='delete-btn'>
         DELETE
       </button>
-      <button class='btn btn-info d-none d-sm-inline-block'
+      <button class='btn btn-info'
         id='run-btn'>
         RUN
       </button>
-      <button class='btn btn-primary d-none d-sm-inline-block'
+      <button class='btn btn-primary'
         id='log-btn'>
         LOG
       </button>
     </div>`;
 }
 </script>
+<style>
+.workflow-list-table .tabulator .tabulator-tableholder {
+  overflow-x: auto;
+}
+
+.workflow-list-table .tabulator-row {
+  min-height: 56px;
+}
+
+.workflow-list-table .tabulator-row .tabulator-cell {
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.workflow-list-table .tabulator-row .tabulator-cell.workflow-text-cell,
+.workflow-list-table .tabulator-row .tabulator-cell.workflow-action-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.35;
+}
+
+.workflow-list-table .workflow-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.workflow-list-table .workflow-action-buttons .btn {
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .workflow-list-table .tabulator-row .tabulator-cell {
+    padding: 8px 10px;
+  }
+
+  .workflow-list-table .workflow-action-buttons .btn {
+    min-height: 32px;
+    padding: 0.3rem 0.55rem;
+  }
+}
+</style>

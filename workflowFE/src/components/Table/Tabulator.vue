@@ -53,6 +53,8 @@ const makeTable = () => {
     data: props.tableData,
     reactiveData:true,
     columns: props.columns,
+    layout: 'fitColumns',
+    responsiveLayout: 'collapse',
     pagination: true,
     paginationSize:10,
     paginationSizeSelector:[10, 20, 50, 100],

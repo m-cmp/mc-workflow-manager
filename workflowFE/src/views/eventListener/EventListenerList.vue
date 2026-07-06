@@ -13,10 +13,12 @@
     <!-- Data card -->
     <div class="card card-flush w-100">
       <div class="card-body">
-        <Tabulator
-          :columns="columns"
-          :table-data="eventListenerList"
-        />
+        <div class="event-listener-table">
+          <Tabulator
+            :columns="columns"
+            :table-data="eventListenerList"
+          />
+        </div>
       </div>
     </div>
 
@@ -92,27 +94,43 @@ const setColumns = () => {
     {
       title: "Event Listener Name",
       field: "eventListenerName",
-      width: '20%'
+      minWidth: 190,
+      widthGrow: 1.4,
+      cssClass: 'event-listener-text-cell',
+      variableHeight: true,
     },
     {
       title: "Connect Workflow Name",
       field: "workflowName",
-      width: '20%'
+      minWidth: 220,
+      widthGrow: 1.6,
+      cssClass: 'event-listener-text-cell',
+      variableHeight: true,
     },
     {
       title: "Event Listener Desc",
       field: "eventListenerDesc",
-      width: '20%'
+      minWidth: 220,
+      widthGrow: 1.8,
+      cssClass: 'event-listener-text-cell',
+      variableHeight: true,
     },
     {
       title: "Action URL",
       field: "eventListenerUrl",
-      width: '20%'
+      minWidth: 260,
+      widthGrow: 2.2,
+      cssClass: 'event-listener-url-cell',
+      variableHeight: true,
     },
     {
       title: "Action",
-      width: '20%',
+      minWidth: 180,
+      widthGrow: 1,
       formatter: editDeleteButtonFormatter,
+      cssClass: 'event-listener-action-cell',
+      headerSort: false,
+      variableHeight: true,
       cellClick: async function (e, cell) {
         const target = e.target as HTMLElement;
         const btnFlag = target?.getAttribute('id')
@@ -142,12 +160,12 @@ const showModal = async (modalId: string) => {
 /* Comment translated to English. */
 const editDeleteButtonFormatter = () => {
   return `
-  <div>
+  <div class='event-listener-action-buttons'>
     <button
-      class='btn btn-primary d-none d-sm-inline-block mr-5'
+      class='btn btn-primary'
       id='edit-btn'>Edit</button>
     <button
-      class='btn btn-danger d-none d-sm-inline-block'
+      class='btn btn-danger'
       id='delete-btn'>Delete</button>
   </div>`;
 }
@@ -164,3 +182,58 @@ const onClickNewBtn = async () => {
 
 
 </script>
+<style>
+.event-listener-table .tabulator .tabulator-tableholder {
+  overflow-x: auto;
+}
+
+.event-listener-table .tabulator-row {
+  min-height: 56px;
+}
+
+.event-listener-table .tabulator-row .tabulator-cell {
+  min-height: 56px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.event-listener-table .tabulator-row .tabulator-cell.event-listener-text-cell,
+.event-listener-table .tabulator-row .tabulator-cell.event-listener-url-cell,
+.event-listener-table .tabulator-row .tabulator-cell.event-listener-action-cell {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  line-height: 1.35;
+}
+
+.event-listener-table .tabulator-row .tabulator-cell.event-listener-url-cell {
+  overflow-wrap: anywhere !important;
+  word-break: break-word;
+}
+
+.event-listener-table .event-listener-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.event-listener-table .event-listener-action-buttons .btn {
+  flex: 0 0 auto;
+  margin: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 960px) {
+  .event-listener-table .tabulator-row .tabulator-cell {
+    padding: 8px 10px;
+  }
+
+  .event-listener-table .event-listener-action-buttons .btn {
+    min-height: 32px;
+    padding: 0.3rem 0.55rem;
+  }
+}
+</style>
