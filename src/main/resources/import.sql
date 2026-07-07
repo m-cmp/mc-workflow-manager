@@ -3270,7 +3270,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'AZURE_ZONE', '1', 'N'),
 (104, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D8ds_v5', 'N'),
 (104, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-22_04-lts:server:22.04.202603110', 'N'),
-(104, 'AZURE_K8S_VERSION', '1.33.3', 'N'),
+(104, 'AZURE_K8S_VERSION', '1.33.12', 'N'),
 (104, 'GCP_REGION', 'asia-northeast3', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),

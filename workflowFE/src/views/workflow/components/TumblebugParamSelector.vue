@@ -349,7 +349,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: '1',
     specId: 'azure+koreacentral+Standard_D8ds_v5',
     imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
-    k8sVersion: '1.33.3',
+    k8sVersion: '1.33.12',
   },
   gcp: {
     region: 'asia-northeast3',
