@@ -273,7 +273,7 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     connectionName: 'alibaba-ap-northeast-2',
     zone: 'ap-northeast-2a',
     specId: 'alibaba+ap-northeast-2+ecs.e-c1m1.large',
-    imageId: 'ubuntu_22_04_x64_20G_alibase_20260522.vhd',
+    imageId: 'ubuntu_22_04_x64_20G_alibase_20260615.vhd',
   },
   aws: {
     region: 'ap-northeast-1',
@@ -287,14 +287,14 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     connectionName: 'azure-koreacentral',
     zone: '1',
     specId: 'azure+koreacentral+Standard_D2s_v3',
-    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202606110',
+    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
   },
   gcp: {
     region: 'asia-northeast3',
     connectionName: 'gcp-asia-northeast3',
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+e2-medium',
-    imageId: 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260612',
+    imageId: 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260623',
   },
   ibm: {
     region: 'jp-osa',
@@ -348,7 +348,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     connectionName: 'azure-koreacentral',
     zone: '1',
     specId: 'azure+koreacentral+Standard_A2_v2',
-    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202606110',
+    imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
     k8sVersion: '1.33.3',
   },
   gcp: {

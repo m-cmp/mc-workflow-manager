@@ -329,14 +329,14 @@ public class WorkflowStageDto {
                 param("POLICY_ON_PARTIAL_FAILURE", "continue"));
 
         addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
-                "alibaba+ap-northeast-2+ecs.e-c1m1.large", "ubuntu_22_04_x64_20G_alibase_20260522.vhd");
+                "alibaba+ap-northeast-2+ecs.e-c1m1.large", "ubuntu_22_04_x64_20G_alibase_20260615.vhd");
         addCspVmParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
                 "aws+ap-northeast-1+t3.small", "ami-091de58da07595152");
         addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202606110");
+                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202603110");
         addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
                 "gcp+asia-northeast3+e2-medium",
-                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260612");
+                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260623");
         addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
                 "ibm+jp-osa+bxf-2x8", "r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4");
         addCspVmParams(result, "KT", "kr1", "kt-kr1", "", "", "");
@@ -378,7 +378,7 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
                 "aws+ap-northeast-1+t3.small", "AL2023_x86_64_STANDARD", "1.33");
         addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_A2_v2", "Canonical:ubuntu-22_04-lts:server:22.04.202606110", "1.33.3");
+                "azure+koreacentral+Standard_A2_v2", "Canonical:ubuntu-22_04-lts:server:22.04.202603110", "1.33.3");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
                 "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.33.12-gke.1000000");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
