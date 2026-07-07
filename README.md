@@ -243,13 +243,13 @@ Status legend:
 
 ### K8s Workflow Test Values
 
-| Item | Alibaba | AWS | Azure | GCP | IBM | KT | NCP                                             | NHN | OpenStack | Tencent |
-| --- | --- | --- | --- | --- | --- | --- |-------------------------------------------------| --- | --- | --- |
-| K8s | O | O | O | O | X | Not yet | △ (app install issue)                           | O | Not Support | O |
-| K8s Spec | `alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge` / `ecs.u1-c1m4.xlarge` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_A2_v2` / `Standard_A2_v2` | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bx2-2x8` / `bx2-2x8` | Not yet | `ncp+kr+c2-g3a` / `c2-g3`                       | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2` |
+| Item | Alibaba | AWS | Azure | GCP | IBM | KT | NCP                                             | NHN | OpenStack | Tencent                                               |
+| --- | --- | --- | --- | --- | --- | --- |-------------------------------------------------| --- | --- |-------------------------------------------------------|
+| K8s | O | O | O | O | X | Not yet | △ (app install issue)                           | O | Not Support | X                                                     |
+| K8s Spec | `alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge` / `ecs.u1-c1m4.xlarge` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_D8ds_v5` / `Standard_D8ds_v5` | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bx2-2x8` / `bx2-2x8` | Not yet | `ncp+kr+c2-g3a` / `c2-g3`                       | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2`        |
 | K8s Image | `Ubuntu` / ACK Node - Ubuntu latest (ACK image_type alias, resolves dynamically), cgroup v2, x86_64 | `AL2023_x86_64_STANDARD` / EKS Node - AL2023, containerd, x86_64 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | `UBUNTU_CONTAINERD` / GKE Node - Ubuntu 22.04, containerd, x86_64/ARM64 | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Not yet | `23214590` / ubuntu-22.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `ubuntu22.04x86_64` / TKE Node - Ubuntu 22.04, x86_64 |
-| K8s Zone | `ap-northeast-1b` | `ap-northeast-1a` | `1` | `asia-northeast3-a` | `jp-osa-1` | Not yet | `KR-1`                                          | `kr-pub-a` | Not Support | `Ap-seoul-2` |
-| K8s Version | `1.34.3-aliyun.1` / `1.34` | `1.33` | `1.33.3` / `1.33` | `1.33.12-gke.1000000` / `1.33` | `1.33.6` / `1.33` | Not yet | `1.33.4-nks.1` / `1.33`                         | `v1.33.4` / `1.33` | Not Support | `1.32.2` / `1.32` |
+| K8s Zone | `ap-northeast-1b` | `ap-northeast-1a` | `1` | `asia-northeast3-a` | `jp-osa-1` | Not yet | `KR-1`                                          | `kr-pub-a` | Not Support | `Ap-seoul-2`                                          |
+| K8s Version | `1.34.3-aliyun.1` / `1.34` | `1.33` | `1.33.3` / `1.33` | `1.33.12-gke.1000000` / `1.33` | `1.33.6` / `1.33` | Not yet | `1.33.4-nks.1` / `1.33`                         | `v1.33.4` / `1.33` | Not Support | `1.32.2` / `1.32`                                     |
 
 ## Requirements
 

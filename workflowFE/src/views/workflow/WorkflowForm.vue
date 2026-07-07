@@ -577,7 +577,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'koreacentral',
     connectionName: 'azure-koreacentral',
     zone: '1',
-    specId: 'azure+koreacentral+Standard_A2_v2',
+    specId: 'azure+koreacentral+Standard_D8ds_v5',
     imageId: 'Canonical:ubuntu-22_04-lts:server:22.04.202603110',
     k8sVersion: '1.33.3',
   },
