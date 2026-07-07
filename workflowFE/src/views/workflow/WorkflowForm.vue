@@ -537,7 +537,7 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'kr',
     connectionName: 'ncp-kr',
     zone: 'KR-1',
-    specId: 'ncp+kr+c2-g3',
+    specId: 'ncp+kr+c2-g3a',
     imageId: '104630229',
   },
   nhn: {
@@ -601,7 +601,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'kr',
     connectionName: 'ncp-kr',
     zone: 'KR-1',
-    specId: 'ncp+kr+c2-g3',
+    specId: 'ncp+kr+c2-g3a',
     imageId: '23214590',
     k8sVersion: '1.33.4-nks.1',
   },

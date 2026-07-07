@@ -341,7 +341,7 @@ public class WorkflowStageDto {
                 "ibm+jp-osa+bxf-2x8", "r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4");
         addCspVmParams(result, "KT", "kr1", "kt-kr1", "", "", "");
         addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c2-g3", "104630229");
+                "ncp+kr+c2-g3a", "104630229");
         addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
                 "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2");
         addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
@@ -382,7 +382,7 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
                 "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.33.12-gke.1000000");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c2-g3", "23214590", "1.33.4-nks.1");
+                "ncp+kr+c2-g3a", "23214590", "1.33.4-nks.1");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
                 "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2", "v1.33.4");
         addCspK8sParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1b",
