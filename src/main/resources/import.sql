@@ -943,9 +943,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 }
 
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def infraId = params.INFRA_ID ?: params.INFRA_PREFIX ?: "multi-csp-vm"
+                def nodeGroupPrefix = params.INFRA_NODEGROUP_PREFIX ?: params.INFRA_NODEGROUP_NAME ?: "ng"
+                def nodeGroups = []
+                def providers = []
+                def regions = []
+
                 cspList.each { csp ->
                     def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
-                    def infraId = (params.INFRA_PREFIX ?: "multi-csp-vm") + "-" + csp
                     def specId = params["${key}_SPEC_ID"]
                     def imageId = params["${key}_IMAGE_ID"]
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
@@ -956,7 +961,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
 
                     def nodeGroup = [
-                        name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                        name: params["${key}_NODEGROUP_NAME"] ?: "${nodeGroupPrefix}-${key.toLowerCase().replaceAll("_", "-")}",
                         nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
                         specId: specId,
                         imageId: imageId,
@@ -970,24 +975,33 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         nodeGroup.zone = zone
                     }
 
-                    def payload = groovy.json.JsonOutput.toJson([
-                        name: infraId,
-                        description: "Workflow multi CSP VM deploy - ${csp}",
-                        installMonAgent: params.INSTALL_MON_AGENT ?: "no",
-                        policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
-                        label: [
-                            csp: csp,
-                            region: region
-                        ],
-                        nodeGroups: [nodeGroup]
-                    ])
-
-                    writeFile file: "infra-create-${csp}.json", text: payload
-                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create-${csp}.json ${auth}""", returnStdout: true).trim()
-                    echo response
-                    if (!response.contains("Http_Status_code:2")) {
-                        error "multi-csp-vm-deploy failed for ${csp}: ${response}"
+                    nodeGroups << nodeGroup
+                    if (!providers.contains(csp)) {
+                        providers << csp
                     }
+                    if (region && !regions.contains(region)) {
+                        regions << region
+                    }
+                }
+
+                def payload = groovy.json.JsonOutput.toJson([
+                    name: infraId,
+                    description: params.INFRA_DESC ?: "Workflow multi CSP VM deploy",
+                    installMonAgent: params.INSTALL_MON_AGENT ?: "no",
+                    policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
+                    label: [
+                        csp: providers.join(","),
+                        region: regions.join(",")
+                    ],
+                    nodeGroups: nodeGroups
+                ])
+
+                writeFile file: "infra-create.json", text: payload
+                echo "multi-csp-vm-deploy payload: ${payload}"
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create.json ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!response.contains("Http_Status_code:2")) {
+                    error "multi-csp-vm-deploy failed: ${response}"
                 }
             }
         }
@@ -1005,7 +1019,6 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 }
 
                 def explicitInfraIds = (params.INFRA_ID_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
-                def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
                 def targetInfraIds = []
 
                 if (!explicitInfraIds.isEmpty()) {
@@ -1015,16 +1028,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         }
                     }
                 } else {
-                    if (cspList.isEmpty()) {
-                        error "CSP_LIST or INFRA_ID_LIST is required"
-                    }
-
-                    def infraPrefix = params.INFRA_PREFIX ?: "multi-csp-vm"
-                    cspList.each { csp ->
-                        def infraId = "${infraPrefix}-${csp}"
-                        if (!targetInfraIds.contains(infraId)) {
-                            targetInfraIds << infraId
-                        }
+                    def infraId = params.INFRA_ID ?: params.INFRA_PREFIX ?: "multi-csp-vm"
+                    if (!targetInfraIds.contains(infraId)) {
+                        targetInfraIds << infraId
                     }
                 }
 
@@ -2646,9 +2652,14 @@ pipeline {
                     }
 
                     def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def infraId = params.INFRA_ID ?: params.INFRA_PREFIX ?: "multi-csp-vm"
+                    def nodeGroupPrefix = params.INFRA_NODEGROUP_PREFIX ?: params.INFRA_NODEGROUP_NAME ?: "ng"
+                    def nodeGroups = []
+                    def providers = []
+                    def regions = []
+
                     cspList.each { csp ->
                         def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
-                        def infraId = (params.INFRA_PREFIX ?: "multi-csp-vm") + "-" + csp
                         def specId = params["${key}_SPEC_ID"]
                         def imageId = params["${key}_IMAGE_ID"]
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
@@ -2659,7 +2670,7 @@ pipeline {
                         }
 
                         def nodeGroup = [
-                            name: params.INFRA_NODEGROUP_NAME ?: "g1",
+                            name: params["${key}_NODEGROUP_NAME"] ?: "${nodeGroupPrefix}-${key.toLowerCase().replaceAll("_", "-")}",
                             nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
                             specId: specId,
                             imageId: imageId,
@@ -2673,24 +2684,33 @@ pipeline {
                             nodeGroup.zone = zone
                         }
 
-                        def payload = groovy.json.JsonOutput.toJson([
-                            name: infraId,
-                            description: "Workflow multi CSP VM deploy - ${csp}",
-                            installMonAgent: params.INSTALL_MON_AGENT ?: "no",
-                            policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
-                            label: [
-                                csp: csp,
-                                region: region
-                            ],
-                            nodeGroups: [nodeGroup]
-                        ])
-
-                        writeFile file: "infra-create-${csp}.json", text: payload
-                        def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create-${csp}.json ${auth}""", returnStdout: true).trim()
-                        echo response
-                        if (!response.contains("Http_Status_code:2")) {
-                            error "multi-csp-vm-deploy failed for ${csp}: ${response}"
+                        nodeGroups << nodeGroup
+                        if (!providers.contains(csp)) {
+                            providers << csp
                         }
+                        if (region && !regions.contains(region)) {
+                            regions << region
+                        }
+                    }
+
+                    def payload = groovy.json.JsonOutput.toJson([
+                        name: infraId,
+                        description: params.INFRA_DESC ?: "Workflow multi CSP VM deploy",
+                        installMonAgent: params.INSTALL_MON_AGENT ?: "no",
+                        policyOnPartialFailure: params.POLICY_ON_PARTIAL_FAILURE ?: "continue",
+                        label: [
+                            csp: providers.join(","),
+                            region: regions.join(",")
+                        ],
+                        nodeGroups: nodeGroups
+                    ])
+
+                    writeFile file: "infra-create.json", text: payload
+                    echo "multi-csp-vm-deploy payload: ${payload}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infraDynamic" -H "Content-Type: application/json" -d @infra-create.json ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (!response.contains("Http_Status_code:2")) {
+                        error "multi-csp-vm-deploy failed: ${response}"
                     }
                 }
             }
@@ -3136,8 +3156,9 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'USERPASS', 'default', 'N'),
 (102, 'NAMESPACE', 'ns01', 'N'),
 (102, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt', 'N'),
+(102, 'INFRA_ID', 'multi-csp-vm', 'N'),
 (102, 'INFRA_PREFIX', 'multi-csp-vm', 'N'),
-(102, 'INFRA_NODEGROUP_NAME', 'g1', 'N'),
+(102, 'INFRA_NODEGROUP_PREFIX', 'ng', 'N'),
 (102, 'INFRA_NODEGROUP_SIZE', '1', 'N'),
 (102, 'ROOT_DISK_TYPE', 'default', 'N'),
 (102, 'ROOT_DISK_SIZE', '50', 'N'),
@@ -3323,7 +3344,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (106, 'USER', 'default', 'N'),
 (106, 'USERPASS', 'default', 'N'),
 (106, 'NAMESPACE', 'ns01', 'N'),
-(106, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt', 'N'),
+(106, 'INFRA_ID', 'multi-csp-vm', 'N'),
 (106, 'INFRA_PREFIX', 'multi-csp-vm', 'N'),
 (106, 'INFRA_ID_LIST', '', 'N'),
 (106, 'INFRA_DELETE_OPTION', 'terminate', 'N');

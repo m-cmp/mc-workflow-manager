@@ -1,5 +1,5 @@
 <template>
-  <div class="modal modal-blur fade" id="workflowHistoryDetailPopup" tabindex="-1" aria-hidden="true">
+  <div class="modal modal-blur fade" id="workflowHistoryDetailPopup" tabindex="-1" aria-hidden="true" ref="modalElement">
     <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content">
         <div class="modal-status bg-info"></div>
@@ -16,7 +16,7 @@
               class="step-item" 
               :class="{'active':stage.status === 'IN_PROGRESS'}" 
               :key="index"
-              @click="getRunHistoryDetailList(stage)"
+              @click="selectStage(stage)"
               style="cursor: pointer;">
               {{ stage.name }}
             </span>
@@ -59,11 +59,12 @@
 import { useToast } from 'vue-toastification';
 // @ts-ignore
 import type { JenkinsStage } from '@/views/type/type'
-import { ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 // @ts-ignore
 import { getWorkflowRunHistoryDetail } from '@/api/workflow'
 
 const toast = useToast()
+const DETAIL_POLLING_INTERVAL_MS = 3000
 /**
  * @Title Props / Emit
  */
@@ -75,28 +76,139 @@ interface Props {
 }
 const props = defineProps<Props>()
 
-watch(() => props.workflowStages, () => {
-  if(props.workflowStages.length > 0) getRunHistoryDetailList(props.workflowStages[0])
+const modalElement = ref<HTMLElement>()
+const selectedStage = ref<JenkinsStage>()
+let detailPollingTimer: ReturnType<typeof setInterval> | undefined
+let detailFetching = false
+
+watch(() => props.workflowStages, async () => {
+  syncSelectedStage()
+  if (selectedStage.value && modalElement.value?.classList.contains('show')) {
+    await getRunHistoryDetailList(selectedStage.value, false)
+    startDetailPolling()
+  }
+}, { deep: true })
+
+onMounted(() => {
+  modalElement.value?.addEventListener('show.bs.modal', onShowModal)
+  modalElement.value?.addEventListener('hidden.bs.modal', onHiddenModal)
+})
+
+onBeforeUnmount(() => {
+  modalElement.value?.removeEventListener('show.bs.modal', onShowModal)
+  modalElement.value?.removeEventListener('hidden.bs.modal', onHiddenModal)
+  stopDetailPolling()
 })
 
 const runHistoryDetailList = ref([] as any)
-const getRunHistoryDetailList = async (stage: JenkinsStage) => {
+const getRunHistoryDetailList = async (stage: JenkinsStage, showErrorToast = true) => {
+  if (!stage || !props.workflowIdx || !props.buildName || detailFetching) {
+    return
+  }
+
+  detailFetching = true
   const params = {
     workflowIdx: props.workflowIdx,
     buildName: props.buildName,
     stageIdx: stage.id
   }
   await getWorkflowRunHistoryDetail(params).then(({ data }) => {
+    const previousFlags = new Map(
+      (runHistoryDetailList.value?.stageFlowNodes || []).map((stageFlowNode: any, idx: number) => [
+        getStageFlowNodeKey(stageFlowNode, idx),
+        Boolean(stageFlowNode.flag)
+      ])
+    )
     // @ts-ignore
-    data.stageFlowNodes.forEach((stageFlowNode:any) => {
-      stageFlowNode.flag = false
-    });
+    ;(data?.stageFlowNodes || []).forEach((stageFlowNode:any, idx: number) => {
+      stageFlowNode.flag = previousFlags.get(getStageFlowNodeKey(stageFlowNode, idx)) || false
+    })
     runHistoryDetailList.value = data
+  }).catch((error) => {
+    console.log(error)
+    if (showErrorToast) {
+      toast.error('Failed to load workflow stage logs.')
+    }
+  }).finally(() => {
+    detailFetching = false
   })
 }
 
 const onClickDetail = (idx: number) => {
   runHistoryDetailList.value.stageFlowNodes[idx].flag = !runHistoryDetailList.value.stageFlowNodes[idx].flag
+}
+
+const selectStage = async (stage: JenkinsStage) => {
+  selectedStage.value = stage
+  await getRunHistoryDetailList(stage)
+  startDetailPolling()
+}
+
+const onShowModal = async () => {
+  syncSelectedStage()
+  if (selectedStage.value) {
+    await getRunHistoryDetailList(selectedStage.value)
+    startDetailPolling()
+  }
+}
+
+const onHiddenModal = () => {
+  stopDetailPolling()
+  runHistoryDetailList.value = []
+  selectedStage.value = undefined
+}
+
+const startDetailPolling = () => {
+  stopDetailPolling()
+  if (!canPollDetail()) {
+    return
+  }
+
+  detailPollingTimer = setInterval(async () => {
+    if (selectedStage.value) {
+      await getRunHistoryDetailList(selectedStage.value, false)
+    }
+
+    if (!canPollDetail()) {
+      stopDetailPolling()
+    }
+  }, DETAIL_POLLING_INTERVAL_MS)
+}
+
+const stopDetailPolling = () => {
+  if (detailPollingTimer) {
+    clearInterval(detailPollingTimer)
+    detailPollingTimer = undefined
+  }
+}
+
+const syncSelectedStage = () => {
+  if (!props.workflowStages.length) {
+    selectedStage.value = undefined
+    runHistoryDetailList.value = []
+    stopDetailPolling()
+    return
+  }
+
+  const currentStageId = selectedStage.value?.id
+  selectedStage.value = props.workflowStages.find((stage) => stage.id === currentStageId)
+    || props.workflowStages[0]
+}
+
+const canPollDetail = () => {
+  if (!modalElement.value?.classList.contains('show')) {
+    return false
+  }
+
+  if (!props.workflowStages.length || !selectedStage.value) {
+    return false
+  }
+
+  return Boolean(props.workflowIdx && props.buildName)
+}
+
+const getStageFlowNodeKey = (stageFlowNode: any, idx: number) => {
+  return `${stageFlowNode?.id || ''}:${stageFlowNode?.name || ''}:${idx}`
 }
 
 </script>

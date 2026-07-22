@@ -272,7 +272,7 @@ const reviewInfraDynamicBeforeRun = async () => {
 
 const needsInfraDynamicReview = () => {
   const stageNames = getWorkflowStageNames()
-  return stageNames.includes('infra-create')
+  return stageNames.includes('infra-create') || stageNames.includes('multi-csp-vm-deploy')
 }
 
 const buildInfraDynamicReviewPayload = () => {
@@ -310,7 +310,7 @@ const buildNodeGroupReviewPayload = (prefix: string, csp: string) => {
   }
 
   const nodeGroup: Record<string, any> = {
-    name: getParamValue('INFRA_NODEGROUP_NAME') || 'g1',
+    name: buildInfraNodeGroupName(prefix, csp),
     nodeGroupSize: Number(getParamValue('INFRA_NODEGROUP_SIZE') || '1'),
     specId,
     imageId,
@@ -327,6 +327,20 @@ const buildNodeGroupReviewPayload = (prefix: string, csp: string) => {
   }
 
   return nodeGroup
+}
+
+const buildInfraNodeGroupName = (prefix: string, csp: string) => {
+  const specificNodeGroupName = getParamValue(`${prefix}NODEGROUP_NAME`)
+  if (specificNodeGroupName) {
+    return specificNodeGroupName
+  }
+
+  if (!csp) {
+    return getParamValue('INFRA_NODEGROUP_NAME') || 'g1'
+  }
+
+  const nodeGroupPrefix = getParamValue('INFRA_NODEGROUP_PREFIX') || getParamValue('INFRA_NODEGROUP_NAME') || 'ng'
+  return `${nodeGroupPrefix}-${normalizeCspKey(csp).toLowerCase().replace(/_/g, '-')}`
 }
 
 const hasInfraReviewError = (reviewResult: any) => {

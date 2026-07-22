@@ -43,14 +43,13 @@
 
 <script setup lang="ts">
 // import type { Oss, OssType } from '@/views/type/type';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useToast } from 'vue-toastification';
 import { getWorkflowLog } from '@/api/workflow';
-import { computed } from 'vue';
-import { watch } from 'vue';
 import type { WorkflowLog } from '@/views/type/type';
 
 const toast = useToast()
+const LOG_POLLING_INTERVAL_MS = 3000
 /**
  * @Title Props / Emit
  */
@@ -66,46 +65,78 @@ const modalElement = ref<HTMLElement>()
 const workflowIdx = computed(() => props.workflowIdx);
 watch(workflowIdx, async () => {
   if (modalElement.value?.classList.contains('show')) {
-    firstLoadData.value = false
-    await setInit();
+    stopWorkflowLogPolling()
+    await setInit(true);
+    startWorkflowLogPolling()
   }
 });
 
 onMounted(() => {
   modalElement.value?.addEventListener('show.bs.modal', onShowModal)
+  modalElement.value?.addEventListener('hidden.bs.modal', onHiddenModal)
 })
 
 onBeforeUnmount(() => {
   modalElement.value?.removeEventListener('show.bs.modal', onShowModal)
+  modalElement.value?.removeEventListener('hidden.bs.modal', onHiddenModal)
+  stopWorkflowLogPolling()
 })
 
 /* Comment translated to English. */
 const workflowLogList = ref([] as Array<WorkflowLog>)
-const setInit = async () => {
+let workflowLogPollingTimer: ReturnType<typeof setInterval> | undefined
+let workflowLogFetching = false
+
+const setInit = async (showLoading = true) => {
   if (!workflowIdx.value) {
     workflowLogList.value = []
     firstLoadData.value = true
+    stopWorkflowLogPolling()
     return
   }
 
-  firstLoadData.value = false
-  workflowLogList.value = []
+  if (workflowLogFetching) {
+    return
+  }
+
+  workflowLogFetching = true
+  if (showLoading) {
+    firstLoadData.value = false
+    workflowLogList.value = []
+  }
+
   await getWorkflowLog(workflowIdx.value).then(({ data }) => {
-    workflowLogList.value = data
-    clickedBuildIdx.value = data[0]?.buildIdx ?? 0
+    const nextLogList = Array.isArray(data) ? data : []
+    const currentBuildIdx = clickedBuildIdx.value
+    workflowLogList.value = nextLogList
+
+    if (!nextLogList.some((workflowLog) => workflowLog.buildIdx === currentBuildIdx)) {
+      clickedBuildIdx.value = nextLogList[0]?.buildIdx ?? 0
+    }
   }).catch((error) => {
     console.log(error)
-    toast.error('Failed to load workflow logs.')
+    if (showLoading) {
+      toast.error('Failed to load workflow logs.')
+    }
   }).finally(() => {
-    firstLoadData.value = true
+    if (showLoading) {
+      firstLoadData.value = true
+    }
+    workflowLogFetching = false
   })
 }
 
 const onShowModal = async () => {
-  await setInit()
+  await setInit(true)
+  startWorkflowLogPolling()
+}
+
+const onHiddenModal = () => {
+  setClear()
 }
 
 const setClear = () => {
+  stopWorkflowLogPolling()
   workflowLogList.value = []
   clickedBuildIdx.value = 1
 }
@@ -122,5 +153,30 @@ const onClickedBuildIdx = (buildIdx: number) => {
 
 const getBuildTitle = (buildIdx: number) => {
   return buildIdx === 0 ? 'DB History' : buildIdx
+}
+
+const startWorkflowLogPolling = () => {
+  stopWorkflowLogPolling()
+  if (!isWorkflowLogModalOpen() || !workflowIdx.value) {
+    return
+  }
+
+  workflowLogPollingTimer = setInterval(async () => {
+    await setInit(false)
+    if (!isWorkflowLogModalOpen() || !workflowIdx.value) {
+      stopWorkflowLogPolling()
+    }
+  }, LOG_POLLING_INTERVAL_MS)
+}
+
+const stopWorkflowLogPolling = () => {
+  if (workflowLogPollingTimer) {
+    clearInterval(workflowLogPollingTimer)
+    workflowLogPollingTimer = undefined
+  }
+}
+
+const isWorkflowLogModalOpen = () => {
+  return Boolean(modalElement.value?.classList.contains('show'))
 }
 </script>

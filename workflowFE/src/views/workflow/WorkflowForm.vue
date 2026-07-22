@@ -1829,7 +1829,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
-      { paramKey: 'CSP_LIST', paramValue: 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt', eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: 'multi-csp-vm', eventListenerYn: 'N' },
       { paramKey: 'INFRA_PREFIX', paramValue: 'multi-csp-vm', eventListenerYn: 'N' },
       { paramKey: 'INFRA_ID_LIST', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'INFRA_DELETE_OPTION', paramValue: 'terminate', eventListenerYn: 'N' },

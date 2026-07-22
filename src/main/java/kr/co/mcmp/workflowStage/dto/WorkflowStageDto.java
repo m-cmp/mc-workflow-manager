@@ -320,8 +320,9 @@ public class WorkflowStageDto {
         List<WorkflowParamDto> result = tumblebugParams(
                 param("NAMESPACE", ""),
                 param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt"),
+                param("INFRA_ID", "multi-csp-vm"),
                 param("INFRA_PREFIX", "multi-csp-vm"),
-                param("INFRA_NODEGROUP_NAME", "g1"),
+                param("INFRA_NODEGROUP_PREFIX", "ng"),
                 param("INFRA_NODEGROUP_SIZE", "1"),
                 param("ROOT_DISK_TYPE", "default"),
                 param("ROOT_DISK_SIZE", "50"),
@@ -352,7 +353,7 @@ public class WorkflowStageDto {
     private static List<WorkflowParamDto> multiCspVmDeleteParams() {
         return tumblebugParams(
                 param("NAMESPACE", ""),
-                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt"),
+                param("INFRA_ID", "multi-csp-vm"),
                 param("INFRA_PREFIX", "multi-csp-vm"),
                 param("INFRA_ID_LIST", ""),
                 param("INFRA_DELETE_OPTION", "terminate"));

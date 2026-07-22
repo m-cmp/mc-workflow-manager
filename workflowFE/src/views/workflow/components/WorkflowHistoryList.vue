@@ -119,6 +119,9 @@ const setRunHistory = async (workflowIdx?: number | string | string[], showLoadi
     if (!runHistoryList.value.length) {
       resetRunHistoryState()
     }
+    else {
+      syncSelectedRunHistoryStage()
+    }
   }).catch((error) => {
     console.log(error)
   }).finally(() => {
@@ -133,6 +136,19 @@ const setRunHistory = async (workflowIdx?: number | string | string[], showLoadi
 const columns = ref([] as Array<ColumnDefinition>)
 const selectBuildName = ref('' as string)
 const selectRunHistoryStage = ref([] as Array<JenkinsStage>)
+const normalizeBuildName = (buildName?: string) => {
+  return String(buildName || '').replace('#', '')
+}
+const syncSelectedRunHistoryStage = () => {
+  if (!selectBuildName.value) {
+    return
+  }
+
+  const selectedHistory = runHistoryList.value.find((runHistory) => {
+    return normalizeBuildName(runHistory.name) === selectBuildName.value
+  })
+  selectRunHistoryStage.value = selectedHistory?.stages || []
+}
 const setColumns = () => {
   columns.value = [
     {
@@ -165,7 +181,7 @@ const setColumns = () => {
         if (!rowData.stages || rowData.stages.length === 0) {
           return
         }
-        selectBuildName.value = rowData.name.replace('#', '')
+        selectBuildName.value = normalizeBuildName(rowData.name)
         selectRunHistoryStage.value = rowData.stages
       }
     }

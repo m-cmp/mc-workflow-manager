@@ -550,7 +550,8 @@ public class WorkflowServiceImpl implements WorkflowService {
             for (WorkflowStageMappingDto stage : workflowReqDto.getWorkflowStageMappings()) {
                 String stageName = normalizeText(stage.getWorkflowStageName());
                 String stageContent = normalizeText(stage.getStageContent());
-                if ("infra-create".equals(stageName) || stageContent.contains("infra-create") || stageContent.contains("infraDynamic")) {
+                if ("infra-create".equals(stageName) || "multi-csp-vm-deploy".equals(stageName)
+                        || stageContent.contains("infra-create") || stageContent.contains("infraDynamic")) {
                     return true;
                 }
             }
@@ -609,7 +610,7 @@ public class WorkflowServiceImpl implements WorkflowService {
         }
 
         Map<String, Object> nodeGroup = new LinkedHashMap<>();
-        nodeGroup.put("name", getParamValue(workflowReqDto, "INFRA_NODEGROUP_NAME", "g1"));
+        nodeGroup.put("name", buildInfraNodeGroupName(workflowReqDto, prefix, csp));
         nodeGroup.put("nodeGroupSize", parseInteger(getParamValue(workflowReqDto, "INFRA_NODEGROUP_SIZE", "1"), 1));
         nodeGroup.put("specId", specId);
         nodeGroup.put("imageId", imageId);
@@ -623,6 +624,24 @@ public class WorkflowServiceImpl implements WorkflowService {
             nodeGroup.put("zone", zone);
         }
         return nodeGroup;
+    }
+
+    private String buildInfraNodeGroupName(WorkflowReqDto workflowReqDto, String prefix, String csp) {
+        String specificNodeGroupName = getParamValue(workflowReqDto, prefix + "NODEGROUP_NAME", "");
+        if (StringUtils.hasText(specificNodeGroupName)) {
+            return specificNodeGroupName;
+        }
+
+        if (!StringUtils.hasText(csp)) {
+            return getParamValue(workflowReqDto, "INFRA_NODEGROUP_NAME", "g1");
+        }
+
+        String nodeGroupPrefix = getParamValue(workflowReqDto, "INFRA_NODEGROUP_PREFIX",
+                getParamValue(workflowReqDto, "INFRA_NODEGROUP_NAME", "ng"));
+        if (!StringUtils.hasText(nodeGroupPrefix)) {
+            nodeGroupPrefix = "ng";
+        }
+        return nodeGroupPrefix + "-" + normalizeCspKey(csp).toLowerCase(Locale.ROOT).replace("_", "-");
     }
 
     @SuppressWarnings("unchecked")
