@@ -93,8 +93,10 @@ import ParamForm from '@/views/workflow/components/ParamForm.vue';
 // @ts-ignore
 import TumblebugParamSelector from '@/views/workflow/components/TumblebugParamSelector.vue';
 import { Modal } from 'bootstrap'
+import { useUserStore } from '@/stores/user'
 
 const toast = useToast()
+const userInfo = useUserStore()
 
 /* Comment translated to English. */
 const modalElement = ref<HTMLElement>()
@@ -306,9 +308,14 @@ const onSelectWorkflow = (selectedWorkflowIdx:number) => {
 }
 
 const cloneWorkflowParams = (params: Array<WorkflowParams> = []) => {
+  const namespace = (userInfo.projectInfo.ns_id || userInfo.projectInfo.name || '').trim()
+
   return params.map((param) => ({
     ...param,
     paramIdx: 0,
+    paramValue: namespace && param.paramKey?.trim().toUpperCase() === 'NAMESPACE'
+      ? namespace
+      : param.paramValue,
     eventListenerYn: 'Y',
   }))
 }
