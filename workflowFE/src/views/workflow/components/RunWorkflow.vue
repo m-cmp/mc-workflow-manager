@@ -80,8 +80,10 @@ import ParamForm from '@/views/workflow/components/ParamForm.vue'
 import TumblebugParamSelector from '@/views/workflow/components/TumblebugParamSelector.vue'
 // @ts-ignore
 import { getMcInfraResources, reviewMcInfraDynamic } from '@/api/infraManager'
+import { useUserStore } from '@/stores/user'
 
 const toast = useToast()
+const userInfo = useUserStore()
 /**
  * @Title Props / Emit
  */
@@ -133,12 +135,25 @@ const loadWorkflowDetail = async () => {
   loading.value = true
   try {
     const { data } = await getWorkflowDetailInfo(workflowIdx.value, 'N')
+    applySelectedProjectNamespace(data)
     workflowFormData.value = data
   } catch (error) {
     console.log(error)
     toast.error('Failed to load workflow run parameters.')
   } finally {
     loading.value = false
+  }
+}
+
+const applySelectedProjectNamespace = (workflow: Workflow) => {
+  const namespace = (userInfo.projectInfo.ns_id || userInfo.projectInfo.name || '').trim()
+  if (!namespace) return
+
+  const namespaceParam = workflow.workflowParams?.find(
+    (param) => param.paramKey?.trim().toUpperCase() === 'NAMESPACE',
+  )
+  if (namespaceParam) {
+    namespaceParam.paramValue = namespace
   }
 }
 
