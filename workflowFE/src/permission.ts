@@ -1,9 +1,28 @@
 import router from "./router/index";
 import { useUserStore } from '@/stores/user'
 
+// Standalone the console never posts a message, so the sample data below is unreachable and the
+// store keeps an empty ns_id, which leaves NAMESPACE blank on every form. Seed it once when there
+// is no parent frame to hear from; inside the iframe the real projectInfo overwrites it.
+const seedStandaloneUser = () => {
+  if (window.parent !== window) return
+
+  useUserStore().setUser({
+    accessToken: "accesstokenExample",
+    workspaceInfo: { id: "", name: "", description: "", created_at: "", updated_at: "" },
+    projectInfo: {
+      id: "", ns_id: "ns01", mci_id: "mci01", cluster_id: "cluster01",
+      name: "ns01", description: "", created_at: "", updated_at: ""
+    },
+    operationId: ""
+  })
+}
+
 router.beforeEach(async (to, from, next) => {
   console.log('## to ### : ', to)
   console.log('## from ### : ', from)
+
+  seedStandaloneUser()
 
   window.addEventListener("message", async function (event) {
     let data

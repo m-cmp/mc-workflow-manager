@@ -291,6 +291,41 @@ public class WorkflowStageDto {
             case "namespace-ensure" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("NAMESPACE_DESC", "Workflow created namespace"));
+            case "object-storage-create" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("DATA_MANAGER", "http://mc-data-manager:3300"),
+                    param("OBJECT_STORAGE_BUCKET", ""),
+                    param("OBJECT_STORAGE_NAMESPACE", ""),
+                    param("OBJECT_STORAGE_PROVIDER", ""),
+                    param("OBJECT_STORAGE_REGION", ""),
+                    param("OBJECT_STORAGE_READY_MAX_ATTEMPTS", "30"),
+                    param("OBJECT_STORAGE_READY_INTERVAL_SECONDS", "5"));
+            case "object-storage-delete" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("DATA_MANAGER", "http://mc-data-manager:3300"),
+                    param("OBJECT_STORAGE_DELETE_ENABLED", "true"),
+                    param("OBJECT_STORAGE_BUCKET", ""),
+                    param("OBJECT_STORAGE_NAMESPACE", ""),
+                    param("OBJECT_STORAGE_PROVIDER", ""),
+                    param("OBJECT_STORAGE_REGION", ""));
+            case "object-storage-data-lab-install" -> params(
+                    param("OBJECT_STORAGE_PROVIDER", ""),
+                    param("OBJECT_STORAGE_BUCKET", ""),
+                    param("OBJECT_STORAGE_REGION", ""),
+                    param("OBJECT_STORAGE_ENDPOINT", ""),
+                    param("OBJECT_STORAGE_CREDENTIALS_ID", "object-storage-credential"),
+                    param("OBJECT_STORAGE_URL_STYLE", "vhost"),
+                    param("OBJECT_STORAGE_USE_SSL", "true"),
+                    param("SSH_HOST", ""),
+                    param("SSH_USER", "cb-user"),
+                    param("SSH_KEY_FILE", ""),
+                    param("DATA_PREFIX", ""),
+                    param("RESULT_PREFIX", "results"),
+                    param("WRITE_RESULT_ENABLED", "true"),
+                    param("JUPYTER_IMAGE", "quay.io/jupyter/scipy-notebook:2025-03-14"),
+                    param("DUCKDB_VERSION", "1.3.2"),
+                    param("JUPYTER_BIND_HOST", "127.0.0.1"),
+                    param("JUPYTER_PORT", "8888"));
             default -> List.of();
         };
     }

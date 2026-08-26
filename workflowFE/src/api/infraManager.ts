@@ -37,7 +37,7 @@ export const getMcInfraK8sVersions = (params?: QueryParams) => {
   return request.get(`/infra-manager/k8s-versions${buildQueryString(params)}`)
 }
 
-export const getMcInfraResources = (nsId: string, resourceType: 'image' | 'spec', params?: QueryParams) => {
+export const getMcInfraResources = (nsId: string, resourceType: 'image' | 'spec' | 'objectStorage', params?: QueryParams) => {
   return request.get(`/infra-manager/namespaces/${encodeURIComponent(nsId)}/resources/${resourceType}${buildQueryString(params)}`)
 }
 

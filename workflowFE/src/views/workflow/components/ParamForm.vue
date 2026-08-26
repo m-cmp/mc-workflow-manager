@@ -411,6 +411,13 @@ const paramHints: Record<string, string> = {
   INSERT_SQL: 'SQL executed after import.',
   KUBECONFIG_CONTENT: 'Inline kubeconfig.',
   CSP_LIST: 'Comma separated CSP list.',
+  OBJECT_STORAGE_BUCKET: 'Bucket name. Existing one is reused, a new name is created by the run. Empty means no object storage.',
+  OBJECT_STORAGE_NAMESPACE: 'Tumblebug namespace mc-data-manager records buckets in. Follows Namespace above; change it when mc-data-manager uses a different one.',
+  OBJECT_STORAGE_PROVIDER: 'Leave empty to follow the selected CSP.',
+  OBJECT_STORAGE_REGION: 'Leave empty to follow the selected Region.',
+  OBJECT_STORAGE_ENDPOINT: 'Leave empty to derive it from provider and region. Set it only for an NCP region other than Korea, or a custom S3 compatible endpoint.',
+  OBJECT_STORAGE_CREDENTIALS_ID: 'Jenkins credential ID. Username is the access key, password is the secret key.',
+  DATA_MANAGER: 'mc-data-manager base URL. Used to create and delete the bucket.',
 }
 
 const paramKeyOptions = computed(() => {

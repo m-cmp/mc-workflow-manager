@@ -29,7 +29,8 @@ import java.util.Set;
 @Slf4j
 @Service
 public class McInfraManagerService {
-    private static final Set<String> SUPPORTED_RESOURCE_TYPES = Set.of("image", "spec");
+    private static final Set<String> SUPPORTED_RESOURCE_TYPES = Set.of("image", "spec", "objectStorage");
+    private static final String OBJECT_STORAGE_RESOURCE_TYPE = "objectStorage";
     private static final int DEFAULT_IMAGE_RESULT_LIMIT = 100;
     private static final int MAX_RESOURCE_RESULT_LIMIT = 500;
     private static final int DEFAULT_SPEC_RESULT_LIMIT = MAX_RESOURCE_RESULT_LIMIT;
@@ -131,6 +132,10 @@ public class McInfraManagerService {
     public Object getResources(String nsId, String resourceType, MultiValueMap<String, String> queryParams) {
         if (!SUPPORTED_RESOURCE_TYPES.contains(resourceType)) {
             throw new IllegalArgumentException("Unsupported resource type: " + resourceType);
+        }
+
+        if (OBJECT_STORAGE_RESOURCE_TYPE.equals(resourceType)) {
+            return getObjectStorages(nsId, queryParams);
         }
 
         if ("image".equals(resourceType)) {
@@ -935,6 +940,77 @@ public class McInfraManagerService {
                     e.getMessage());
             return Collections.emptyList();
         }
+    }
+
+    // Buckets are listed per CSP, not per region: a bucket name is unique across the whole CSP and
+    // the provider APIs list an account's buckets regardless of where they live. mc-data-manager
+    // lists them the same way (filterKey=providerName), so both surfaces agree on what exists.
+    private Object getObjectStorages(String nsId, MultiValueMap<String, String> queryParams) {
+        String namespace = StringUtils.hasText(nsId) ? nsId : "default";
+        org.springframework.util.LinkedMultiValueMap<String, String> lookupParams =
+                new org.springframework.util.LinkedMultiValueMap<>();
+
+        String provider = firstPresentValue(queryParams, "providerName", "provider", "csp");
+        if (StringUtils.hasText(provider)) {
+            lookupParams.add("filterKey", "providerName");
+            lookupParams.add("filterVal", provider);
+        }
+
+        try {
+            List<Object> resources = toCatalogList(get("/ns/" + namespace + "/resources/objectStorage", lookupParams));
+            return compactObjectStorageList(resources, provider);
+        } catch (RestClientException e) {
+            log.warn("[mc-infra-manager] objectStorage lookup failed. namespace: {}, provider: {}, message: {}",
+                    namespace,
+                    provider,
+                    e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Object> compactObjectStorageList(List<Object> resources, String provider) {
+        String providerPrefix = StringUtils.hasText(provider) ? provider.toLowerCase() + "-" : "";
+        List<Object> compacted = new ArrayList<>();
+        for (Object item : resources) {
+            if (!(item instanceof Map<?, ?> itemMap)) {
+                continue;
+            }
+
+            Map<String, Object> source = (Map<String, Object>) itemMap;
+            String id = firstNonBlank(valueAsString(source.get("id")), valueAsString(source.get("name")));
+            if (!StringUtils.hasText(id)) {
+                continue;
+            }
+
+            // Tumblebug matches filterKey/filterVal as plain substrings of the stored JSON, so the
+            // provider filter is only an approximation. Narrow it down here the way mc-data-manager
+            // does, by requiring the connection name to actually start with the provider.
+            String entryConnectionName = valueAsString(source.get("connectionName"));
+            if (!providerPrefix.isEmpty() && !entryConnectionName.toLowerCase().startsWith(providerPrefix)) {
+                continue;
+            }
+
+            // Tumblebug creates the CSP bucket under a generated name, so the logical id and the
+            // real bucket name differ. Both are needed: the id addresses mc-data-manager, the CSP
+            // name is what an S3 client has to connect to.
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("id", id);
+            entry.put("name", firstNonBlank(valueAsString(source.get("name")), id));
+            entry.put("cspResourceName", firstNonBlank(
+                    valueAsString(source.get("cspResourceName")),
+                    valueAsString(source.get("uid"))));
+            entry.put("connectionName", entryConnectionName);
+            // The bucket carries its own region, which need not be the region the VM runs in.
+            // connectionName is built as provider + "-" + region, so reversing it yields exactly
+            // the region value mc-data-manager expects back when addressing this bucket.
+            entry.put("region", providerPrefix.isEmpty()
+                    ? ""
+                    : entryConnectionName.substring(providerPrefix.length()));
+            entry.put("status", valueAsString(source.get("status")));
+            compacted.add(entry);
+        }
+        return compacted;
     }
 
     private boolean isEmptyCatalogResult(Object result) {

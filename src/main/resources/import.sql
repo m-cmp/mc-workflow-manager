@@ -2178,6 +2178,432 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 6, 'object-storage-data-lab-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
+    stage("object-storage-data-lab-install") {
+        steps {
+            echo ">>>>> STAGE: object-storage-data-lab-install"
+            script {
+                def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
+                def supportedProviders = ["aws", "gcp", "ncp"]
+                if (!supportedProviders.contains(provider)) {
+                    error "OBJECT_STORAGE_PROVIDER must be one of: aws, gcp, ncp"
+                }
+
+                def bucket = (env.OBJECT_STORAGE_BUCKET ?: params.OBJECT_STORAGE_BUCKET ?: "").trim()
+                def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
+                def endpoint = (params.OBJECT_STORAGE_ENDPOINT ?: "").trim()
+                def credentialId = (params.OBJECT_STORAGE_CREDENTIALS_ID ?: "").trim()
+                def urlStyle = (params.OBJECT_STORAGE_URL_STYLE ?: "vhost").trim().toLowerCase()
+                def useSsl = (params.OBJECT_STORAGE_USE_SSL ?: "true").trim().toLowerCase()
+                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+$", "")
+                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+$", "")
+                def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
+                def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
+                def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
+                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "127.0.0.1").trim()
+                def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
+
+                if (!bucket || !region || !credentialId) {
+                    error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_REGION and OBJECT_STORAGE_CREDENTIALS_ID are required"
+                }
+                if (!endpoint) {
+                    if (provider == "aws") {
+                        endpoint = "s3.${region}.amazonaws.com"
+                    } else if (provider == "gcp") {
+                        endpoint = "storage.googleapis.com"
+                    } else {
+                        // Same default mc-data-manager uses for NCP object storage. It is the
+                        // Korea endpoint, so another NCP region has to set the parameter.
+                        endpoint = "kr.object.ncloudstorage.com"
+                    }
+                }
+                if (!(urlStyle in ["path", "vhost"])) {
+                    error "OBJECT_STORAGE_URL_STYLE must be path or vhost"
+                }
+                if (!(useSsl in ["true", "false"]) || !(writeResultEnabled in ["true", "false"])) {
+                    error "OBJECT_STORAGE_USE_SSL and WRITE_RESULT_ENABLED must be true or false"
+                }
+                if (!(jupyterPort ==~ /[0-9]+/) || jupyterPort.toInteger() < 1 || jupyterPort.toInteger() > 65535) {
+                    error "JUPYTER_PORT must be between 1 and 65535"
+                }
+
+                def safePatterns = [
+                    bucket: [bucket, /[A-Za-z0-9._-]+/],
+                    region: [region, /[A-Za-z0-9._-]+/],
+                    endpoint: [endpoint, /[A-Za-z0-9._:\/-]+/],
+                    credentialId: [credentialId, /[A-Za-z0-9._-]+/],
+                    dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
+                    resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
+                    jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
+                    duckdbVersion: [duckdbVersion, /[0-9.]+/],
+                    jupyterBindHost: [jupyterBindHost, /[A-Za-z0-9.:-]+/]
+                ]
+                safePatterns.each { name, validation ->
+                    if (validation[0] && (!(validation[0] ==~ validation[1]) || validation[0].contains(".."))) {
+                        error "Invalid ${name}"
+                    }
+                }
+
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                if (!sshHost || !sshUser) {
+                    error "SSH_HOST and SSH_USER are required for object-storage-data-lab-install"
+                }
+                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+
+                def verifierSource = """import os
+import duckdb
+
+
+def sql_quote(value):
+    text = str(value)
+    return chr(39) + text.replace(chr(39), chr(39) * 2) + chr(39)
+
+
+def object_uri(path):
+    provider = os.environ.get("OBJECT_STORAGE_PROVIDER", "").lower()
+    scheme = "gs" if provider == "gcp" else "s3"
+    bucket = os.environ["OBJECT_STORAGE_BUCKET"]
+    clean_path = path.strip("/")
+    return f"{scheme}://{bucket}/{clean_path}"
+
+
+def create_connection():
+    provider = os.environ["OBJECT_STORAGE_PROVIDER"].lower()
+    endpoint = os.environ.get("OBJECT_STORAGE_ENDPOINT", "")
+    endpoint = endpoint.removeprefix("https://").removeprefix("http://").rstrip("/")
+    key_id = os.environ["OBJECT_STORAGE_ACCESS_KEY_ID"]
+    secret_key = os.environ["OBJECT_STORAGE_SECRET_ACCESS_KEY"]
+    use_ssl = os.environ.get("OBJECT_STORAGE_USE_SSL", "true").lower()
+
+    connection = duckdb.connect()
+    connection.execute("INSTALL httpfs")
+    connection.execute("LOAD httpfs")
+    secret_type = "gcs" if provider == "gcp" else "s3"
+    options = [
+        f"TYPE {secret_type}",
+        f"KEY_ID {sql_quote(key_id)}",
+        f"SECRET {sql_quote(secret_key)}",
+        f"USE_SSL {use_ssl}"
+    ]
+    if endpoint:
+        options.append(f"ENDPOINT {sql_quote(endpoint)}")
+    if provider != "gcp":
+        region = os.environ.get("OBJECT_STORAGE_REGION", "")
+        url_style = os.environ.get("OBJECT_STORAGE_URL_STYLE", "vhost")
+        if region:
+            options.append(f"REGION {sql_quote(region)}")
+        options.append(f"URL_STYLE {sql_quote(url_style)}")
+    connection.execute("CREATE OR REPLACE TEMP SECRET object_storage (" + ", ".join(options) + ")")
+    return connection
+
+
+def list_objects(connection, prefix):
+    pattern = prefix + "/**" if prefix else "**"
+    uri = object_uri(pattern)
+    try:
+        rows = connection.execute("SELECT file FROM glob(" + sql_quote(uri) + ") ORDER BY file").fetchall()
+        return [r[0] for r in rows], uri
+    except Exception as exc:
+        message = str(exc)
+        if "No files found" in message or "no files found" in message:
+            return [], uri
+        raise RuntimeError("Object Storage access failed. Check endpoint, region, url style, bucket and credentials. " + message)
+
+
+def verify():
+    connection = create_connection()
+    data_prefix = os.environ.get("DATA_PREFIX", "").strip("/")
+    files, uri = list_objects(connection, data_prefix)
+    print("Object Storage access verified. provider=%s, bucket=%s, objects=%d" % (os.environ["OBJECT_STORAGE_PROVIDER"], os.environ["OBJECT_STORAGE_BUCKET"], len(files)))
+    if files:
+        for name in files[:10]:
+            print("  -", name)
+        if len(files) > 10:
+            print("  ... and %d more" % (len(files) - 10))
+    else:
+        print("The bucket is empty. Upload your data files to " + uri + " and rerun the notebook cells.")
+
+
+if __name__ == "__main__":
+    verify()
+"""
+
+                def notebook = [
+                    cells: [
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "# Object Storage Data Lab\n",
+                            "\n",
+                            "DuckDB 로 Object Storage 의 Parquet / CSV / JSON 파일을 직접 SQL 로 조회합니다.\n",
+                            "자격증명은 Notebook 이 아니라 컨테이너 환경변수에서 읽습니다.\n",
+                            "\n",
+                            "버킷에 파일을 올린 뒤 아래 셀을 위에서부터 실행하세요."
+                        ]],
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "## 1. 버킷 파일 목록"
+                        ]],
+                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
+                            "import os\n",
+                            "import matplotlib.pyplot as plt\n",
+                            "from verify_object_storage import create_connection, object_uri, sql_quote, list_objects\n",
+                            "\n",
+                            "con = create_connection()\n",
+                            "data_prefix = os.environ.get(\"DATA_PREFIX\", \"\").strip(\"/\")\n",
+                            "files, uri = list_objects(con, data_prefix)\n",
+                            "print(\"scanned:\", uri)\n",
+                            "print(\"objects:\", len(files))\n",
+                            "for name in files[:30]:\n",
+                            "    print(\" -\", name)"
+                        ]],
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "## 2. 데이터 로드\n",
+                            "\n",
+                            "Parquet 이 있으면 Parquet 을, 없으면 CSV 를 읽습니다. `TARGET_GLOB` 를 직접 지정할 수도 있습니다."
+                        ]],
+                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
+                            "prefix_part = data_prefix + \"/\" if data_prefix else \"\"\n",
+                            "TARGET_GLOB = None\n",
+                            "\n",
+                            "def pick_reader():\n",
+                            "    if TARGET_GLOB:\n",
+                            "        return TARGET_GLOB, \"read_parquet\" if TARGET_GLOB.endswith(\".parquet\") else \"read_csv_auto\"\n",
+                            "    parquet_files = [f for f in files if f.lower().endswith(\".parquet\")]\n",
+                            "    if parquet_files:\n",
+                            "        return object_uri(prefix_part + \"**/*.parquet\"), \"read_parquet\"\n",
+                            "    csv_files = [f for f in files if f.lower().endswith(\".csv\")]\n",
+                            "    if csv_files:\n",
+                            "        return object_uri(prefix_part + \"**/*.csv\"), \"read_csv_auto\"\n",
+                            "    return None, None\n",
+                            "\n",
+                            "target, reader = pick_reader()\n",
+                            "if target is None:\n",
+                            "    df = None\n",
+                            "    print(\"읽을 Parquet / CSV 파일이 없습니다. 버킷에 파일을 올린 뒤 1번 셀부터 다시 실행하세요.\")\n",
+                            "else:\n",
+                            "    df = con.execute(\"SELECT * FROM \" + reader + \"(\" + sql_quote(target) + \", union_by_name=true)\").df()\n",
+                            "    print(reader, target)\n",
+                            "    print(\"rows:\", len(df), \"columns:\", list(df.columns))\n",
+                            "    display(df.head())"
+                        ]],
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "## 3. 집계와 차트\n",
+                            "\n",
+                            "문자열 컬럼을 기준으로 숫자 컬럼을 합계 냅니다. `GROUP_COL` / `VALUE_COL` 로 직접 지정할 수 있습니다."
+                        ]],
+                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
+                            "GROUP_COL = None\n",
+                            "VALUE_COL = None\n",
+                            "summary = None\n",
+                            "\n",
+                            "if df is None or df.empty:\n",
+                            "    print(\"로드된 데이터가 없습니다.\")\n",
+                            "else:\n",
+                            "    text_cols = [c for c in df.columns if df[c].dtype == object]\n",
+                            "    num_cols = [c for c in df.columns if df[c].dtype.kind in \"ifu\"]\n",
+                            "    group_col = GROUP_COL or (\"region\" if \"region\" in df.columns else (text_cols[0] if text_cols else None))\n",
+                            "    value_col = VALUE_COL or (num_cols[0] if num_cols else None)\n",
+                            "    if group_col is None or value_col is None:\n",
+                            "        print(\"집계할 컬럼을 찾지 못했습니다. GROUP_COL 과 VALUE_COL 을 직접 지정하세요.\")\n",
+                            "    else:\n",
+                            "        con.register(\"loaded\", df)\n",
+                            "        summary = con.execute(\n",
+                            "            \"SELECT \" + group_col + \" AS group_key, SUM(\" + value_col + \") AS total \"\n",
+                            "            \"FROM loaded GROUP BY 1 ORDER BY 1\"\n",
+                            "        ).df()\n",
+                            "        display(summary)\n",
+                            "        summary.plot.bar(x=\"group_key\", y=\"total\", legend=False, title=value_col + \" by \" + group_col)\n",
+                            "        plt.tight_layout()\n",
+                            "        plt.show()"
+                        ]],
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "## 4. 새 파일 추가 후 재실행\n",
+                            "\n",
+                            "버킷에 파일을 더 올린 뒤 1~3번 셀을 다시 실행하면 목록과 결과, 차트가 갱신됩니다."
+                        ]],
+                        [cell_type: "markdown", metadata: [:], source: [
+                            "## 5. 분석 결과 저장 (선택)"
+                        ]],
+                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
+                            "if summary is None:\n",
+                            "    print(\"저장할 집계 결과가 없습니다.\")\n",
+                            "elif os.environ.get(\"WRITE_RESULT_ENABLED\", \"true\").lower() != \"true\":\n",
+                            "    print(\"WRITE_RESULT_ENABLED 가 false 라 저장하지 않습니다.\")\n",
+                            "else:\n",
+                            "    result_prefix = os.environ.get(\"RESULT_PREFIX\", \"results\").strip(\"/\")\n",
+                            "    result_uri = object_uri(result_prefix + \"/summary.parquet\")\n",
+                            "    con.register(\"summary_data\", summary)\n",
+                            "    con.execute(\"COPY summary_data TO \" + sql_quote(result_uri) + \" (FORMAT PARQUET)\")\n",
+                            "    print(\"Saved:\", result_uri)\n",
+                            "    display(con.execute(\"SELECT * FROM read_parquet(\" + sql_quote(result_uri) + \")\").df())"
+                        ]]
+                    ],
+                    metadata: [
+                        kernelspec: [display_name: "Python 3 (ipykernel)", language: "python", name: "python3"],
+                        language_info: [name: "python", version: "3"]
+                    ],
+                    nbformat: 4,
+                    nbformat_minor: 5
+                ]
+
+                def installerSource = """#!/usr/bin/env bash
+set -euo pipefail
+
+APP_ROOT="/opt/object-storage-data-lab"
+CONFIG_DIR="\${APP_ROOT}/config"
+WORK_DIR="\${APP_ROOT}/work"
+BUILD_DIR="\${APP_ROOT}/build"
+ENV_FILE="\${CONFIG_DIR}/data-lab.env"
+INCOMING_ENV="/tmp/object-storage-data-lab.env"
+CONTAINER_NAME="object-storage-data-lab"
+
+cleanup_incoming_files() {
+  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab.ipynb /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
+}
+trap cleanup_incoming_files EXIT
+
+get_env_value() {
+  grep -m1 "^\${1}=" "\${INCOMING_ENV}" | cut -d= -f2-
+}
+
+if ! command -v docker >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io curl ca-certificates
+  elif command -v dnf >/dev/null 2>&1; then
+    sudo dnf install -y docker curl ca-certificates
+  elif command -v yum >/dev/null 2>&1; then
+    sudo yum install -y docker curl ca-certificates
+  else
+    echo "Unsupported package manager"
+    exit 1
+  fi
+else
+  if ! command -v curl >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
+    elif command -v dnf >/dev/null 2>&1; then
+      sudo dnf install -y curl ca-certificates
+    elif command -v yum >/dev/null 2>&1; then
+      sudo yum install -y curl ca-certificates
+    fi
+  fi
+fi
+sudo systemctl enable --now docker
+
+sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}"
+token=""
+if sudo test -f "\${ENV_FILE}"; then
+  token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
+fi
+if [ -z "\${token}" ]; then
+  token=\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\n")
+fi
+sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
+printf "JUPYTER_TOKEN=%s\\n" "\${token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
+sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
+sudo install -m 644 /tmp/verify_object_storage.py "\${WORK_DIR}/verify_object_storage.py"
+sudo chown -R 1000:100 "\${WORK_DIR}"
+
+JUPYTER_IMAGE=\$(get_env_value JUPYTER_IMAGE)
+DUCKDB_VERSION=\$(get_env_value DUCKDB_VERSION)
+JUPYTER_BIND_HOST=\$(get_env_value JUPYTER_BIND_HOST)
+JUPYTER_PORT=\$(get_env_value JUPYTER_PORT)
+LOCAL_IMAGE="object-storage-data-lab:duckdb-\${DUCKDB_VERSION}"
+
+sudo tee "\${BUILD_DIR}/Dockerfile" >/dev/null <<EOF
+FROM \${JUPYTER_IMAGE}
+RUN python -m pip install --no-cache-dir duckdb==\${DUCKDB_VERSION}
+EOF
+sudo docker build --pull -t "\${LOCAL_IMAGE}" "\${BUILD_DIR}"
+
+sudo docker run --rm \
+  --env-file "\${ENV_FILE}" \
+  -v "\${WORK_DIR}:/home/jovyan/work" \
+  "\${LOCAL_IMAGE}" \
+  python /home/jovyan/work/verify_object_storage.py
+
+sudo docker rm -f "\${CONTAINER_NAME}" >/dev/null 2>&1 || true
+sudo docker run -d \
+  --name "\${CONTAINER_NAME}" \
+  --restart unless-stopped \
+  --env-file "\${ENV_FILE}" \
+  -p "\${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}:8888" \
+  -v "\${WORK_DIR}:/home/jovyan/work" \
+  "\${LOCAL_IMAGE}" \
+  start-notebook.py --ServerApp.ip=0.0.0.0
+
+healthy="false"
+for attempt in \$(seq 1 30); do
+  if curl -fsS "http://127.0.0.1:\${JUPYTER_PORT}/api?token=\${token}" >/dev/null; then
+    healthy="true"
+    break
+  fi
+  sleep 5
+done
+if [ "\${healthy}" != "true" ]; then
+  sudo docker logs --tail 100 "\${CONTAINER_NAME}" | sed "s/\${token}/****/g"
+  echo "JupyterLab health check failed"
+  exit 1
+fi
+
+echo ""
+echo ">>>>> Object Storage Data Lab is ready."
+echo "      remote bind  : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
+echo "      token file   : \${ENV_FILE} (on the VM)"
+echo "      jupyter token: \${token}"
+echo ""
+echo "      1) open an SSH tunnel from your machine:"
+echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@${sshHost}"
+echo "      2) then open:"
+echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${token}"
+echo ""
+echo "      To expose the Lab directly instead, rerun with JUPYTER_BIND_HOST=0.0.0.0"
+echo "      and open the port in the Tumblebug security group."
+"""
+
+                writeFile file: "verify_object_storage.py", text: verifierSource
+                writeFile file: "object-storage-data-lab.ipynb", text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(notebook))
+                writeFile file: "object-storage-data-lab-install.sh", text: installerSource
+                sh "chmod 700 object-storage-data-lab-install.sh"
+
+                withCredentials([usernamePassword(credentialsId: credentialId, usernameVariable: "OBJECT_STORAGE_ACCESS_KEY_ID", passwordVariable: "OBJECT_STORAGE_SECRET_ACCESS_KEY")]) {
+                    if (env.OBJECT_STORAGE_ACCESS_KEY_ID.contains("\n") || env.OBJECT_STORAGE_ACCESS_KEY_ID.contains("\r") ||
+                            env.OBJECT_STORAGE_SECRET_ACCESS_KEY.contains("\n") || env.OBJECT_STORAGE_SECRET_ACCESS_KEY.contains("\r")) {
+                        error "Object Storage credentials must not contain line breaks"
+                    }
+                    try {
+                        writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
+OBJECT_STORAGE_ENDPOINT=${endpoint}
+OBJECT_STORAGE_REGION=${region}
+OBJECT_STORAGE_BUCKET=${bucket}
+OBJECT_STORAGE_URL_STYLE=${urlStyle}
+OBJECT_STORAGE_USE_SSL=${useSsl}
+DATA_PREFIX=${dataPrefix}
+RESULT_PREFIX=${resultPrefix}
+WRITE_RESULT_ENABLED=${writeResultEnabled}
+JUPYTER_IMAGE=${jupyterImage}
+DUCKDB_VERSION=${duckdbVersion}
+JUPYTER_BIND_HOST=${jupyterBindHost}
+JUPYTER_PORT=${jupyterPort}
+"""
+                        sh """set +x
+umask 077
+printf "OBJECT_STORAGE_ACCESS_KEY_ID=%s\\n" "\$OBJECT_STORAGE_ACCESS_KEY_ID" >> object-storage-data-lab.env
+printf "OBJECT_STORAGE_SECRET_ACCESS_KEY=%s\\n" "\$OBJECT_STORAGE_SECRET_ACCESS_KEY" >> object-storage-data-lab.env
+chmod 600 object-storage-data-lab.env
+"""
+                        sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+"""
+                    } finally {
+                        sh "rm -f object-storage-data-lab.env object-storage-data-lab.ipynb verify_object_storage.py object-storage-data-lab-install.sh"
+                    }
+                }
+            }
+        }
+    }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'Install MariaDB', '
     stage("mariadb-install") {
         steps {
@@ -2551,6 +2977,194 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (56, 21, 7, 'object-storage-create', 'Create an Object Storage bucket via mc-data-manager and resolve its CSP name', '
+    stage("object-storage-create") {
+        steps {
+            echo ">>>>> STAGE: object-storage-create"
+            script {
+                def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+$", "")
+                if (!dataManager) {
+                    error "DATA_MANAGER is required. It is the base URL of mc-data-manager, for example http://mc-data-manager:3300"
+                }
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+
+                def storageName = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
+                def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
+                def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
+                // mc-data-manager records the bucket under its own Tumblebug namespace, which is not
+                // necessarily the namespace the VM lives in. Look it up where it was actually written.
+                def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+                if (!storageName || !provider || !region) {
+                    error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_PROVIDER and OBJECT_STORAGE_REGION are required"
+                }
+
+                def safeValues = [storageName: storageName, provider: provider, region: region, dataManager: dataManager, osNamespace: osNamespace]
+                safeValues.each { name, value ->
+                    if (!(value ==~ /[A-Za-z0-9._:\/-]+/) || value.contains("..")) {
+                        error "Invalid ${name}"
+                    }
+                }
+
+                def extractJsonStringValue = { text, key ->
+                    def marker = "\"" + key + "\""
+                    def keyIdx = text.indexOf(marker)
+                    if (keyIdx < 0) {
+                        return ""
+                    }
+                    def colonIdx = text.indexOf(":", keyIdx + marker.length())
+                    if (colonIdx < 0) {
+                        return ""
+                    }
+                    def startIdx = text.indexOf("\"", colonIdx + 1)
+                    if (startIdx < 0) {
+                        return ""
+                    }
+                    def endIdx = text.indexOf("\"", startIdx + 1)
+                    if (endIdx < 0) {
+                        return ""
+                    }
+                    return text.substring(startIdx + 1, endIdx)
+                }
+
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def detailUrl = "${params.TUMBLEBUG}/tumblebug/ns/${osNamespace}/resources/objectStorage/${storageName}"
+
+                def payload = "{\"targetPoint\": {\"provider\": \"" + provider + "\", \"region\": \"" + region + "\", \"bucket\": \"" + storageName + "\"}}"
+                writeFile file: "object-storage-create.json", text: payload
+                try {
+                    echo "Requesting mc-data-manager to create bucket ${storageName} on ${provider}-${region}"
+                    def createResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X PUT \"${dataManager}/objectstorage/buckets\" -H \"Content-Type: application/json\" -d @object-storage-create.json", returnStdout: true).trim()
+                    echo createResponse
+                    if (!createResponse.contains("Http_Status_code:2")) {
+                        error "object-storage-create failed: ${createResponse}"
+                    }
+                } finally {
+                    sh "rm -f object-storage-create.json"
+                }
+
+                def maxAttempts = (params.OBJECT_STORAGE_READY_MAX_ATTEMPTS ?: "30").toInteger()
+                def intervalSeconds = (params.OBJECT_STORAGE_READY_INTERVAL_SECONDS ?: "5").toInteger()
+                def cspBucket = ""
+                def attempt = 0
+                while (!cspBucket && attempt < maxAttempts) {
+                    attempt = attempt + 1
+                    def detail = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${detailUrl}\" ${auth}", returnStdout: true).trim()
+                    if (detail.contains("Http_Status_code:2")) {
+                        def resolved = extractJsonStringValue(detail, "cspResourceName")
+                        if (!resolved) {
+                            resolved = extractJsonStringValue(detail, "uid")
+                        }
+                        def status = extractJsonStringValue(detail, "status")
+                        if (resolved) {
+                            cspBucket = resolved
+                            echo "Object storage is ready. status=${status}"
+                        } else {
+                            echo "Waiting for the CSP bucket name. attempt ${attempt}/${maxAttempts}, status=${status}"
+                            sleep intervalSeconds
+                        }
+                    } else if (detail.contains("Http_Status_code:404")) {
+                        echo "Object storage ${storageName} is not registered yet. attempt ${attempt}/${maxAttempts}"
+                        sleep intervalSeconds
+                    } else {
+                        error "object-storage-create failed to read the object storage detail: ${detail}"
+                    }
+                }
+
+                if (!cspBucket) {
+                    error "Unable to resolve the CSP bucket name for ${storageName} within ${maxAttempts} attempts. Tumblebug creates the bucket under a generated name, so the pipeline cannot continue without it."
+                }
+
+                // Hand the real CSP bucket name down under the same key the parameter uses. Later
+                // stages talk to S3 directly, where the Tumblebug logical name does not resolve.
+                env.OBJECT_STORAGE_BUCKET = cspBucket
+                echo "Bucket ready. tumblebugId=${storageName}, cspBucket=${cspBucket}"
+            }
+        }
+    }');
+
+
+
+
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (57, 21, 8, 'object-storage-delete', 'Delete an Object Storage bucket and its contents via mc-data-manager', '
+    stage("object-storage-delete") {
+        steps {
+            echo ">>>>> STAGE: object-storage-delete"
+            script {
+                def enabled = (params.OBJECT_STORAGE_DELETE_ENABLED ?: "true").trim().toLowerCase()
+                if (!(enabled in ["true", "false"])) {
+                    error "OBJECT_STORAGE_DELETE_ENABLED must be true or false"
+                }
+                if (enabled == "false") {
+                    echo "OBJECT_STORAGE_DELETE_ENABLED is false. Keeping the bucket and its contents."
+                } else {
+                    def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+$", "")
+                    if (!dataManager) {
+                        error "DATA_MANAGER is required, or set OBJECT_STORAGE_DELETE_ENABLED to false"
+                    }
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+
+                    // Deliberately not env: object-storage-create publishes the resolved CSP name there, while
+                    // mc-data-manager deletes by the Tumblebug logical name.
+                    def storageName = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
+                    def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
+                    def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
+                    // Must match the namespace stage 56 looked the bucket up in.
+                    def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+                    if (!storageName || !provider || !region) {
+                        error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_PROVIDER and OBJECT_STORAGE_REGION are required"
+                    }
+
+                    def safeValues = [storageName: storageName, provider: provider, region: region, dataManager: dataManager, osNamespace: osNamespace]
+                    safeValues.each { name, value ->
+                        if (!(value ==~ /[A-Za-z0-9._:\/-]+/) || value.contains("..")) {
+                            error "Invalid ${name}"
+                        }
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def detailUrl = "${params.TUMBLEBUG}/tumblebug/ns/${osNamespace}/resources/objectStorage/${storageName}"
+
+                    def detail = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${detailUrl}\" ${auth}", returnStdout: true).trim()
+                    if (detail.contains("Http_Status_code:404")) {
+                        echo "Object storage ${storageName} is already absent. Nothing to delete."
+                    } else if (!detail.contains("Http_Status_code:2")) {
+                        error "object-storage-delete failed to read the object storage detail: ${detail}"
+                    } else {
+                        def payload = "{\"targetPoint\": {\"provider\": \"" + provider + "\", \"region\": \"" + region + "\", \"bucket\": \"" + storageName + "\"}}"
+                        writeFile file: "object-storage-delete.json", text: payload
+                        try {
+                            echo "Requesting mc-data-manager to delete bucket ${storageName} including its contents"
+                            def deleteResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X DELETE \"${dataManager}/objectstorage/buckets\" -H \"Content-Type: application/json\" -d @object-storage-delete.json", returnStdout: true).trim()
+                            echo deleteResponse
+                            if (!deleteResponse.contains("Http_Status_code:2")) {
+                                error "object-storage-delete failed: ${deleteResponse}"
+                            }
+                        } finally {
+                            sh "rm -f object-storage-delete.json"
+                        }
+
+                        def confirm = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${detailUrl}\" ${auth}", returnStdout: true).trim()
+                        if (confirm.contains("Http_Status_code:404")) {
+                            echo "Bucket ${storageName} removed."
+                        } else {
+                            echo "Delete accepted, but the object storage record still responds. It may still be finalizing."
+                        }
+                    }
+                }
+            }
+        }
+    }');
+
 -- Step 5: Insert into workflow
 -- Legacy test workflow seed data intentionally omitted.
 -- Step 8: Insert scenario workflows
@@ -2562,6 +3176,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 -- F. multi-csp-vm-cleanup
 -- G. k8s-mariadb-data-init-cleanup
 -- H. multi-csp-k8s-cluster-cleanup
+-- I. vm-object-storage-data-lab-init
+-- J. vm-object-storage-data-lab-cleanup
 
 DELETE FROM event_listener_param WHERE event_listener_idx IN (
     SELECT event_listener_idx FROM event_listener
@@ -2574,8 +3190,8 @@ DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (SELECT workflow_idx FR
 DELETE FROM workflow_param WHERE workflow_idx IN (SELECT workflow_idx FROM workflow WHERE workflow_purpose = 'test');
 DELETE FROM workflow WHERE workflow_purpose = 'test';
 
-DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108);
-DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108);
+DELETE FROM workflow_stage_mapping WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108, 109, 110);
+DELETE FROM workflow_param WHERE workflow_idx IN (101, 102, 103, 104, 105, 106, 107, 108, 109, 110);
 ALTER TABLE workflow_param ALTER COLUMN param_idx RESTART WITH 10000;
 ALTER TABLE workflow_stage_mapping ALTER COLUMN mapping_idx RESTART WITH 10000;
 
@@ -3122,6 +3738,67 @@ MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, scr
 }
 ' FROM workflow_stage WHERE workflow_stage_idx = 53), NULL);
 
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 109, 'vm-object-storage-data-lab-init', 'For Deployment', 1,
+'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 56)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55)
+|| '
+    }
+}
+', NULL;
+
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 110, 'vm-object-storage-data-lab-cleanup', 'For Cleanup', 1,
+'pipeline {
+    agent any
+    stages {
+'
+|| '
+        stage("infra-cleanup") {
+            steps {
+                echo ">>>>> STAGE: infra-cleanup"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+                    if (!params.INFRA_ID?.trim()) {
+                        error "INFRA_ID is required"
+                    }
+
+                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (response.contains("Http_Status_code:404")) {
+                        echo "Infra ${params.INFRA_ID} is already absent."
+                    } else if (!response.contains("Http_Status_code:2")) {
+                        error "infra-cleanup failed: ${response}"
+                    } else {
+                        echo "Infra ${params.INFRA_ID} cleanup requested."
+                    }
+                }
+            }
+        }
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57)
+|| '
+    }
+}
+', NULL;
+
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (101, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
 (101, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
@@ -3378,6 +4055,64 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (108, 'K8S_CLUSTER_DELETE_MAX_ATTEMPTS', '120', 'N'),
 (108, 'K8S_DELETE_INTERVAL_SECONDS', '10', 'N');
 
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(109, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(109, 'TUMBLEBUG_SELECTOR_YN', 'Y', 'N'),
+(109, 'USER', 'default', 'N'),
+(109, 'USERPASS', 'default', 'N'),
+(109, 'NAMESPACE', 'ns01', 'N'),
+(109, 'PROVIDER', 'aws', 'N'),
+(109, 'CSP', 'aws', 'N'),
+(109, 'INFRA_ID', 'vm-object-storage-data-lab', 'N'),
+(109, 'INFRA_NODEGROUP_SIZE', '1', 'N'),
+(109, 'ROOT_DISK_TYPE', 'default', 'N'),
+(109, 'ROOT_DISK_SIZE', '50', 'N'),
+(109, 'REGION', 'ap-northeast-1', 'N'),
+(109, 'CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
+(109, 'ZONE', 'ap-northeast-1a', 'N'),
+(109, 'IMAGE', 'ami-091de58da07595152', 'N'),
+(109, 'IMAGE_ID', 'ami-091de58da07595152', 'N'),
+(109, 'SPEC', 'aws+ap-northeast-1+t3.small', 'N'),
+(109, 'SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
+(109, 'SSH_HOST', '', 'N'),
+(109, 'SSH_USER', 'cb-user', 'N'),
+(109, 'SSH_KEY_FILE', '', 'N'),
+(109, 'INFRA_ACCESS_INFO_MAX_ATTEMPTS', '30', 'N'),
+(109, 'INFRA_ACCESS_INFO_INTERVAL_SECONDS', '10', 'N'),
+(109, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
+(109, 'OBJECT_STORAGE_BUCKET', 'mcmp-obj-data-lab', 'N'),
+(109, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
+(109, 'OBJECT_STORAGE_READY_MAX_ATTEMPTS', '30', 'N'),
+(109, 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', '5', 'N'),
+(109, 'OBJECT_STORAGE_ENDPOINT', '', 'N'),
+(109, 'OBJECT_STORAGE_REGION', '', 'N'),
+(109, 'OBJECT_STORAGE_CREDENTIALS_ID', 'object-storage-credential', 'N'),
+(109, 'OBJECT_STORAGE_URL_STYLE', 'vhost', 'N'),
+(109, 'OBJECT_STORAGE_USE_SSL', 'true', 'N'),
+(109, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
+(109, 'DATA_PREFIX', '', 'N'),
+(109, 'RESULT_PREFIX', 'results', 'N'),
+(109, 'WRITE_RESULT_ENABLED', 'true', 'N'),
+(109, 'JUPYTER_IMAGE', 'quay.io/jupyter/scipy-notebook:2025-03-14', 'N'),
+(109, 'DUCKDB_VERSION', '1.3.2', 'N'),
+(109, 'JUPYTER_BIND_HOST', '127.0.0.1', 'N'),
+(109, 'JUPYTER_PORT', '8888', 'N');
+
+INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
+(110, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
+(110, 'TUMBLEBUG_SELECTOR_YN', 'N', 'N'),
+(110, 'USER', 'default', 'N'),
+(110, 'USERPASS', 'default', 'N'),
+(110, 'NAMESPACE', 'ns01', 'N'),
+(110, 'INFRA_ID', 'vm-object-storage-data-lab', 'N'),
+(110, 'INFRA_DELETE_OPTION', 'terminate', 'N'),
+(110, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
+(110, 'OBJECT_STORAGE_DELETE_ENABLED', 'true', 'N'),
+(110, 'OBJECT_STORAGE_BUCKET', 'mcmp-obj-data-lab', 'N'),
+(110, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
+(110, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
+(110, 'OBJECT_STORAGE_REGION', '', 'N');
+
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
 
@@ -3445,5 +4180,73 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (108, 1, 53, (SELECT script FROM workflow WHERE workflow_idx = 108));
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(109, 1, null, 'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 2, 54, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 3, 56, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 56;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 4, 17, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 5, 25, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 6, 55, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(109, 7, null, '
+    }
+}
+');
+
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(110, 1, null, 'pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(110, 2, null, '
+        stage("infra-cleanup") {
+            steps {
+                echo ">>>>> STAGE: infra-cleanup"
+                script {
+                    if (!params.TUMBLEBUG?.trim()) {
+                        error "TUMBLEBUG is required"
+                    }
+                    if (!params.NAMESPACE?.trim()) {
+                        error "NAMESPACE is required"
+                    }
+                    if (!params.INFRA_ID?.trim()) {
+                        error "INFRA_ID is required"
+                    }
+
+                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
+                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
+                    echo response
+                    if (response.contains("Http_Status_code:404")) {
+                        echo "Infra ${params.INFRA_ID} is already absent."
+                    } else if (!response.contains("Http_Status_code:2")) {
+                        error "infra-cleanup failed: ${response}"
+                    } else {
+                        echo "Infra ${params.INFRA_ID} cleanup requested."
+                    }
+                }
+            }
+        }
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 110, 3, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(110, 4, null, '
+    }
+}
+');
 
 -- End Step 8
