@@ -84,6 +84,12 @@ const filteredOptions = computed(() => {
   return result.slice(0, 80)
 })
 
+const syncInputText = () => {
+  inputText.value = selectedLabel.value
+}
+
+// Declared after syncInputText on purpose: `immediate: true` runs the callback during setup,
+// so a watch placed above would hit the temporal dead zone of the const arrow function.
 watch(
   () => [props.modelValue, props.options],
   () => {
@@ -91,10 +97,6 @@ watch(
   },
   { immediate: true }
 )
-
-const syncInputText = () => {
-  inputText.value = selectedLabel.value
-}
 
 const onInput = (event: Event) => {
   inputText.value = (event.target as HTMLInputElement).value

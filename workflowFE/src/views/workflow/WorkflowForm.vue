@@ -242,6 +242,39 @@
                 />
               </div>
             </div>
+            <div class="grid gap-0 column-gap-3 mt-2" v-if="isObjectStorageWorkflow">
+              <div class="tumblebug-param-field g-col-12">
+                <label class="tumblebug-param-label">
+                  <code>{{ getSelectionParamKeyLabel('OBJECT_STORAGE_BUCKET') }}</code>
+                  <span>Bucket Name</span>
+                </label>
+                <input
+                  v-model="selectedObjectStorage"
+                  class="form-control p-2"
+                  :list="objectStorageInputListId"
+                  placeholder="Bucket Name"
+                  autocomplete="off"
+                  @change="onChangeObjectStorage"
+                />
+                <datalist :id="objectStorageInputListId">
+                  <option
+                    v-for="option in objectStorageOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </datalist>
+                <small class="text-secondary" v-if="selectedObjectStorage">
+                  <template v-if="objectStorageCspNames[selectedObjectStorage]">
+                    CSP bucket: {{ objectStorageCspNames[selectedObjectStorage] }}
+                  </template>
+                  <template v-else>
+                    Not registered yet. The run creates it and resolves the CSP bucket name.
+                  </template>
+                </small>
+              </div>
+            </div>
           </div>
 
           <!-- OSS URL -->
@@ -429,10 +462,12 @@ const selectedAccessHost = ref('')
 const selectedConnectionName = ref('')
 const selectedZone = ref('')
 const selectedK8sVersion = ref('')
+const selectedObjectStorage = ref('')
 const isInitializingSelection = ref(false)
 const inputIdSuffix = Math.random().toString(36).slice(2)
 const namespaceInputListId = `tumblebug-namespace-options-${inputIdSuffix}`
 const infraInputListId = `tumblebug-infra-options-${inputIdSuffix}`
+const objectStorageInputListId = `tumblebug-object-storage-options-${inputIdSuffix}`
 const namespaceOptions = ref([] as Array<InfraOption>)
 const regionOptions = ref([] as Array<InfraOption>)
 const imageOptions = ref([] as Array<InfraOption>)
@@ -443,6 +478,9 @@ const connectionOptions = ref([] as Array<InfraOption>)
 const zoneOptions = ref([] as Array<InfraOption>)
 const zoneLoading = ref(false)
 const k8sVersionOptions = ref([] as Array<InfraOption>)
+const objectStorageOptions = ref([] as Array<InfraOption>)
+const objectStorageCspNames = ref({} as Record<string, string>)
+const objectStorageRegions = ref({} as Record<string, string>)
 let providerLoadSeq = 0
 let namespaceLoadSeq = 0
 let regionLoadSeq = 0
@@ -451,6 +489,7 @@ let specLoadSeq = 0
 let connectionLoadSeq = 0
 let zoneLoadSeq = 0
 let k8sVersionLoadSeq = 0
+let objectStorageLoadSeq = 0
 let infraLoadSeq = 0
 let accessHostLoadSeq = 0
 const tumblebugStageNames = [
@@ -494,6 +533,7 @@ const tumblebugSelectorManagedParamKeys = [
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
+const objectStorageStageNames = ['object-storage-create', 'object-storage-delete']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -637,6 +677,13 @@ const isKubernetesImageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
 })
 
+// Driven by the stages the workflow has, the same way K8S_VERSION is. Only the stages that
+// address a bucket by its Tumblebug logical name qualify; object-storage-data-lab-install
+// consumes the resolved CSP bucket name instead.
+const isObjectStorageWorkflow = computed(() => {
+  return workflowStageMappingsFormData.value.some((stage) => objectStorageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
+})
+
 const isNoZoneProvider = computed(() => infraProvider.value.toLowerCase() === 'azure')
 
 const effectiveZoneOptions = computed(() => {
@@ -696,6 +743,7 @@ watch(selectedRegion, async (newRegion, oldRegion) => {
   await loadMcInfraSpecs()
   await loadMcInfraImages()
   await loadMcInfraAvailableZones()
+  await loadMcInfraObjectStorages()
   applyInfraSelectionParams()
 })
 
@@ -741,6 +789,7 @@ const initTumblebugSelectionValues = async () => {
     selectedImage.value = getWorkflowParamValue('IMAGE_ID') || getWorkflowParamValue('IMAGE')
     selectedSpec.value = getWorkflowParamValue('SPEC_ID') || getWorkflowParamValue('SPEC')
     selectedK8sVersion.value = getWorkflowParamValue('K8S_VERSION')
+    selectedObjectStorage.value = getWorkflowParamValue('OBJECT_STORAGE_BUCKET')
     selectedConnectionName.value = getWorkflowParamValue('CONNECTION_NAME')
     selectedZone.value = getWorkflowParamValue('ZONE')
     syncSelectionFromCurrentCspParams()
@@ -886,10 +935,17 @@ const onInputNamespace = (event?: Event) => {
 
 const onChangeNamespace = async () => {
   upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
+  // Written synchronously next to NAMESPACE on purpose. Deferring it past the loads below leaves a
+  // window of a second or two where NAMESPACE already reads the new value while
+  // OBJECT_STORAGE_NAMESPACE still holds the old one, and a run started in that window would
+  // address two different namespaces.
+  applyObjectStorageLocationParams()
   selectedAccessHost.value = ''
   accessHostOptions.value = []
   await Promise.all([loadMcInfraSpecs(), loadMcInfraInfras()])
   await loadMcInfraImages()
+  // After the write above, so the loader queries the namespace that was just selected.
+  await loadMcInfraObjectStorages()
   if (selectedInfra.value) {
     await loadMcInfraAccessHosts()
   }
@@ -943,6 +999,7 @@ const onChangeConnectionName = async () => {
   await loadMcInfraSpecs()
   await loadMcInfraImages()
   await loadMcInfraAvailableZones()
+  await loadMcInfraObjectStorages()
   applyInfraSelectionParams()
 }
 
@@ -951,6 +1008,11 @@ const onChangeZone = () => {
 }
 
 const onChangeK8sVersion = () => {
+  applyInfraSelectionParams()
+}
+
+const onChangeObjectStorage = () => {
+  selectedObjectStorage.value = (selectedObjectStorage.value || '').trim()
   applyInfraSelectionParams()
 }
 
@@ -980,6 +1042,7 @@ const loadInfraOptions = async () => {
   ])
   await loadMcInfraImages()
   await loadMcInfraAvailableZones()
+  await loadMcInfraObjectStorages()
   if (selectedInfra.value) {
     await loadMcInfraAccessHosts()
   }
@@ -1230,6 +1293,67 @@ const loadMcInfraAvailableZones = async () => {
     if (loadSeq !== zoneLoadSeq) return
     zoneOptions.value = []
     zoneLoading.value = false
+  }
+}
+
+const loadMcInfraObjectStorages = async () => {
+  const loadSeq = ++objectStorageLoadSeq
+  objectStorageOptions.value = []
+  objectStorageCspNames.value = {}
+  objectStorageRegions.value = {}
+  if (!isObjectStorageWorkflow.value) {
+    return
+  }
+
+  // mc-data-manager writes the bucket into its own Tumblebug namespace, which is a separate
+  // setting from the namespace the VM is created in. Honour the override so the list shows the
+  // buckets that were actually created, not an empty result from the VM namespace.
+  const namespace = getWorkflowParamValue('OBJECT_STORAGE_NAMESPACE')
+    || selectedNamespace.value
+    || getNamespaceParamValue()
+  // A bucket name is unique across the whole CSP and lives in one region of its own, so the list
+  // is scoped by provider only. mc-data-manager lists them the same way.
+  const provider = infraProvider.value
+  if (!namespace || !provider) {
+    return
+  }
+
+  try {
+    const { data } = await getMcInfraResources(namespace, 'objectStorage', { providerName: provider })
+    if (loadSeq !== objectStorageLoadSeq) return
+
+    const payload = (data as any)?.data ?? data
+    const buckets = Array.isArray(payload) ? payload : []
+    const cspNames: Record<string, string> = {}
+    const regions: Record<string, string> = {}
+    objectStorageOptions.value = buckets
+      .map((bucket: any) => {
+        const id = String(bucket?.id || bucket?.name || '').trim()
+        if (!id) return null
+        cspNames[id] = String(bucket?.cspResourceName || '').trim()
+        const region = String(bucket?.region || '').trim()
+        regions[id] = region
+        const status = String(bucket?.status || '').trim()
+        // The region belongs to the bucket, not to the VM, so it has to be visible in the list.
+        return { label: [region, status].filter(Boolean).join(' · ') || 'available', value: id }
+      })
+      .filter((option): option is InfraOption => option !== null)
+    objectStorageCspNames.value = cspNames
+    objectStorageRegions.value = regions
+
+    if (selectedObjectStorage.value && !objectStorageOptions.value.some((option) => option.value === selectedObjectStorage.value)) {
+      // Keep a bucket the workflow already points at even when it is not listed yet.
+      // Mark it so it is not mistaken for an existing one: the run creates it.
+      objectStorageOptions.value = [
+        { label: 'will be created by this run', value: selectedObjectStorage.value },
+        ...objectStorageOptions.value,
+      ]
+    }
+  } catch (error) {
+    if (loadSeq !== objectStorageLoadSeq) return
+    objectStorageOptions.value = []
+    objectStorageCspNames.value = {}
+    objectStorageRegions.value = {}
   }
 }
 
@@ -1730,6 +1854,29 @@ const getResourceCatalogNamespace = () => {
   return selectedNamespace.value || getNamespaceParamValue() || 'system'
 }
 
+// Mirror the namespace/CSP/Region choice onto the object storage side. The stages fall back to
+// NAMESPACE/CSP/REGION when these are empty, but an empty box next to a filled Infra one reads as
+// "not applied" and hides which namespace the bucket lookup actually queried.
+const applyObjectStorageLocationParams = () => {
+  if (!isObjectStorageWorkflow.value) return
+
+  const objectStorageNamespace = selectedNamespace.value || getNamespaceParamValue()
+  if (objectStorageNamespace && hasWorkflowParam('OBJECT_STORAGE_NAMESPACE')) {
+    upsertWorkflowParam('OBJECT_STORAGE_NAMESPACE', objectStorageNamespace)
+  }
+
+  if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
+    upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)
+  }
+  // A picked bucket dictates its own region: pointing DuckDB at the VM's region instead would
+  // hit the wrong S3 endpoint. Only a name that is not in the list yet follows the VM, because
+  // that bucket does not exist and the run creates it next to the VM.
+  const bucketRegion = objectStorageRegions.value[selectedObjectStorage.value] || selectedRegion.value
+  if (bucketRegion && hasWorkflowParam('OBJECT_STORAGE_REGION')) {
+    upsertWorkflowParam('OBJECT_STORAGE_REGION', bucketRegion)
+  }
+}
+
 const applyInfraSelectionParams = () => {
   if (!tumblebugSelectorEnabled.value) {
     return
@@ -1766,6 +1913,16 @@ const applyInfraSelectionParams = () => {
   upsertWorkflowParam('SPEC_ID', selectedSpec.value)
   if (isKubernetesImageWorkflow.value) {
     upsertWorkflowParam('K8S_VERSION', selectedK8sVersion.value)
+  }
+
+  applyObjectStorageLocationParams()
+
+  if (isObjectStorageWorkflow.value) {
+    // The workflow addresses the bucket by this one name. object-storage-create swaps in the
+    // real CSP bucket name through env at run time, so nothing else has to be written here.
+    if (selectedObjectStorage.value && hasWorkflowParam('OBJECT_STORAGE_BUCKET')) {
+      upsertWorkflowParam('OBJECT_STORAGE_BUCKET', selectedObjectStorage.value)
+    }
   }
 }
 
@@ -1805,6 +1962,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
   const workflowName = workflowInfoFormData.workflowName || 'workflow'
   const defaultInfraId = `${workflowName}-infra`
   const defaultClusterId = `${workflowName}-cluster`
+  const defaultBucketName = `${workflowName}-bucket`
   const responseDefaultParams = typeof stage === 'string' ? [] : (stage?.defaultParams || [])
   const stageParamMap: Record<string, Array<WorkflowParams>> = {
     'infra-create': [
@@ -1948,6 +2106,50 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'RELEASE_NAME', paramValue: 'mariadb', eventListenerYn: 'N' },
       { paramKey: 'DB_POD_SELECTOR', paramValue: 'app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb', eventListenerYn: 'N' },
     ],
+    'object-storage-create': [
+      { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'DATA_MANAGER', paramValue: 'http://mc-data-manager:3300', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: defaultBucketName, eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_READY_MAX_ATTEMPTS', paramValue: '30', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', paramValue: '5', eventListenerYn: 'N' },
+    ],
+    'object-storage-delete': [
+      { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'DATA_MANAGER', paramValue: 'http://mc-data-manager:3300', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_DELETE_ENABLED', paramValue: 'true', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: defaultBucketName, eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
+    ],
+    'object-storage-data-lab-install': [
+      { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_ENDPOINT', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_CREDENTIALS_ID', paramValue: 'object-storage-credential', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_URL_STYLE', paramValue: 'vhost', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_USE_SSL', paramValue: 'true', eventListenerYn: 'N' },
+      { paramKey: 'SSH_HOST', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'SSH_USER', paramValue: 'cb-user', eventListenerYn: 'N' },
+      { paramKey: 'SSH_KEY_FILE', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'DATA_PREFIX', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'RESULT_PREFIX', paramValue: 'results', eventListenerYn: 'N' },
+      { paramKey: 'WRITE_RESULT_ENABLED', paramValue: 'true', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_IMAGE', paramValue: 'quay.io/jupyter/scipy-notebook:2025-03-14', eventListenerYn: 'N' },
+      { paramKey: 'DUCKDB_VERSION', paramValue: '1.3.2', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_BIND_HOST', paramValue: '127.0.0.1', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
+    ],
   }
 
   const resolveDefaultParamValue = (paramKey: string, paramValue: string) => {
@@ -2010,6 +2212,17 @@ watch(
       .forEach((stage) => addDefaultParamsForStage(stage))
   }
 )
+
+// Adding the stage flips the gate on, so the bucket list has to be fetched at that moment.
+watch(isObjectStorageWorkflow, async (enabled) => {
+  if (enabled) {
+    // Adding the stage creates the object storage parameters with empty defaults, so the current
+    // namespace/CSP/Region selection has to be written into them right away. Without this they
+    // stay blank until the user happens to touch the selector.
+    applyObjectStorageLocationParams()
+    await loadMcInfraObjectStorages()
+  }
+})
 
 const upsertWorkflowParam = (paramKey: string, paramValue: string, eventListenerYn = 'N', overwrite = true) => {
   if (!paramKey) return
