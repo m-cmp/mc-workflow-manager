@@ -48,6 +48,9 @@ interface Props {
   options: Array<SelectOption>
   placeholder?: string
   title?: string
+  // Keep typed text that matches no option instead of reverting it. For fields that name a
+  // resource the run may create, where the value is not required to exist yet.
+  allowCustom?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -55,6 +58,7 @@ const props = withDefaults(defineProps<Props>(), {
   options: () => [],
   placeholder: '',
   title: '',
+  allowCustom: false,
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -167,6 +171,15 @@ const commitTypedValue = () => {
       emit('change')
     }
     inputText.value = exactOption.label
+    return
+  }
+
+  if (props.allowCustom) {
+    if (text !== props.modelValue) {
+      emit('update:modelValue', text)
+      emit('change')
+    }
+    inputText.value = text
     return
   }
 

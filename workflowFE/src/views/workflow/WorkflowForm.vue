@@ -74,24 +74,14 @@
                   <code>{{ getSelectionParamKeyLabel('NAMESPACE') }}</code>
                   <span>Namespace</span>
                 </label>
-                <input
+                <SearchableSelect
                   v-model="selectedNamespace"
-                  class="form-control p-2"
-                  :list="namespaceInputListId"
+                  :options="namespaceOptions"
                   placeholder="Namespace"
-                  autocomplete="off"
-                  @input="onInputNamespace"
+                  :title="getSelectedOptionLabel(namespaceOptions, selectedNamespace)"
+                  allow-custom
                   @change="onChangeNamespace"
                 />
-                <datalist :id="namespaceInputListId">
-                  <option
-                    v-for="option in namespaceOptions"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </datalist>
               </div>
               <div class="tumblebug-param-field g-col-4">
                 <label class="tumblebug-param-label">
@@ -163,24 +153,14 @@
                   <code>{{ getSelectionParamKeyLabel('INFRA_ID') }}</code>
                   <span>Existing Infra</span>
                 </label>
-                <input
+                <SearchableSelect
                   v-model="selectedInfra"
-                  class="form-control p-2"
-                  :list="infraInputListId"
+                  :options="infraOptions"
                   placeholder="Infra ID"
-                  autocomplete="off"
-                  @input="onInputInfra"
+                  :title="getSelectedOptionLabel(infraOptions, selectedInfra)"
+                  allow-custom
                   @change="onChangeInfra"
                 />
-                <datalist :id="infraInputListId">
-                  <option
-                    v-for="option in infraOptions"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </datalist>
               </div>
               <div class="tumblebug-param-field g-col-5">
                 <label class="tumblebug-param-label">
@@ -248,23 +228,14 @@
                   <code>{{ getSelectionParamKeyLabel('OBJECT_STORAGE_BUCKET') }}</code>
                   <span>Bucket Name</span>
                 </label>
-                <input
+                <SearchableSelect
                   v-model="selectedObjectStorage"
-                  class="form-control p-2"
-                  :list="objectStorageInputListId"
+                  :options="objectStorageOptions"
                   placeholder="Bucket Name"
-                  autocomplete="off"
+                  :title="getSelectedOptionLabel(objectStorageOptions, selectedObjectStorage)"
+                  allow-custom
                   @change="onChangeObjectStorage"
                 />
-                <datalist :id="objectStorageInputListId">
-                  <option
-                    v-for="option in objectStorageOptions"
-                    :key="option.value"
-                    :value="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </datalist>
                 <small class="text-secondary" v-if="selectedObjectStorage">
                   <template v-if="objectStorageCspNames[selectedObjectStorage]">
                     CSP bucket: {{ objectStorageCspNames[selectedObjectStorage] }}
@@ -464,10 +435,6 @@ const selectedZone = ref('')
 const selectedK8sVersion = ref('')
 const selectedObjectStorage = ref('')
 const isInitializingSelection = ref(false)
-const inputIdSuffix = Math.random().toString(36).slice(2)
-const namespaceInputListId = `tumblebug-namespace-options-${inputIdSuffix}`
-const infraInputListId = `tumblebug-infra-options-${inputIdSuffix}`
-const objectStorageInputListId = `tumblebug-object-storage-options-${inputIdSuffix}`
 const namespaceOptions = ref([] as Array<InfraOption>)
 const regionOptions = ref([] as Array<InfraOption>)
 const imageOptions = ref([] as Array<InfraOption>)
@@ -924,15 +891,6 @@ const syncSelectionFromCurrentCspParams = () => {
   selectedZone.value = getCurrentCspParamValue('ZONE') || defaults?.zone || ''
 }
 
-const getInputValue = (event: Event | undefined, fallback = '') => {
-  return (event?.target as HTMLInputElement | null)?.value ?? fallback
-}
-
-const onInputNamespace = (event?: Event) => {
-  selectedNamespace.value = getInputValue(event, selectedNamespace.value)
-  upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
-}
-
 const onChangeNamespace = async () => {
   upsertWorkflowParam('NAMESPACE', selectedNamespace.value)
   // Written synchronously next to NAMESPACE on purpose. Deferring it past the loads below leaves a
@@ -966,11 +924,6 @@ const onChangeInfraProvider = async () => {
 
 const onChangeInfraSelection = () => {
   applyInfraSelectionParams()
-}
-
-const onInputInfra = (event?: Event) => {
-  selectedInfra.value = getInputValue(event, selectedInfra.value)
-  syncInfraIdParams()
 }
 
 const onChangeInfra = async () => {
@@ -1335,7 +1288,8 @@ const loadMcInfraObjectStorages = async () => {
         regions[id] = region
         const status = String(bucket?.status || '').trim()
         // The region belongs to the bucket, not to the VM, so it has to be visible in the list.
-        return { label: [region, status].filter(Boolean).join(' · ') || 'available', value: id }
+        // The name leads: SearchableSelect renders only the label, and it is what gets committed.
+        return { label: [id, region, status].filter(Boolean).join(' · '), value: id }
       })
       .filter((option): option is InfraOption => option !== null)
     objectStorageCspNames.value = cspNames
@@ -1345,7 +1299,7 @@ const loadMcInfraObjectStorages = async () => {
       // Keep a bucket the workflow already points at even when it is not listed yet.
       // Mark it so it is not mistaken for an existing one: the run creates it.
       objectStorageOptions.value = [
-        { label: 'will be created by this run', value: selectedObjectStorage.value },
+        { label: `${selectedObjectStorage.value} · will be created by this run`, value: selectedObjectStorage.value },
         ...objectStorageOptions.value,
       ]
     }
