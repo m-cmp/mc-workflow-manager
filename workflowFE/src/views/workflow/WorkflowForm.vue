@@ -1286,23 +1286,17 @@ const loadMcInfraObjectStorages = async () => {
         cspNames[id] = String(bucket?.cspResourceName || '').trim()
         const region = String(bucket?.region || '').trim()
         regions[id] = region
-        const status = String(bucket?.status || '').trim()
-        // The region belongs to the bucket, not to the VM, so it has to be visible in the list.
-        // The name leads: SearchableSelect renders only the label, and it is what gets committed.
-        return { label: [id, region, status].filter(Boolean).join(' · '), value: id }
+        // Name only. Region and status are implied by the CSP and REGION fields above, and
+        // the resolved CSP bucket name is shown in the parameter list below.
+        return { label: id, value: id }
       })
       .filter((option): option is InfraOption => option !== null)
     objectStorageCspNames.value = cspNames
     objectStorageRegions.value = regions
 
-    if (selectedObjectStorage.value && !objectStorageOptions.value.some((option) => option.value === selectedObjectStorage.value)) {
-      // Keep a bucket the workflow already points at even when it is not listed yet.
-      // Mark it so it is not mistaken for an existing one: the run creates it.
-      objectStorageOptions.value = [
-        { label: `${selectedObjectStorage.value} · will be created by this run`, value: selectedObjectStorage.value },
-        ...objectStorageOptions.value,
-      ]
-    }
+    // A name that matches no listed bucket is not injected as an option: the field takes
+    // custom text, and SearchableSelect falls back to the raw value when nothing matches.
+    // The list therefore only ever shows buckets that already exist.
   } catch (error) {
     if (loadSeq !== objectStorageLoadSeq) return
     objectStorageOptions.value = []
