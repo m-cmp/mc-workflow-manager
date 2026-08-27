@@ -2195,8 +2195,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def credentialId = (params.OBJECT_STORAGE_CREDENTIALS_ID ?: "").trim()
                 def urlStyle = (params.OBJECT_STORAGE_URL_STYLE ?: "vhost").trim().toLowerCase()
                 def useSsl = (params.OBJECT_STORAGE_USE_SSL ?: "true").trim().toLowerCase()
-                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+$", "")
-                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+$", "")
+                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
+                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
                 def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
@@ -2982,7 +2982,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: object-storage-create"
             script {
-                def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+$", "")
+                def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+\$", "")
                 if (!dataManager) {
                     error "DATA_MANAGER is required. It is the base URL of mc-data-manager, for example http://mc-data-manager:3300"
                 }
@@ -3102,7 +3102,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (enabled == "false") {
                     echo "OBJECT_STORAGE_DELETE_ENABLED is false. Keeping the bucket and its contents."
                 } else {
-                    def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+$", "")
+                    def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+\$", "")
                     if (!dataManager) {
                         error "DATA_MANAGER is required, or set OBJECT_STORAGE_DELETE_ENABLED to false"
                     }
