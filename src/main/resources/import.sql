@@ -1181,10 +1181,21 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (compactResponse.contains("\"key\":\"clusternodenum\",\"value\":\"0\"")) {
                         return false
                     }
-                    if (compactResponse.contains("kubeconfigisnotreadyyet")) {
-                        return false
-                    }
-                    if (compactResponse.contains("first,addanodegroup")) {
+                    // Decide on what a ready kubeconfig looks like, not on how a CSP words its
+                    // placeholder. Each Spider driver phrases "not ready yet" differently, so a list
+                    // of those messages is never complete: NCP answers "Kubeconfig will be available
+                    // after cluster reaches RUNNING status" and passed the old check as ready.
+                    // Test what k8s-kubeconfig-get binds on: a kubeconfig that carries a server
+                    // URL. Do not test which key comes first, because the drivers that hand the CSP
+                    // bytes through unchanged may lead with a document marker, a comment or a BOM.
+                    // In compacted JSON every key is followed by a quote before its colon, so a bare
+                    // server:https:// can only come from YAML inside a string value.
+                    def hasKubeconfigField = compactResponse.contains("\"kubeconfig\":\"")
+                    def hasKubeconfigHead = compactResponse.contains("apiversion:v1") ||
+                        compactResponse.contains("kind:config")
+                    def hasKubeconfigServer = compactResponse.contains("server:https://") ||
+                        compactResponse.contains("server:http://")
+                    if (!hasKubeconfigField || !hasKubeconfigHead || !hasKubeconfigServer) {
                         return false
                     }
                     return true
@@ -1228,7 +1239,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         sleep time: statusIntervalSeconds, unit: "SECONDS"
                     }
                     if (!isKubeconfigReadyInStatus(statusResponse)) {
-                        error "k8s node group or kubeconfig was not ready: ${statusResponse}"
+                        error "k8s kubeconfig or node group was not ready: ${statusResponse}"
                     }
                 }
                 if (!hasNodeGroupInfo(statusResponse)) {
@@ -2184,9 +2195,12 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: object-storage-data-lab-install"
             script {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
-                def supportedProviders = ["aws", "gcp", "ncp"]
+                // The same set CB-Spider resolves S3 connection info for. Keep this list, the
+                // endpoint defaults and the url style defaults below in step with
+                // S3Manager.GetS3ConnectionInfo, which is what actually created the bucket.
+                def supportedProviders = ["aws", "gcp", "ncp", "alibaba", "tencent", "ibm", "nhn"]
                 if (!supportedProviders.contains(provider)) {
-                    error "OBJECT_STORAGE_PROVIDER must be one of: aws, gcp, ncp"
+                    error "OBJECT_STORAGE_PROVIDER must be one of: ${supportedProviders.join(", ")}"
                 }
 
                 def bucket = (env.OBJECT_STORAGE_BUCKET ?: params.OBJECT_STORAGE_BUCKET ?: "").trim()
@@ -2207,14 +2221,21 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_REGION and OBJECT_STORAGE_CREDENTIALS_ID are required"
                 }
                 if (!endpoint) {
-                    if (provider == "aws") {
-                        endpoint = "s3.${region}.amazonaws.com"
-                    } else if (provider == "gcp") {
-                        endpoint = "storage.googleapis.com"
-                    } else {
-                        // Same default mc-data-manager uses for NCP object storage. It is the
-                        // Korea endpoint, so another NCP region has to set the parameter.
-                        endpoint = "kr.object.ncloudstorage.com"
+                    // Mirrors CB-Spider S3Manager.GetS3ConnectionInfo. A wrong endpoint fails as an
+                    // opaque access error, so never fall through to another CSP default: any
+                    // provider without an entry here is rejected above by supportedProviders.
+                    def endpointsByProvider = [
+                        aws:     "s3.${region}.amazonaws.com",
+                        gcp:     "storage.googleapis.com",
+                        ncp:     "${region}.object.ncloudstorage.com",
+                        alibaba: "oss-${region}.aliyuncs.com",
+                        tencent: "cos.${region}.myqcloud.com",
+                        ibm:     "s3.${region}.cloud-object-storage.appdomain.cloud",
+                        nhn:     "${region}-api-object-storage.nhncloudservice.com"
+                    ]
+                    endpoint = endpointsByProvider[provider]
+                    if (!endpoint) {
+                        error "No default OBJECT_STORAGE_ENDPOINT for provider ${provider}. Set it explicitly."
                     }
                 }
                 if (!(urlStyle in ["path", "vhost"])) {
@@ -2290,12 +2311,18 @@ def create_connection():
     if endpoint:
         options.append(f"ENDPOINT {sql_quote(endpoint)}")
     if provider != "gcp":
+        # Region participates in the SigV4 signing scope, so send it only where CB-Spider does
+        # (S3Manager.GetS3ConnectionInfo sets options.Region when RegionRequired). Sending one
+        # to a CSP that ignores regions can make the signature not match.
+        region_required = provider in ("aws", "tencent", "nhn")
         region = os.environ.get("OBJECT_STORAGE_REGION", "")
         url_style = os.environ.get("OBJECT_STORAGE_URL_STYLE", "vhost")
-        if region:
+        if region and region_required:
             options.append(f"REGION {sql_quote(region)}")
         options.append(f"URL_STYLE {sql_quote(url_style)}")
-    connection.execute("CREATE OR REPLACE TEMP SECRET object_storage (" + ", ".join(options) + ")")
+    # No TEMP keyword: the DuckDB secret grammar takes TEMPORARY or nothing, and TEMP fails to
+    # parse. A secret is temporary by default, so it lives only for this connection.
+    connection.execute("CREATE OR REPLACE SECRET object_storage (" + ", ".join(options) + ")")
     return connection
 
 
@@ -4080,7 +4107,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'INFRA_ACCESS_INFO_MAX_ATTEMPTS', '30', 'N'),
 (109, 'INFRA_ACCESS_INFO_INTERVAL_SECONDS', '10', 'N'),
 (109, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
-(109, 'OBJECT_STORAGE_BUCKET', 'mcmp-obj-data-lab', 'N'),
+(109, 'OBJECT_STORAGE_BUCKET', '', 'N'),
 (109, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
 (109, 'OBJECT_STORAGE_READY_MAX_ATTEMPTS', '30', 'N'),
 (109, 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', '5', 'N'),
@@ -4108,7 +4135,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (110, 'INFRA_DELETE_OPTION', 'terminate', 'N'),
 (110, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
 (110, 'OBJECT_STORAGE_DELETE_ENABLED', 'true', 'N'),
-(110, 'OBJECT_STORAGE_BUCKET', 'mcmp-obj-data-lab', 'N'),
+(110, 'OBJECT_STORAGE_BUCKET', '', 'N'),
 (110, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
 (110, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
 (110, 'OBJECT_STORAGE_REGION', '', 'N');
