@@ -349,7 +349,9 @@ onMounted(async () => {
   await setOssInfo()
   setWorkflowPurposeList()
   await initTumblebugSelectionValues()
+  applyObjectStorageLocationParams()
   await loadInfraOptions()
+  applyObjectStorageLocationParams()
 })
 
 // ================================================================================= Set mode
@@ -918,6 +920,7 @@ const onChangeInfraProvider = async () => {
   selectedK8sVersion.value = ''
   syncSelectionFromCurrentCspParams()
   applyVmSelectionDefault()
+  applyObjectStorageLocationParams()
   await loadInfraOptions()
   applyInfraSelectionParams()
 }
@@ -1816,6 +1819,10 @@ const applyObjectStorageLocationParams = () => {
   if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
     upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)
   }
+  const credentialProvider = infraProvider.value.trim().toLowerCase()
+  if (credentialProvider && hasWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID')) {
+    upsertWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID', `object-storage-credential-${credentialProvider}`)
+  }
   // A picked bucket dictates its own region: pointing DuckDB at the VM's region instead would
   // hit the wrong S3 endpoint. Only a name that is not in the list yet follows the VM, because
   // that bucket does not exist and the run creates it next to the VM.
@@ -2084,7 +2091,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_ENDPOINT', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'OBJECT_STORAGE_CREDENTIALS_ID', paramValue: 'object-storage-credential', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_CREDENTIALS_ID', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_URL_STYLE', paramValue: 'vhost', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_USE_SSL', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'SSH_HOST', paramValue: '', eventListenerYn: 'N' },
@@ -2095,7 +2102,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'WRITE_RESULT_ENABLED', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_IMAGE', paramValue: 'quay.io/jupyter/scipy-notebook:2025-03-14', eventListenerYn: 'N' },
       { paramKey: 'DUCKDB_VERSION', paramValue: '1.3.2', eventListenerYn: 'N' },
-      { paramKey: 'JUPYTER_BIND_HOST', paramValue: '127.0.0.1', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_BIND_HOST', paramValue: '0.0.0.0', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
     ],
   }
@@ -2133,6 +2140,10 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
         return existingValue || paramValue || defaultInfraId
       case 'K8S_CLUSTER_ID':
         return existingValue || paramValue || defaultClusterId
+      case 'OBJECT_STORAGE_CREDENTIALS_ID': {
+        const credentialProvider = infraProvider.value.trim().toLowerCase()
+        return credentialProvider ? `object-storage-credential-${credentialProvider}` : paramValue
+      }
       case 'SSH_HOST':
       case 'DB_HOST':
         return selectedAccessHost.value || existingValue || paramValue
