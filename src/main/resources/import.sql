@@ -2189,7 +2189,108 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 6, 'object-storage-data-lab-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (58, 19, 6, 'object-storage-data-lab-open-firewall', 'Open the selected Jupyter port to an allowed IPv4 CIDR', '
+    stage("object-storage-data-lab-open-firewall") {
+        steps {
+            echo ">>>>> STAGE: object-storage-data-lab-open-firewall"
+            script {
+                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim().toLowerCase()
+                def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
+                if (!(jupyterPort ==~ /[0-9]+/) || jupyterPort.toInteger() < 1 || jupyterPort.toInteger() > 65535) {
+                    error "JUPYTER_PORT must be between 1 and 65535"
+                }
+
+                if (jupyterBindHost in ["127.0.0.1", "localhost", "::1"]) {
+                    echo "Jupyter is bound to loopback. Skip the Tumblebug inbound rule."
+                } else {
+                    def tumblebug = (params.TUMBLEBUG ?: "").trim().replaceAll("/+\$", "")
+                    def namespace = (params.NAMESPACE ?: "").trim()
+                    def infraId = (params.INFRA_ID ?: "").trim()
+                    def allowedCidr = (params.JUPYTER_ALLOWED_CIDR ?: "0.0.0.0/0").trim()
+                    if (!tumblebug || !namespace || !infraId) {
+                        error "TUMBLEBUG, NAMESPACE and INFRA_ID are required for direct Jupyter access"
+                    }
+
+                    def safeValues = [tumblebug: [tumblebug, /[A-Za-z0-9._:\/-]+/], namespace: [namespace, /[A-Za-z0-9._-]+/], infraId: [infraId, /[A-Za-z0-9._-]+/]]
+                    safeValues.each { name, validation ->
+                        if (!(validation[0] ==~ validation[1]) || validation[0].contains("..")) {
+                            error "Invalid ${name}"
+                        }
+                    }
+
+                    if (!allowedCidr.contains("/")) {
+                        allowedCidr = allowedCidr + "/32"
+                    }
+                    def cidrParts = allowedCidr.split("/", -1)
+                    def octets = cidrParts.size() == 2 ? cidrParts[0].split("\\.", -1) : []
+                    def validAddress = octets.size() == 4 && octets.every { octet ->
+                        (octet ==~ /[0-9]+/) && octet.toInteger() >= 0 && octet.toInteger() <= 255
+                    }
+                    def validPrefix = cidrParts.size() == 2 && (cidrParts[1] ==~ /[0-9]+/) && cidrParts[1].toInteger() >= 0 && cidrParts[1].toInteger() <= 32
+                    if (!validAddress || !validPrefix) {
+                        error "JUPYTER_ALLOWED_CIDR must be a valid IPv4 address or IPv4 CIDR"
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def associatedUrl = "${tumblebug}/tumblebug/ns/${namespace}/infra/${infraId}/associatedResources"
+                    def associatedResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${associatedUrl}" ${auth}""", returnStdout: true).trim()
+                    if (!associatedResponse.contains("Http_Status_code:2")) {
+                        error "Failed to get security groups for ${infraId}: ${associatedResponse}"
+                    }
+
+                    def associatedBody = associatedResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                    def associatedResources = new groovy.json.JsonSlurperClassic().parseText(associatedBody)
+                    def securityGroupIds = (associatedResources.securityGroupIds ?: []).collect { it.toString().trim() }.findAll { it }
+                    if (!securityGroupIds) {
+                        error "No security group is associated with infra ${infraId}"
+                    }
+
+                    securityGroupIds.each { securityGroupId ->
+                        if (!(securityGroupId ==~ /[A-Za-z0-9._-]+/)) {
+                            error "Invalid securityGroupId returned by Tumblebug"
+                        }
+
+                        def securityGroupUrl = "${tumblebug}/tumblebug/ns/${namespace}/resources/securityGroup/${securityGroupId}"
+                        def securityGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${securityGroupUrl}" ${auth}""", returnStdout: true).trim()
+                        if (!securityGroupResponse.contains("Http_Status_code:2")) {
+                            error "Failed to read security group ${securityGroupId}: ${securityGroupResponse}"
+                        }
+
+                        def securityGroupBody = securityGroupResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                        def securityGroup = new groovy.json.JsonSlurperClassic().parseText(securityGroupBody)
+                        def ruleExists = (securityGroup.firewallRules ?: []).any { rule ->
+                            def port = (rule["Port"] ?: rule["port"] ?: "").toString().trim()
+                            def protocol = (rule["Protocol"] ?: rule["protocol"] ?: "").toString().trim().toUpperCase()
+                            def direction = (rule["Direction"] ?: rule["direction"] ?: "").toString().trim().toLowerCase()
+                            def cidr = (rule["CIDR"] ?: rule["cidr"] ?: "").toString().trim()
+                            port == jupyterPort && protocol == "TCP" && direction == "inbound" && cidr == allowedCidr
+                        }
+
+                        if (ruleExists) {
+                            echo "Jupyter inbound rule already exists. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
+                        } else {
+                            def payload = groovy.json.JsonOutput.toJson([
+                                firewallRules: [[Ports: jupyterPort, Protocol: "TCP", Direction: "inbound", CIDR: allowedCidr]]
+                            ])
+                            writeFile file: "jupyter-firewall-rule.json", text: payload
+                            try {
+                                def addResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${securityGroupUrl}/rules" -H "Content-Type: application/json" -d @jupyter-firewall-rule.json ${auth}""", returnStdout: true).trim()
+                                def duplicateResponse = addResponse.toLowerCase().contains("already exists")
+                                if (!addResponse.contains("Http_Status_code:2") && !duplicateResponse) {
+                                    error "Failed to add the Jupyter inbound rule to ${securityGroupId}: ${addResponse}"
+                                }
+                                echo "Jupyter inbound rule is ready. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
+                            } finally {
+                                sh "rm -f jupyter-firewall-rule.json"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }');
+
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 7, 'object-storage-data-lab-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
     stage("object-storage-data-lab-install") {
         steps {
             echo ">>>>> STAGE: object-storage-data-lab-install"
@@ -2583,12 +2684,15 @@ echo "      remote bind  : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
 echo "      token file   : \${ENV_FILE} (on the VM)"
 echo "      jupyter token: \${token}"
 echo ""
-echo "      1) open an SSH tunnel from your machine:"
+if [ "\${JUPYTER_BIND_HOST}" != "127.0.0.1" ] && [ "\${JUPYTER_BIND_HOST}" != "localhost" ] && [ "\${JUPYTER_BIND_HOST}" != "::1" ]; then
+  echo "      direct URL   : http://${sshHost}:\${JUPYTER_PORT}/lab?token=\${token}"
+  echo ""
+fi
+echo "      SSH tunnel alternative:"
 echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@${sshHost}"
-echo "      2) then open:"
+echo "      then open:"
 echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${token}"
 echo ""
-echo "      Direct access requires opening the port in the Tumblebug security group."
 echo "      To restrict the Lab to SSH tunnels, rerun with JUPYTER_BIND_HOST=127.0.0.1"
 """
 
@@ -3779,6 +3883,7 @@ pipeline {
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 56)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 58)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55)
 || '
     }
@@ -4125,6 +4230,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'JUPYTER_IMAGE', 'quay.io/jupyter/scipy-notebook:2025-03-14', 'N'),
 (109, 'DUCKDB_VERSION', '1.3.2', 'N'),
 (109, 'JUPYTER_BIND_HOST', '0.0.0.0', 'N'),
+(109, 'JUPYTER_ALLOWED_CIDR', '0.0.0.0/0', 'N'),
 (109, 'JUPYTER_PORT', '8888', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
@@ -4226,9 +4332,11 @@ SELECT 109, 4, 17, workflow_stage_content FROM workflow_stage WHERE workflow_sta
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
 SELECT 109, 5, 25, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 109, 6, 55, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55;
+SELECT 109, 6, 58, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 58;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 109, 7, 55, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(109, 7, null, '
+(109, 8, null, '
     }
 }
 ');
