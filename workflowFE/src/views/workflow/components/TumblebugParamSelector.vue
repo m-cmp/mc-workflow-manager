@@ -451,9 +451,11 @@ const zonePlaceholder = computed(() => {
 
 onMounted(async () => {
   await initSelectionValues()
+  // Apply the already-selected CSP before loading remote options so the default selection does
+  // not leave the credential ID blank while the user has made no selection change.
+  applyObjectStorageLocationParams()
   await loadInfraOptions()
-  // initSelectionValues only reads, so without this the object storage location stays blank
-  // until the user touches the selector.
+  // Provider loading may normalize the selection, so synchronize once more with the final value.
   applyObjectStorageLocationParams()
 })
 
@@ -695,6 +697,7 @@ const onChangeInfraProvider = async () => {
   selectedK8sVersion.value = ''
   syncSelectionFromCurrentCspParams()
   applyVmSelectionDefault()
+  applyObjectStorageLocationParams()
   await loadInfraOptions()
   applyInfraSelectionParams()
 }
@@ -1597,6 +1600,10 @@ const applyObjectStorageLocationParams = () => {
 
   if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
     upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)
+  }
+  const credentialProvider = infraProvider.value.trim().toLowerCase()
+  if (credentialProvider && hasWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID')) {
+    upsertWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID', `object-storage-credential-${credentialProvider}`)
   }
   // A picked bucket dictates its own region: pointing DuckDB at the VM's region instead would
   // hit the wrong S3 endpoint. Only a name that is not in the list yet follows the VM, because

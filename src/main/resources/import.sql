@@ -2206,7 +2206,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def bucket = (env.OBJECT_STORAGE_BUCKET ?: params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
                 def endpoint = (params.OBJECT_STORAGE_ENDPOINT ?: "").trim()
-                def credentialId = (params.OBJECT_STORAGE_CREDENTIALS_ID ?: "").trim()
+                def configuredCredentialId = (params.OBJECT_STORAGE_CREDENTIALS_ID ?: "").trim()
+                def credentialId = (!configuredCredentialId || configuredCredentialId == "object-storage-credential") ?
+                    "object-storage-credential-${provider}" : configuredCredentialId
                 def urlStyle = (params.OBJECT_STORAGE_URL_STYLE ?: "vhost").trim().toLowerCase()
                 def useSsl = (params.OBJECT_STORAGE_USE_SSL ?: "true").trim().toLowerCase()
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
@@ -2214,11 +2216,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
                 def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
-                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "127.0.0.1").trim()
+                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
                 def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
 
-                if (!bucket || !region || !credentialId) {
-                    error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_REGION and OBJECT_STORAGE_CREDENTIALS_ID are required"
+                if (!bucket || !region) {
+                    error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_REGION are required"
                 }
                 if (!endpoint) {
                     // Mirrors CB-Spider S3Manager.GetS3ConnectionInfo. A wrong endpoint fails as an
@@ -2586,8 +2588,8 @@ echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@
 echo "      2) then open:"
 echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${token}"
 echo ""
-echo "      To expose the Lab directly instead, rerun with JUPYTER_BIND_HOST=0.0.0.0"
-echo "      and open the port in the Tumblebug security group."
+echo "      Direct access requires opening the port in the Tumblebug security group."
+echo "      To restrict the Lab to SSH tunnels, rerun with JUPYTER_BIND_HOST=127.0.0.1"
 """
 
                 writeFile file: "verify_object_storage.py", text: verifierSource
@@ -4113,7 +4115,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', '5', 'N'),
 (109, 'OBJECT_STORAGE_ENDPOINT', '', 'N'),
 (109, 'OBJECT_STORAGE_REGION', '', 'N'),
-(109, 'OBJECT_STORAGE_CREDENTIALS_ID', 'object-storage-credential', 'N'),
+(109, 'OBJECT_STORAGE_CREDENTIALS_ID', '', 'N'),
 (109, 'OBJECT_STORAGE_URL_STYLE', 'vhost', 'N'),
 (109, 'OBJECT_STORAGE_USE_SSL', 'true', 'N'),
 (109, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
@@ -4122,7 +4124,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'WRITE_RESULT_ENABLED', 'true', 'N'),
 (109, 'JUPYTER_IMAGE', 'quay.io/jupyter/scipy-notebook:2025-03-14', 'N'),
 (109, 'DUCKDB_VERSION', '1.3.2', 'N'),
-(109, 'JUPYTER_BIND_HOST', '127.0.0.1', 'N'),
+(109, 'JUPYTER_BIND_HOST', '0.0.0.0', 'N'),
 (109, 'JUPYTER_PORT', '8888', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES

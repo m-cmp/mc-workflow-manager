@@ -313,7 +313,7 @@ public class WorkflowStageDto {
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_REGION", ""),
                     param("OBJECT_STORAGE_ENDPOINT", ""),
-                    param("OBJECT_STORAGE_CREDENTIALS_ID", "object-storage-credential"),
+                    param("OBJECT_STORAGE_CREDENTIALS_ID", ""),
                     param("OBJECT_STORAGE_URL_STYLE", "vhost"),
                     param("OBJECT_STORAGE_USE_SSL", "true"),
                     param("SSH_HOST", ""),
@@ -324,7 +324,7 @@ public class WorkflowStageDto {
                     param("WRITE_RESULT_ENABLED", "true"),
                     param("JUPYTER_IMAGE", "quay.io/jupyter/scipy-notebook:2025-03-14"),
                     param("DUCKDB_VERSION", "1.3.2"),
-                    param("JUPYTER_BIND_HOST", "127.0.0.1"),
+                    param("JUPYTER_BIND_HOST", "0.0.0.0"),
                     param("JUPYTER_PORT", "8888"));
             default -> List.of();
         };

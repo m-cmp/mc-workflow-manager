@@ -416,7 +416,7 @@ const paramHints: Record<string, string> = {
   OBJECT_STORAGE_PROVIDER: 'Leave empty to follow the selected CSP.',
   OBJECT_STORAGE_REGION: 'Leave empty to follow the selected Region.',
   OBJECT_STORAGE_ENDPOINT: 'Leave empty to derive it from provider and region. Set it only for an NCP region other than Korea, or a custom S3 compatible endpoint.',
-  OBJECT_STORAGE_CREDENTIALS_ID: 'Jenkins credential ID. Username is the access key, password is the secret key.',
+  OBJECT_STORAGE_CREDENTIALS_ID: 'Follows the selected CSP as object-storage-credential-{csp}. Username is the access key, password is the secret key.',
   DATA_MANAGER: 'mc-data-manager base URL. Used to create and delete the bucket.',
 }
 
