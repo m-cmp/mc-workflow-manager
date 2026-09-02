@@ -2086,6 +2086,16 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
     ],
+    'object-storage-data-lab-open-firewall': [
+      { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_BIND_HOST', paramValue: '0.0.0.0', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '0.0.0.0/0', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
+    ],
     'object-storage-data-lab-install': [
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },

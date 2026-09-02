@@ -308,6 +308,12 @@ public class WorkflowStageDto {
                     param("OBJECT_STORAGE_NAMESPACE", ""),
                     param("OBJECT_STORAGE_PROVIDER", ""),
                     param("OBJECT_STORAGE_REGION", ""));
+            case "object-storage-data-lab-open-firewall" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("JUPYTER_BIND_HOST", "0.0.0.0"),
+                    param("JUPYTER_ALLOWED_CIDR", "0.0.0.0/0"),
+                    param("JUPYTER_PORT", "8888"));
             case "object-storage-data-lab-install" -> params(
                     param("OBJECT_STORAGE_PROVIDER", ""),
                     param("OBJECT_STORAGE_BUCKET", ""),
