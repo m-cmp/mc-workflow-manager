@@ -1261,14 +1261,13 @@ const loadMcInfraObjectStorages = async () => {
     return
   }
 
-  // mc-data-manager writes the bucket into its own Tumblebug namespace, which is a separate
-  // setting from the namespace the VM is created in. Honour the override so the list shows the
-  // buckets that were actually created, not an empty result from the VM namespace.
+  // Honour the object storage namespace override so the list and the workflow stage address the
+  // same Tumblebug resource collection.
   const namespace = getWorkflowParamValue('OBJECT_STORAGE_NAMESPACE')
     || selectedNamespace.value
     || getNamespaceParamValue()
   // A bucket name is unique across the whole CSP and lives in one region of its own, so the list
-  // is scoped by provider only. mc-data-manager lists them the same way.
+  // is scoped by provider only.
   const provider = infraProvider.value
   if (!namespace || !provider) {
     return
@@ -2066,7 +2065,6 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
-      { paramKey: 'DATA_MANAGER', paramValue: 'http://mc-data-manager:3300', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: defaultBucketName, eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
@@ -2079,7 +2077,6 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
-      { paramKey: 'DATA_MANAGER', paramValue: 'http://mc-data-manager:3300', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_DELETE_ENABLED', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: defaultBucketName, eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },

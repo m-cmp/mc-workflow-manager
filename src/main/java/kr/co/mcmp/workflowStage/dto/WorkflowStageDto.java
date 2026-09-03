@@ -293,7 +293,6 @@ public class WorkflowStageDto {
                     param("NAMESPACE_DESC", "Workflow created namespace"));
             case "object-storage-create" -> tumblebugParams(
                     param("NAMESPACE", ""),
-                    param("DATA_MANAGER", "http://mc-data-manager:3300"),
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_NAMESPACE", ""),
                     param("OBJECT_STORAGE_PROVIDER", ""),
@@ -302,7 +301,6 @@ public class WorkflowStageDto {
                     param("OBJECT_STORAGE_READY_INTERVAL_SECONDS", "5"));
             case "object-storage-delete" -> tumblebugParams(
                     param("NAMESPACE", ""),
-                    param("DATA_MANAGER", "http://mc-data-manager:3300"),
                     param("OBJECT_STORAGE_DELETE_ENABLED", "true"),
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_NAMESPACE", ""),

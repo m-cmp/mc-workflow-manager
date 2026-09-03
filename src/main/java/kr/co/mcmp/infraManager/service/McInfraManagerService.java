@@ -943,8 +943,7 @@ public class McInfraManagerService {
     }
 
     // Buckets are listed per CSP, not per region: a bucket name is unique across the whole CSP and
-    // the provider APIs list an account's buckets regardless of where they live. mc-data-manager
-    // lists them the same way (filterKey=providerName), so both surfaces agree on what exists.
+    // the provider APIs list an account's buckets regardless of where they live.
     private Object getObjectStorages(String nsId, MultiValueMap<String, String> queryParams) {
         String namespace = StringUtils.hasText(nsId) ? nsId : "default";
         org.springframework.util.LinkedMultiValueMap<String, String> lookupParams =
@@ -984,16 +983,15 @@ public class McInfraManagerService {
             }
 
             // Tumblebug matches filterKey/filterVal as plain substrings of the stored JSON, so the
-            // provider filter is only an approximation. Narrow it down here the way mc-data-manager
-            // does, by requiring the connection name to actually start with the provider.
+            // provider filter is only an approximation. Narrow it down by requiring the connection
+            // name to actually start with the provider.
             String entryConnectionName = valueAsString(source.get("connectionName"));
             if (!providerPrefix.isEmpty() && !entryConnectionName.toLowerCase().startsWith(providerPrefix)) {
                 continue;
             }
 
             // Tumblebug creates the CSP bucket under a generated name, so the logical id and the
-            // real bucket name differ. Both are needed: the id addresses mc-data-manager, the CSP
-            // name is what an S3 client has to connect to.
+            // real bucket name differ. The id addresses Tumblebug; an S3 client uses the CSP name.
             Map<String, Object> entry = new LinkedHashMap<>();
             entry.put("id", id);
             entry.put("name", firstNonBlank(valueAsString(source.get("name")), id));
@@ -1002,8 +1000,8 @@ public class McInfraManagerService {
                     valueAsString(source.get("uid"))));
             entry.put("connectionName", entryConnectionName);
             // The bucket carries its own region, which need not be the region the VM runs in.
-            // connectionName is built as provider + "-" + region, so reversing it yields exactly
-            // the region value mc-data-manager expects back when addressing this bucket.
+            // connectionName is built as provider + "-" + region, so reversing it yields the
+            // region used to address this bucket.
             entry.put("region", providerPrefix.isEmpty()
                     ? ""
                     : entryConnectionName.substring(providerPrefix.length()));
