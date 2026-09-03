@@ -414,12 +414,11 @@ const paramHints: Record<string, string> = {
   KUBECONFIG_CONTENT: 'Inline kubeconfig.',
   CSP_LIST: 'Comma separated CSP list.',
   OBJECT_STORAGE_BUCKET: 'Bucket name. Existing one is reused, a new name is created by the run. Empty means no object storage.',
-  OBJECT_STORAGE_NAMESPACE: 'Tumblebug namespace where mc-data-manager records buckets. Follows the Namespace selected above.',
+  OBJECT_STORAGE_NAMESPACE: 'Tumblebug namespace that owns the bucket. Follows the Namespace selected above.',
   OBJECT_STORAGE_PROVIDER: 'Leave empty to follow the selected CSP.',
   OBJECT_STORAGE_REGION: 'Leave empty to follow the selected Region.',
   OBJECT_STORAGE_ENDPOINT: 'Leave empty to derive it from provider and region. Set it only for an NCP region other than Korea, or a custom S3 compatible endpoint.',
   OBJECT_STORAGE_CREDENTIALS_ID: 'Automatically set to object-storage-credential-{csp} based on the selected CSP.',
-  DATA_MANAGER: 'mc-data-manager base URL. Used to create and delete the bucket.',
   JUPYTER_ALLOWED_CIDR: 'Public IPv4 address or IPv4 CIDR allowed to access Jupyter. single IP is converted to /32.',
   JUPYTER_PORT: 'Host port opened in the Tumblebug security group and mapped to Jupyter.',
 }

@@ -1038,14 +1038,13 @@ const loadMcInfraObjectStorages = async () => {
     return
   }
 
-  // mc-data-manager writes the bucket into its own Tumblebug namespace, which is a separate
-  // setting from the namespace the VM is created in. Honour the override so the list shows the
-  // buckets that were actually created, not an empty result from the VM namespace.
+  // Honour the object storage namespace override so the list and the workflow stage address the
+  // same Tumblebug resource collection.
   const namespace = getWorkflowParamValue('OBJECT_STORAGE_NAMESPACE')
     || selectedNamespace.value
     || getNamespaceParamValue()
   // A bucket name is unique across the whole CSP and lives in one region of its own, so the list
-  // is scoped by provider only. mc-data-manager lists them the same way.
+  // is scoped by provider only.
   const provider = infraProvider.value
   if (!namespace || !provider) {
     return
@@ -1590,9 +1589,8 @@ const getResourceCatalogNamespace = () => {
 const applyObjectStorageLocationParams = () => {
   if (!isObjectStorageWorkflow.value) return
 
-  // The bucket lookup runs against this namespace, so leaving it blank hides which namespace was
-  // actually queried when the list comes back empty. Writing the effective value makes a mismatch
-  // with mc-data-manager's own nsId visible instead of silently wrong, and it stays editable.
+  // The bucket lookup and create/delete stages use this namespace. Writing the effective value
+  // makes the target explicit, and it stays editable.
   const objectStorageNamespace = selectedNamespace.value || getNamespaceParamValue()
   if (objectStorageNamespace && hasWorkflowParam('OBJECT_STORAGE_NAMESPACE')) {
     upsertWorkflowParam('OBJECT_STORAGE_NAMESPACE', objectStorageNamespace)

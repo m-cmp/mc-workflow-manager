@@ -3110,16 +3110,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (56, 21, 7, 'object-storage-create', 'Create an Object Storage bucket via mc-data-manager and resolve its CSP name', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (56, 21, 7, 'object-storage-create', 'Reuse or create an Object Storage bucket via CB-Tumblebug and resolve its CSP name', '
     stage("object-storage-create") {
         steps {
             echo ">>>>> STAGE: object-storage-create"
             script {
-                def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+\$", "")
-                if (!dataManager) {
-                    error "DATA_MANAGER is required. It is the base URL of mc-data-manager, for example http://mc-data-manager:3300"
-                }
-                if (!params.TUMBLEBUG?.trim()) {
+                def tumblebug = (params.TUMBLEBUG ?: "").trim().replaceAll("/+\$", "")
+                if (!tumblebug) {
                     error "TUMBLEBUG is required"
                 }
                 if (!params.NAMESPACE?.trim()) {
@@ -3129,14 +3126,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def storageName = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                 def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
-                // mc-data-manager records the bucket under its own Tumblebug namespace, which is not
-                // necessarily the namespace the VM lives in. Look it up where it was actually written.
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+                def connectionName = "${provider}-${region}"
                 if (!storageName || !provider || !region) {
                     error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_PROVIDER and OBJECT_STORAGE_REGION are required"
                 }
 
-                def safeValues = [storageName: storageName, provider: provider, region: region, dataManager: dataManager, osNamespace: osNamespace]
+                def safeValues = [storageName: storageName, provider: provider, region: region, tumblebug: tumblebug, osNamespace: osNamespace, connectionName: connectionName]
                 safeValues.each { name, value ->
                     if (!(value ==~ /[A-Za-z0-9._:\/-]+/) || value.contains("..")) {
                         error "Invalid ${name}"
@@ -3165,24 +3161,50 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 }
 
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                def detailUrl = "${params.TUMBLEBUG}/tumblebug/ns/${osNamespace}/resources/objectStorage/${storageName}"
+                def objectStorageUrl = "${tumblebug}/tumblebug/ns/${osNamespace}/resources/objectStorage"
+                def detailUrl = "${objectStorageUrl}/${storageName}"
 
-                def payload = "{\"targetPoint\": {\"provider\": \"" + provider + "\", \"region\": \"" + region + "\", \"bucket\": \"" + storageName + "\"}}"
-                writeFile file: "object-storage-create.json", text: payload
-                try {
-                    echo "Requesting mc-data-manager to create bucket ${storageName} on ${provider}-${region}"
-                    def createResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X PUT \"${dataManager}/objectstorage/buckets\" -H \"Content-Type: application/json\" -d @object-storage-create.json", returnStdout: true).trim()
-                    echo createResponse
-                    if (!createResponse.contains("Http_Status_code:2")) {
-                        error "object-storage-create failed: ${createResponse}"
+                // The selector offers only registered buckets, while custom text denotes a new logical ID.
+                // Check the authoritative Tumblebug list again at run time to avoid a stale UI decision.
+                def listResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${objectStorageUrl}\" ${auth}", returnStdout: true).trim()
+                if (!listResponse.contains("Http_Status_code:2")) {
+                    error "object-storage-create failed to list object storages: ${listResponse}"
+                }
+                def listBody = listResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                def listPayload = new groovy.json.JsonSlurperClassic().parseText(listBody)
+                def listedBuckets = listPayload instanceof List ? listPayload : (listPayload.objectStorage ?: [])
+                def existingBucket = listedBuckets.find { bucket ->
+                    (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
+                }
+                def cspBucket = ""
+
+                if (existingBucket) {
+                    def existingConnectionName = (existingBucket.connectionName ?: "").toString().trim()
+                    if (existingConnectionName && existingConnectionName != connectionName) {
+                        error "Object storage ${storageName} already exists with connection ${existingConnectionName}, not ${connectionName}"
                     }
-                } finally {
-                    sh "rm -f object-storage-create.json"
+                    cspBucket = (existingBucket.cspResourceName ?: existingBucket.uid ?: "").toString().trim()
+                    echo "Reusing existing object storage ${storageName} in namespace ${osNamespace}."
+                } else {
+                    def payload = groovy.json.JsonOutput.toJson([
+                        bucketName: storageName,
+                        connectionName: connectionName
+                    ])
+                    writeFile file: "object-storage-create.json", text: payload
+                    try {
+                        echo "Requesting CB-Tumblebug to create bucket ${storageName} with connection ${connectionName}"
+                        def createResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X PUT \"${objectStorageUrl}\" -H \"Content-Type: application/json\" -d @object-storage-create.json ${auth}", returnStdout: true).trim()
+                        echo createResponse
+                        if (!createResponse.contains("Http_Status_code:2")) {
+                            error "object-storage-create failed: ${createResponse}"
+                        }
+                    } finally {
+                        sh "rm -f object-storage-create.json"
+                    }
                 }
 
                 def maxAttempts = (params.OBJECT_STORAGE_READY_MAX_ATTEMPTS ?: "30").toInteger()
                 def intervalSeconds = (params.OBJECT_STORAGE_READY_INTERVAL_SECONDS ?: "5").toInteger()
-                def cspBucket = ""
                 def attempt = 0
                 while (!cspBucket && attempt < maxAttempts) {
                     attempt = attempt + 1
@@ -3223,7 +3245,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
 
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (57, 21, 8, 'object-storage-delete', 'Delete an Object Storage bucket and its contents via mc-data-manager', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (57, 21, 8, 'object-storage-delete', 'Delete an Object Storage bucket and its contents via CB-Tumblebug', '
     stage("object-storage-delete") {
         steps {
             echo ">>>>> STAGE: object-storage-delete"
@@ -3235,11 +3257,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (enabled == "false") {
                     echo "OBJECT_STORAGE_DELETE_ENABLED is false. Keeping the bucket and its contents."
                 } else {
-                    def dataManager = (params.DATA_MANAGER ?: "").trim().replaceAll("/+\$", "")
-                    if (!dataManager) {
-                        error "DATA_MANAGER is required, or set OBJECT_STORAGE_DELETE_ENABLED to false"
-                    }
-                    if (!params.TUMBLEBUG?.trim()) {
+                    def tumblebug = (params.TUMBLEBUG ?: "").trim().replaceAll("/+\$", "")
+                    if (!tumblebug) {
                         error "TUMBLEBUG is required"
                     }
                     if (!params.NAMESPACE?.trim()) {
@@ -3247,17 +3266,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
 
                     // Deliberately not env: object-storage-create publishes the resolved CSP name there, while
-                    // mc-data-manager deletes by the Tumblebug logical name.
+                    // Tumblebug deletes by the logical name supplied as the workflow parameter.
                     def storageName = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                     def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                     def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
-                    // Must match the namespace stage 56 looked the bucket up in.
                     def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
                     if (!storageName || !provider || !region) {
                         error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_PROVIDER and OBJECT_STORAGE_REGION are required"
                     }
 
-                    def safeValues = [storageName: storageName, provider: provider, region: region, dataManager: dataManager, osNamespace: osNamespace]
+                    def safeValues = [storageName: storageName, provider: provider, region: region, tumblebug: tumblebug, osNamespace: osNamespace]
                     safeValues.each { name, value ->
                         if (!(value ==~ /[A-Za-z0-9._:\/-]+/) || value.contains("..")) {
                             error "Invalid ${name}"
@@ -3265,29 +3283,41 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
 
                     def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                    def detailUrl = "${params.TUMBLEBUG}/tumblebug/ns/${osNamespace}/resources/objectStorage/${storageName}"
+                    def objectStorageUrl = "${tumblebug}/tumblebug/ns/${osNamespace}/resources/objectStorage"
+                    def detailUrl = "${objectStorageUrl}/${storageName}"
 
-                    def detail = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${detailUrl}\" ${auth}", returnStdout: true).trim()
-                    if (detail.contains("Http_Status_code:404")) {
+                    def listResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${objectStorageUrl}\" ${auth}", returnStdout: true).trim()
+                    if (!listResponse.contains("Http_Status_code:2")) {
+                        error "object-storage-delete failed to list object storages: ${listResponse}"
+                    }
+                    def listBody = listResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                    def listPayload = new groovy.json.JsonSlurperClassic().parseText(listBody)
+                    def listedBuckets = listPayload instanceof List ? listPayload : (listPayload.objectStorage ?: [])
+                    def bucketExists = listedBuckets.any { bucket ->
+                        (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
+                    }
+
+                    if (!bucketExists) {
                         echo "Object storage ${storageName} is already absent. Nothing to delete."
-                    } else if (!detail.contains("Http_Status_code:2")) {
-                        error "object-storage-delete failed to read the object storage detail: ${detail}"
                     } else {
-                        def payload = "{\"targetPoint\": {\"provider\": \"" + provider + "\", \"region\": \"" + region + "\", \"bucket\": \"" + storageName + "\"}}"
-                        writeFile file: "object-storage-delete.json", text: payload
-                        try {
-                            echo "Requesting mc-data-manager to delete bucket ${storageName} including its contents"
-                            def deleteResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X DELETE \"${dataManager}/objectstorage/buckets\" -H \"Content-Type: application/json\" -d @object-storage-delete.json", returnStdout: true).trim()
-                            echo deleteResponse
-                            if (!deleteResponse.contains("Http_Status_code:2")) {
-                                error "object-storage-delete failed: ${deleteResponse}"
-                            }
-                        } finally {
-                            sh "rm -f object-storage-delete.json"
+                        echo "Requesting CB-Tumblebug to delete bucket ${storageName} including its contents"
+                        def deleteResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X DELETE \"${detailUrl}?option=force\" ${auth}", returnStdout: true).trim()
+                        echo deleteResponse
+                        if (!deleteResponse.contains("Http_Status_code:2")) {
+                            error "object-storage-delete failed: ${deleteResponse}"
                         }
 
-                        def confirm = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${detailUrl}\" ${auth}", returnStdout: true).trim()
-                        if (confirm.contains("Http_Status_code:404")) {
+                        def confirmResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${objectStorageUrl}\" ${auth}", returnStdout: true).trim()
+                        if (!confirmResponse.contains("Http_Status_code:2")) {
+                            error "object-storage-delete failed to confirm object storage deletion: ${confirmResponse}"
+                        }
+                        def confirmBody = confirmResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                        def confirmPayload = new groovy.json.JsonSlurperClassic().parseText(confirmBody)
+                        def remainingBuckets = confirmPayload instanceof List ? confirmPayload : (confirmPayload.objectStorage ?: [])
+                        def stillExists = remainingBuckets.any { bucket ->
+                            (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
+                        }
+                        if (!stillExists) {
                             echo "Bucket ${storageName} removed."
                         } else {
                             echo "Delete accepted, but the object storage record still responds. It may still be finalizing."
@@ -4223,7 +4253,6 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'OBJECT_STORAGE_CREDENTIALS_ID', '', 'N'),
 (109, 'OBJECT_STORAGE_URL_STYLE', 'vhost', 'N'),
 (109, 'OBJECT_STORAGE_USE_SSL', 'true', 'N'),
-(109, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
 (109, 'DATA_PREFIX', '', 'N'),
 (109, 'RESULT_PREFIX', 'results', 'N'),
 (109, 'WRITE_RESULT_ENABLED', 'true', 'N'),
@@ -4241,7 +4270,6 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (110, 'NAMESPACE', 'ns01', 'N'),
 (110, 'INFRA_ID', 'vm-object-storage-data-lab', 'N'),
 (110, 'INFRA_DELETE_OPTION', 'terminate', 'N'),
-(110, 'DATA_MANAGER', 'http://mc-data-manager:3300', 'N'),
 (110, 'OBJECT_STORAGE_DELETE_ENABLED', 'true', 'N'),
 (110, 'OBJECT_STORAGE_BUCKET', '', 'N'),
 (110, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
