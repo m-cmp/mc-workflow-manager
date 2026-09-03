@@ -32,6 +32,7 @@ public class WorkflowStageTypeAndStageNameResDto {
             case "k8s" -> "K8s";
             case "app", "app-deploy" -> "App";
             case "database", "db-backup-restore" -> "Database";
+            case "object-storage" -> "Object Storage";
             case "utility", "common-util" -> "Utility";
             default -> title;
         };

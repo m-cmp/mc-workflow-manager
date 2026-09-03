@@ -270,7 +270,7 @@ let infraLoadSeq = 0
 let accessHostLoadSeq = 0
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-create', 'object-storage-delete']
+const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -417,7 +417,7 @@ const isKubernetesImageWorkflow = computed(() => {
 })
 
 // Driven by the stages the workflow actually has, the same way K8S_VERSION is. Only the stages
-// that address a bucket by its Tumblebug logical name qualify; object-storage-data-lab-install
+// that address a bucket by its Tumblebug logical name qualify; jupyter-object-storage-analysis-install
 // consumes the resolved CSP bucket name instead, so picking a logical name there means nothing.
 const isObjectStorageWorkflow = computed(() => {
   return props.workflowStageMappings.some((stage) => objectStorageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
@@ -1648,7 +1648,7 @@ const applyInfraSelectionParams = () => {
   applyObjectStorageLocationParams()
 
   if (isObjectStorageWorkflow.value && selectedObjectStorage.value) {
-    // The workflow addresses the bucket by this one name. object-storage-create swaps in the
+    // The workflow addresses the bucket by this one name. object-storage-ensure swaps in the
     // real CSP bucket name through env at run time, so nothing else has to be written here.
     if (hasWorkflowParam('OBJECT_STORAGE_BUCKET')) {
       upsertWorkflowParam('OBJECT_STORAGE_BUCKET', selectedObjectStorage.value)
