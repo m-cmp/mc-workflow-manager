@@ -597,13 +597,14 @@ docker stop k8s-tools
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Step 4-1: Insert category-managed workflow stages
--- category: infra, k8s, app, database, utility
+-- category: infra, k8s, app, database, object-storage, utility
 INSERT INTO workflow_stage_type (workflow_stage_type_idx, workflow_stage_type_name, workflow_stage_type_desc) VALUES
 (17, 'infra', 'Infrastructure'),
 (18, 'k8s', 'Infrastructure - K8s'),
 (19, 'app', 'Application Deployment'),
 (20, 'database', 'Data - Backup / Restore'),
-(21, 'utility', 'Common / Utility');
+(21, 'utility', 'Common / Utility'),
+(22, 'object-storage', 'Object Storage');
 
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (17, 17, 1, 'infra-create', 'Create INFRA by CSP spec', '
     stage("infra-create") {
@@ -1069,6 +1070,36 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 echo "Skipped absent infra: ${skippedInfra.join(", ")}"
                 if (!failedDeletes.isEmpty()) {
                     error "multi-csp-vm-delete completed with failures: ${failedDeletes.join(" | ")}"
+                }
+            }
+        }
+    }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (60, 17, 12, 'infra-cleanup', 'Idempotently clean up a single INFRA', '
+    stage("infra-cleanup") {
+        steps {
+            echo ">>>>> STAGE: infra-cleanup"
+            script {
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+                if (!params.INFRA_ID?.trim()) {
+                    error "INFRA_ID is required"
+                }
+
+                def option = params.INFRA_DELETE_OPTION ?: "terminate"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (response.contains("Http_Status_code:404")) {
+                    echo "Infra ${params.INFRA_ID} is already absent."
+                } else if (!response.contains("Http_Status_code:2")) {
+                    error "infra-cleanup failed: ${response}"
+                } else {
+                    echo "Infra ${params.INFRA_ID} cleanup requested."
                 }
             }
         }
@@ -1916,6 +1947,176 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (61, 18, 11, 'k8s-cluster-cleanup', 'Idempotently clean up a K8s cluster and wait for deletion', '
+    stage("k8s-cluster-cleanup") {
+        steps {
+            echo ">>>>> STAGE: k8s-cluster-cleanup"
+            script {
+                if (!params.TUMBLEBUG?.trim()) {
+                    error "TUMBLEBUG is required"
+                }
+                if (!params.NAMESPACE?.trim()) {
+                    error "NAMESPACE is required"
+                }
+                if (!params.K8S_CLUSTER_ID?.trim()) {
+                    error "K8S_CLUSTER_ID is required"
+                }
+
+                def option = params.K8S_DELETE_OPTION ?: "force"
+                def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def clusterUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}"
+                def isAbsent = { value ->
+                    def textValue = value ?: ""
+                    def lowerValue = textValue.toLowerCase()
+                    return textValue.contains("Http_Status_code:404") ||
+                            lowerValue.contains("not exist") ||
+                            lowerValue.contains("failed to find")
+                }
+                def hasNodeGroupInfo = { value ->
+                    def compactValue = (value ?: "").replaceAll("\\s+", "").toLowerCase()
+                    return compactValue.contains("\"k8snodegrouplist\":[{") ||
+                            compactValue.contains("\"nodegrouplist\":[{")
+                }
+                def extractNodeGroupNames = { value ->
+                    def textValue = value ?: ""
+                    def names = []
+                    def addName = { name ->
+                        def normalizedName = (name ?: "").trim()
+                        if (normalizedName && !names.contains(normalizedName)) {
+                            names << normalizedName
+                        }
+                    }
+                    (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"id"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"name"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"NodeGroupList"\s*:\s*\[\s*\{[^]]*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    (textValue =~ /"spiderViewK8sNodeGroupDetail"\s*:\s*\{.*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
+                        addName(match[1])
+                    }
+                    return names
+                }
+                def deleteAccepted = { action, value ->
+                    def textValue = value ?: ""
+                    def lowerValue = textValue.toLowerCase()
+                    if (isAbsent(value)) {
+                        echo "${action} target is already absent."
+                        return true
+                    } else if (lowerValue.contains("not deleted")) {
+                        echo "${action} was not deleted by Tumblebug: ${value}"
+                        return false
+                    } else if (!textValue.contains("Http_Status_code:2")) {
+                        echo "${action} failed: ${value}"
+                        return false
+                    }
+                    return true
+                }
+
+                def statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                echo statusResponse
+                if (isAbsent(statusResponse)) {
+                    echo "K8s cluster ${params.K8S_CLUSTER_ID} is already absent in Tumblebug."
+                } else if (!statusResponse.contains("Http_Status_code:2")) {
+                    error "k8s-cluster-cleanup status check failed: ${statusResponse}"
+                } else {
+                    def intervalSeconds = (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger()
+                    if (hasNodeGroupInfo(statusResponse)) {
+                        def nodeGroupNames = []
+                        (params.K8S_NODEGROUP_NAME ?: "ng1").split(",").collect { it.trim() }.findAll { it }.each { nodeGroupName ->
+                            if (!nodeGroupNames.contains(nodeGroupName)) {
+                                nodeGroupNames << nodeGroupName
+                            }
+                        }
+                        extractNodeGroupNames(statusResponse).each { nodeGroupName ->
+                            if (nodeGroupName && !nodeGroupNames.contains(nodeGroupName)) {
+                                nodeGroupNames << nodeGroupName
+                            }
+                        }
+
+                        if (nodeGroupNames.isEmpty()) {
+                            echo "K8s node group exists in ${params.K8S_CLUSTER_ID}, but node group name is not configured. Try cluster delete fallback."
+                        } else {
+                            def nodeGroupDeleteFailed = false
+                            def nodeGroupDeleteRequested = false
+                            echo "K8s node groups selected for ${params.K8S_CLUSTER_ID}: ${nodeGroupNames.join(", ")}"
+                            for (def nodeGroupName : nodeGroupNames) {
+                                def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
+                                def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
+                                echo nodeGroupResponse
+                                def nodeGroupAlreadyAbsent = isAbsent(nodeGroupResponse)
+                                def nodeGroupAccepted = deleteAccepted("k8s-nodegroup-remove ${nodeGroupName}", nodeGroupResponse)
+                                if (!nodeGroupAccepted) {
+                                    nodeGroupDeleteFailed = true
+                                    echo "k8s-nodegroup-remove ${nodeGroupName} failed. Try cluster delete fallback."
+                                } else if (!nodeGroupAlreadyAbsent) {
+                                    nodeGroupDeleteRequested = true
+                                }
+                            }
+
+                            if (nodeGroupDeleteFailed) {
+                                echo "Skip node group delete polling for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
+                            } else if (!nodeGroupDeleteRequested) {
+                                echo "No existing node group delete request was accepted for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
+                            } else {
+                                def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                                for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
+                                    statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                                    if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
+                                        break
+                                    }
+                                    def lowerStatus = statusResponse.toLowerCase()
+                                    def nodeGroupState = "Unknown"
+                                    if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
+                                        nodeGroupState = "Deleting"
+                                    }
+                                    echo "k8s node group is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
+                                    sleep time: intervalSeconds, unit: "SECONDS"
+                                }
+                                if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
+                                    echo "k8s node group still exists after polling. Continue with cluster delete fallback."
+                                }
+                            }
+                        }
+                    }
+                }
+
+                def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${clusterUrl}?option=${option}" ${auth}""", returnStdout: true).trim()
+                echo response
+                if (!deleteAccepted("k8s-cluster-cleanup ${params.K8S_CLUSTER_ID}", response)) {
+                    error "k8s-cluster-cleanup ${params.K8S_CLUSTER_ID} failed: ${response}"
+                }
+
+                def clusterAttempts = (params.K8S_CLUSTER_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
+                def clusterDeleted = isAbsent(response)
+                for (int attempt = 1; !clusterDeleted && attempt <= clusterAttempts; attempt++) {
+                    statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
+                    clusterDeleted = isAbsent(statusResponse)
+                    if (clusterDeleted) {
+                        break
+                    }
+                    if (statusResponse.toLowerCase().contains("not deleted")) {
+                        error "k8s-cluster-cleanup was not completed by Tumblebug: ${statusResponse}"
+                    }
+                    def lowerClusterStatus = statusResponse.toLowerCase()
+                    def clusterState = "Unknown"
+                    if (lowerClusterStatus.contains("\"status\":\"deleting\"") || lowerClusterStatus.contains("\"status\": \"deleting\"")) {
+                        clusterState = "Deleting"
+                    }
+                    echo "k8s cluster is still deleting. state=${clusterState}, attempt ${attempt}/${clusterAttempts}"
+                    sleep time: (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger(), unit: "SECONDS"
+                }
+                if (!clusterDeleted) {
+                    error "k8s cluster was not deleted within timeout: ${statusResponse}"
+                }
+                echo "K8s cluster ${params.K8S_CLUSTER_ID} cleanup completed in Tumblebug."
+            }
+        }
+    }
+');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (34, 19, 1, 'app-deploy-helm', 'Deploy app with Helm chart', '
     stage("app-deploy-helm") {
         steps {
@@ -2189,10 +2390,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             }
         }
     }');
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (58, 19, 6, 'object-storage-data-lab-open-firewall', 'Open the selected Jupyter port to an allowed IPv4 CIDR', '
-    stage("object-storage-data-lab-open-firewall") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (58, 19, 6, 'jupyter-inbound-rule-add', 'Add a Jupyter TCP inbound rule for an allowed IPv4 CIDR', '
+    stage("jupyter-inbound-rule-add") {
         steps {
-            echo ">>>>> STAGE: object-storage-data-lab-open-firewall"
+            echo ">>>>> STAGE: jupyter-inbound-rule-add"
             script {
                 def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim().toLowerCase()
                 def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
@@ -2239,8 +2440,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
 
                     def associatedBody = associatedResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
-                    def associatedResources = new groovy.json.JsonSlurperClassic().parseText(associatedBody)
+                    def associatedResources = new groovy.json.JsonSlurper().parseText(associatedBody)
                     def securityGroupIds = (associatedResources.securityGroupIds ?: []).collect { it.toString().trim() }.findAll { it }
+                    associatedResources = null
                     if (!securityGroupIds) {
                         error "No security group is associated with infra ${infraId}"
                     }
@@ -2257,7 +2459,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         }
 
                         def securityGroupBody = securityGroupResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
-                        def securityGroup = new groovy.json.JsonSlurperClassic().parseText(securityGroupBody)
+                        def securityGroup = new groovy.json.JsonSlurper().parseText(securityGroupBody)
                         def ruleExists = (securityGroup.firewallRules ?: []).any { rule ->
                             def port = (rule["Port"] ?: rule["port"] ?: "").toString().trim()
                             def protocol = (rule["Protocol"] ?: rule["protocol"] ?: "").toString().trim().toUpperCase()
@@ -2265,6 +2467,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             def cidr = (rule["CIDR"] ?: rule["cidr"] ?: "").toString().trim()
                             port == jupyterPort && protocol == "TCP" && direction == "inbound" && cidr == allowedCidr
                         }
+                        securityGroup = null
 
                         if (ruleExists) {
                             echo "Jupyter inbound rule already exists. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
@@ -2290,10 +2493,127 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         }
     }');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 7, 'object-storage-data-lab-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
-    stage("object-storage-data-lab-install") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (59, 19, 8, 'jupyter-inbound-rule-remove', 'Remove the selected Jupyter inbound rule when both port and CIDR are provided', '
+    stage("jupyter-inbound-rule-remove") {
         steps {
-            echo ">>>>> STAGE: object-storage-data-lab-install"
+            echo ">>>>> STAGE: jupyter-inbound-rule-remove"
+            script {
+                def jupyterPort = (params.JUPYTER_PORT ?: "").trim()
+                def allowedCidr = (params.JUPYTER_ALLOWED_CIDR ?: "").trim()
+
+                if (!jupyterPort || !allowedCidr) {
+                    echo "JUPYTER_PORT and JUPYTER_ALLOWED_CIDR were not both provided. Skip the Jupyter inbound rule removal."
+                } else {
+                    if (!(jupyterPort ==~ /[0-9]+/) || jupyterPort.toInteger() < 1 || jupyterPort.toInteger() > 65535) {
+                        error "JUPYTER_PORT must be between 1 and 65535"
+                    }
+
+                    if (!allowedCidr.contains("/")) {
+                        allowedCidr = allowedCidr + "/32"
+                    }
+                    def cidrParts = allowedCidr.split("/", -1)
+                    def octets = cidrParts.size() == 2 ? cidrParts[0].split("\\.", -1) : []
+                    def validAddress = octets.size() == 4 && octets.every { octet ->
+                        (octet ==~ /[0-9]+/) && octet.toInteger() >= 0 && octet.toInteger() <= 255
+                    }
+                    def validPrefix = cidrParts.size() == 2 && (cidrParts[1] ==~ /[0-9]+/) && cidrParts[1].toInteger() >= 0 && cidrParts[1].toInteger() <= 32
+                    if (!validAddress || !validPrefix) {
+                        error "JUPYTER_ALLOWED_CIDR must be a valid IPv4 address or IPv4 CIDR"
+                    }
+
+                    def tumblebug = (params.TUMBLEBUG ?: "").trim().replaceAll("/+\$", "")
+                    def namespace = (params.NAMESPACE ?: "").trim()
+                    def infraId = (params.INFRA_ID ?: "").trim()
+                    if (!tumblebug || !namespace || !infraId) {
+                        error "TUMBLEBUG, NAMESPACE and INFRA_ID are required for Jupyter inbound rule removal"
+                    }
+
+                    def safeValues = [tumblebug: [tumblebug, /[A-Za-z0-9._:\/-]+/], namespace: [namespace, /[A-Za-z0-9._-]+/], infraId: [infraId, /[A-Za-z0-9._-]+/]]
+                    safeValues.each { name, validation ->
+                        if (!(validation[0] ==~ validation[1]) || validation[0].contains("..")) {
+                            error "Invalid ${name}"
+                        }
+                    }
+
+                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                    def associatedUrl = "${tumblebug}/tumblebug/ns/${namespace}/infra/${infraId}/associatedResources"
+                    def associatedResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${associatedUrl}" ${auth}""", returnStdout: true).trim()
+                    def associatedResponseLower = associatedResponse.toLowerCase()
+                    def infraAlreadyAbsent = associatedResponse.contains("Http_Status_code:404") || associatedResponseLower.contains("does not exist") || associatedResponseLower.contains("not found")
+                    if (infraAlreadyAbsent) {
+                        echo "Infra ${infraId} is already absent. Skip the Jupyter inbound rule removal."
+                    } else if (!associatedResponse.contains("Http_Status_code:2")) {
+                        error "Failed to get security groups for ${infraId}: ${associatedResponse}"
+                    } else {
+                        def associatedBody = associatedResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                        def associatedResources = new groovy.json.JsonSlurper().parseText(associatedBody)
+                        def securityGroupIds = (associatedResources.securityGroupIds ?: []).collect { it.toString().trim() }.findAll { it }
+                        associatedResources = null
+
+                        if (!securityGroupIds) {
+                            echo "No security group is associated with infra ${infraId}. Skip the Jupyter inbound rule removal."
+                        } else {
+                            securityGroupIds.each { securityGroupId ->
+                                if (!(securityGroupId ==~ /[A-Za-z0-9._-]+/)) {
+                                    error "Invalid securityGroupId returned by Tumblebug"
+                                }
+
+                                def securityGroupUrl = "${tumblebug}/tumblebug/ns/${namespace}/resources/securityGroup/${securityGroupId}"
+                                def securityGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${securityGroupUrl}" ${auth}""", returnStdout: true).trim()
+                                def securityGroupResponseLower = securityGroupResponse.toLowerCase()
+                                def securityGroupAlreadyAbsent = securityGroupResponse.contains("Http_Status_code:404") || securityGroupResponseLower.contains("does not exist") || securityGroupResponseLower.contains("not found")
+                                if (securityGroupAlreadyAbsent) {
+                                    echo "Security group ${securityGroupId} is already absent. Skip it."
+                                } else if (!securityGroupResponse.contains("Http_Status_code:2")) {
+                                    error "Failed to read security group ${securityGroupId}: ${securityGroupResponse}"
+                                } else {
+                                    def securityGroupBody = securityGroupResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                                    def securityGroup = new groovy.json.JsonSlurper().parseText(securityGroupBody)
+                                    def ruleExists = (securityGroup.firewallRules ?: []).any { rule ->
+                                        def port = (rule["Port"] ?: rule["port"] ?: "").toString().trim()
+                                        def protocol = (rule["Protocol"] ?: rule["protocol"] ?: "").toString().trim().toUpperCase()
+                                        def direction = (rule["Direction"] ?: rule["direction"] ?: "").toString().trim().toLowerCase()
+                                        def cidr = (rule["CIDR"] ?: rule["cidr"] ?: "").toString().trim()
+                                        port == jupyterPort && protocol == "TCP" && direction == "inbound" && cidr == allowedCidr
+                                    }
+                                    securityGroup = null
+
+                                    if (!ruleExists) {
+                                        echo "The matching Jupyter inbound rule is already absent. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
+                                    } else {
+                                        def payload = groovy.json.JsonOutput.toJson([
+                                            firewallRules: [[Ports: jupyterPort, Protocol: "TCP", Direction: "inbound", CIDR: allowedCidr]]
+                                        ])
+                                        writeFile file: "jupyter-firewall-rule-delete.json", text: payload
+                                        try {
+                                            def deleteResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${securityGroupUrl}/rules" -H "Content-Type: application/json" -d @jupyter-firewall-rule-delete.json ${auth}""", returnStdout: true).trim()
+                                            def deleteResponseLower = deleteResponse.toLowerCase()
+                                            def alreadyAbsent = deleteResponseLower.contains("does not exist") || deleteResponseLower.contains("not found")
+                                            if (!deleteResponse.contains("Http_Status_code:2") && !alreadyAbsent) {
+                                                error "Failed to remove the Jupyter inbound rule from ${securityGroupId}: ${deleteResponse}"
+                                            }
+                                            if (alreadyAbsent) {
+                                                echo "The matching Jupyter inbound rule is already absent. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
+                                            } else {
+                                                echo "Removed the Jupyter inbound rule. securityGroup=${securityGroupId}, port=${jupyterPort}, cidr=${allowedCidr}"
+                                            }
+                                        } finally {
+                                            sh "rm -f jupyter-firewall-rule-delete.json"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }');
+
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 7, 'jupyter-object-storage-analysis-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
+    stage("jupyter-object-storage-analysis-install") {
+        steps {
+            echo ">>>>> STAGE: jupyter-object-storage-analysis-install"
             script {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                 // The same set CB-Spider resolves S3 connection info for. Keep this list, the
@@ -2372,7 +2692,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
                 def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
                 if (!sshHost || !sshUser) {
-                    error "SSH_HOST and SSH_USER are required for object-storage-data-lab-install"
+                    error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
 
@@ -3110,10 +3430,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (56, 21, 7, 'object-storage-create', 'Reuse or create an Object Storage bucket via CB-Tumblebug and resolve its CSP name', '
-    stage("object-storage-create") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (56, 22, 1, 'object-storage-ensure', 'Reuse or create an Object Storage bucket via CB-Tumblebug and resolve its CSP name', '
+    stage("object-storage-ensure") {
         steps {
-            echo ">>>>> STAGE: object-storage-create"
+            echo ">>>>> STAGE: object-storage-ensure"
             script {
                 def tumblebug = (params.TUMBLEBUG ?: "").trim().replaceAll("/+\$", "")
                 if (!tumblebug) {
@@ -3168,22 +3488,27 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 // Check the authoritative Tumblebug list again at run time to avoid a stale UI decision.
                 def listResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X GET \"${objectStorageUrl}\" ${auth}", returnStdout: true).trim()
                 if (!listResponse.contains("Http_Status_code:2")) {
-                    error "object-storage-create failed to list object storages: ${listResponse}"
+                    error "object-storage-ensure failed to list object storages: ${listResponse}"
                 }
                 def listBody = listResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
-                def listPayload = new groovy.json.JsonSlurperClassic().parseText(listBody)
+                def listPayload = new groovy.json.JsonSlurper().parseText(listBody)
                 def listedBuckets = listPayload instanceof List ? listPayload : (listPayload.objectStorage ?: [])
                 def existingBucket = listedBuckets.find { bucket ->
                     (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
                 }
+                def existingBucketFound = existingBucket != null
+                def existingConnectionName = existingBucketFound ? (existingBucket.connectionName ?: "").toString().trim() : ""
+                def existingCspBucket = existingBucketFound ? (existingBucket.cspResourceName ?: existingBucket.uid ?: "").toString().trim() : ""
+                existingBucket = null
+                listedBuckets = null
+                listPayload = null
                 def cspBucket = ""
 
-                if (existingBucket) {
-                    def existingConnectionName = (existingBucket.connectionName ?: "").toString().trim()
+                if (existingBucketFound) {
                     if (existingConnectionName && existingConnectionName != connectionName) {
                         error "Object storage ${storageName} already exists with connection ${existingConnectionName}, not ${connectionName}"
                     }
-                    cspBucket = (existingBucket.cspResourceName ?: existingBucket.uid ?: "").toString().trim()
+                    cspBucket = existingCspBucket
                     echo "Reusing existing object storage ${storageName} in namespace ${osNamespace}."
                 } else {
                     def payload = groovy.json.JsonOutput.toJson([
@@ -3196,7 +3521,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         def createResponse = sh(script: "curl -sS -w \"- Http_Status_code:%{http_code}\" -X PUT \"${objectStorageUrl}\" -H \"Content-Type: application/json\" -d @object-storage-create.json ${auth}", returnStdout: true).trim()
                         echo createResponse
                         if (!createResponse.contains("Http_Status_code:2")) {
-                            error "object-storage-create failed: ${createResponse}"
+                            error "object-storage-ensure failed: ${createResponse}"
                         }
                     } finally {
                         sh "rm -f object-storage-create.json"
@@ -3226,7 +3551,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         echo "Object storage ${storageName} is not registered yet. attempt ${attempt}/${maxAttempts}"
                         sleep intervalSeconds
                     } else {
-                        error "object-storage-create failed to read the object storage detail: ${detail}"
+                        error "object-storage-ensure failed to read the object storage detail: ${detail}"
                     }
                 }
 
@@ -3245,7 +3570,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
 
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (57, 21, 8, 'object-storage-delete', 'Delete an Object Storage bucket and its contents via CB-Tumblebug', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (57, 22, 2, 'object-storage-delete', 'Delete an Object Storage bucket and its contents via CB-Tumblebug', '
     stage("object-storage-delete") {
         steps {
             echo ">>>>> STAGE: object-storage-delete"
@@ -3265,7 +3590,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "NAMESPACE is required"
                     }
 
-                    // Deliberately not env: object-storage-create publishes the resolved CSP name there, while
+                    // Deliberately not env: object-storage-ensure publishes the resolved CSP name there, while
                     // Tumblebug deletes by the logical name supplied as the workflow parameter.
                     def storageName = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                     def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
@@ -3291,11 +3616,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "object-storage-delete failed to list object storages: ${listResponse}"
                     }
                     def listBody = listResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
-                    def listPayload = new groovy.json.JsonSlurperClassic().parseText(listBody)
+                    def listPayload = new groovy.json.JsonSlurper().parseText(listBody)
                     def listedBuckets = listPayload instanceof List ? listPayload : (listPayload.objectStorage ?: [])
                     def bucketExists = listedBuckets.any { bucket ->
                         (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
                     }
+                    listedBuckets = null
+                    listPayload = null
 
                     if (!bucketExists) {
                         echo "Object storage ${storageName} is already absent. Nothing to delete."
@@ -3312,11 +3639,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             error "object-storage-delete failed to confirm object storage deletion: ${confirmResponse}"
                         }
                         def confirmBody = confirmResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
-                        def confirmPayload = new groovy.json.JsonSlurperClassic().parseText(confirmBody)
+                        def confirmPayload = new groovy.json.JsonSlurper().parseText(confirmBody)
                         def remainingBuckets = confirmPayload instanceof List ? confirmPayload : (confirmPayload.objectStorage ?: [])
                         def stillExists = remainingBuckets.any { bucket ->
                             (bucket.id ?: bucket.name ?: "").toString().trim() == storageName
                         }
+                        remainingBuckets = null
+                        confirmPayload = null
                         if (!stillExists) {
                             echo "Bucket ${storageName} removed."
                         } else {
@@ -3665,42 +3994,17 @@ pipeline {
 }
 ', NULL);
 
-MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (105, 'vm-mariadb-data-init-cleanup', 'For Cleanup', 1, '
-pipeline {
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 105, 'vm-mariadb-data-init-cleanup', 'For Cleanup', 1,
+'pipeline {
     agent any
     stages {
-        stage("infra-cleanup") {
-            steps {
-                echo ">>>>> STAGE: infra-cleanup"
-                script {
-                    if (!params.TUMBLEBUG?.trim()) {
-                        error "TUMBLEBUG is required"
-                    }
-                    if (!params.NAMESPACE?.trim()) {
-                        error "NAMESPACE is required"
-                    }
-                    if (!params.INFRA_ID?.trim()) {
-                        error "INFRA_ID is required"
-                    }
-
-                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
-                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
-                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
-                    echo response
-                    if (response.contains("Http_Status_code:404")) {
-                        echo "Infra ${params.INFRA_ID} is already absent."
-                    } else if (!response.contains("Http_Status_code:2")) {
-                        error "infra-cleanup failed: ${response}"
-                    } else {
-                        echo "Infra ${params.INFRA_ID} cleanup requested."
-                    }
-                }
-            }
-        }
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60)
+|| '
     }
 }
-', NULL);
+', NULL;
 
 MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
 SELECT 106, 'multi-csp-vm-cleanup', 'For Cleanup', 1,
@@ -3714,181 +4018,17 @@ SELECT 106, 'multi-csp-vm-cleanup', 'For Cleanup', 1,
 }
 ', NULL;
 
-MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (107, 'k8s-mariadb-data-init-cleanup', 'For Cleanup', 1, '
-pipeline {
+MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx)
+SELECT 107, 'k8s-mariadb-data-init-cleanup', 'For Cleanup', 1,
+'pipeline {
     agent any
     stages {
-        stage("k8s-cleanup") {
-            steps {
-                echo ">>>>> STAGE: k8s-cleanup"
-                script {
-                    if (!params.TUMBLEBUG?.trim()) {
-                        error "TUMBLEBUG is required"
-                    }
-                    if (!params.NAMESPACE?.trim()) {
-                        error "NAMESPACE is required"
-                    }
-                    if (!params.K8S_CLUSTER_ID?.trim()) {
-                        error "K8S_CLUSTER_ID is required"
-                    }
-
-                    def option = params.K8S_DELETE_OPTION ?: "force"
-                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                    def clusterUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${params.K8S_CLUSTER_ID}"
-                    def isAbsent = { value ->
-                        def textValue = value ?: ""
-                        def lowerValue = textValue.toLowerCase()
-                        return textValue.contains("Http_Status_code:404") ||
-                                lowerValue.contains("not exist") ||
-                                lowerValue.contains("failed to find")
-                    }
-                    def hasNodeGroupInfo = { value ->
-                        def compactValue = (value ?: "").replaceAll("\\s+", "").toLowerCase()
-                        return compactValue.contains("\"k8snodegrouplist\":[{") ||
-                                compactValue.contains("\"nodegrouplist\":[{")
-                    }
-                    def extractNodeGroupNames = { value ->
-                        def textValue = value ?: ""
-                        def names = []
-                        def addName = { name ->
-                            def normalizedName = (name ?: "").trim()
-                            if (normalizedName && !names.contains(normalizedName)) {
-                                names << normalizedName
-                            }
-                        }
-                        (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"id"\s*:\s*"([^"]+)"/).each { match ->
-                            addName(match[1])
-                        }
-                        (textValue =~ /"k8sNodeGroupList"\s*:\s*\[\s*\{[^]]*?"name"\s*:\s*"([^"]+)"/).each { match ->
-                            addName(match[1])
-                        }
-                        (textValue =~ /"NodeGroupList"\s*:\s*\[\s*\{[^]]*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
-                            addName(match[1])
-                        }
-                        (textValue =~ /"spiderViewK8sNodeGroupDetail"\s*:\s*\{.*?"NameId"\s*:\s*"([^"]+)"/).each { match ->
-                            addName(match[1])
-                        }
-                        return names
-                    }
-                    def deleteAccepted = { action, value ->
-                        def textValue = value ?: ""
-                        def lowerValue = textValue.toLowerCase()
-                        if (isAbsent(value)) {
-                            echo "${action} target is already absent."
-                            return true
-                        } else if (lowerValue.contains("not deleted")) {
-                            echo "${action} was not deleted by Tumblebug: ${value}"
-                            return false
-                        } else if (!textValue.contains("Http_Status_code:2")) {
-                            echo "${action} failed: ${value}"
-                            return false
-                        }
-                        return true
-                    }
-
-                    def statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
-                    echo statusResponse
-                    if (isAbsent(statusResponse)) {
-                        echo "K8s cluster ${params.K8S_CLUSTER_ID} is already absent in Tumblebug."
-                    } else if (!statusResponse.contains("Http_Status_code:2")) {
-                        error "k8s-cleanup status check failed: ${statusResponse}"
-                    } else {
-                        def intervalSeconds = (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger()
-                        if (hasNodeGroupInfo(statusResponse)) {
-                            def nodeGroupNames = []
-                            (params.K8S_NODEGROUP_NAME ?: "ng1").split(",").collect { it.trim() }.findAll { it }.each { nodeGroupName ->
-                                if (!nodeGroupNames.contains(nodeGroupName)) {
-                                    nodeGroupNames << nodeGroupName
-                                }
-                            }
-                            extractNodeGroupNames(statusResponse).each { nodeGroupName ->
-                                if (nodeGroupName && !nodeGroupNames.contains(nodeGroupName)) {
-                                    nodeGroupNames << nodeGroupName
-                                }
-                            }
-
-                            if (nodeGroupNames.isEmpty()) {
-                                echo "K8s node group exists in ${params.K8S_CLUSTER_ID}, but node group name is not configured. Try cluster delete fallback."
-                            } else {
-                                def nodeGroupDeleteFailed = false
-                                def nodeGroupDeleteRequested = false
-                                echo "K8s node groups selected for ${params.K8S_CLUSTER_ID}: ${nodeGroupNames.join(", ")}"
-                                for (def nodeGroupName : nodeGroupNames) {
-                                    def nodeGroupUrl = "${clusterUrl}/k8sNodeGroup/${nodeGroupName}?option=${option}"
-                                    def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${nodeGroupUrl}" ${auth}""", returnStdout: true).trim()
-                                    echo nodeGroupResponse
-                                    def nodeGroupAlreadyAbsent = isAbsent(nodeGroupResponse)
-                                    def nodeGroupAccepted = deleteAccepted("k8s-nodegroup-remove ${nodeGroupName}", nodeGroupResponse)
-                                    if (!nodeGroupAccepted) {
-                                        nodeGroupDeleteFailed = true
-                                        echo "k8s-nodegroup-remove ${nodeGroupName} failed. Try cluster delete fallback."
-                                    } else if (!nodeGroupAlreadyAbsent) {
-                                        nodeGroupDeleteRequested = true
-                                    }
-                                }
-
-                                if (nodeGroupDeleteFailed) {
-                                    echo "Skip node group delete polling for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
-                                } else if (!nodeGroupDeleteRequested) {
-                                    echo "No existing node group delete request was accepted for ${params.K8S_CLUSTER_ID}. Continue with cluster delete fallback."
-                                } else {
-                                    def nodeGroupAttempts = (params.K8S_NODEGROUP_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
-                                    for (int attempt = 1; attempt <= nodeGroupAttempts; attempt++) {
-                                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
-                                        if (isAbsent(statusResponse) || !hasNodeGroupInfo(statusResponse)) {
-                                            break
-                                        }
-                                        def lowerStatus = statusResponse.toLowerCase()
-                                        def nodeGroupState = "Unknown"
-                                        if (lowerStatus.contains("\"status\":\"deleting\"") || lowerStatus.contains("\"status\": \"deleting\"")) {
-                                            nodeGroupState = "Deleting"
-                                        }
-                                        echo "k8s node group is still deleting. state=${nodeGroupState}, attempt ${attempt}/${nodeGroupAttempts}"
-                                        sleep time: intervalSeconds, unit: "SECONDS"
-                                    }
-                                    if (!isAbsent(statusResponse) && hasNodeGroupInfo(statusResponse)) {
-                                        echo "k8s node group still exists after polling. Continue with cluster delete fallback."
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${clusterUrl}?option=${option}" ${auth}""", returnStdout: true).trim()
-                    echo response
-                    if (!deleteAccepted("k8s-cleanup ${params.K8S_CLUSTER_ID}", response)) {
-                        error "k8s-cleanup ${params.K8S_CLUSTER_ID} failed: ${response}"
-                    }
-
-                    def clusterAttempts = (params.K8S_CLUSTER_DELETE_MAX_ATTEMPTS ?: "120").toInteger()
-                    def clusterDeleted = isAbsent(response)
-                    for (int attempt = 1; !clusterDeleted && attempt <= clusterAttempts; attempt++) {
-                        statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${clusterUrl}?option=status" ${auth}""", returnStdout: true).trim()
-                        clusterDeleted = isAbsent(statusResponse)
-                        if (clusterDeleted) {
-                            break
-                        }
-                        if (statusResponse.toLowerCase().contains("not deleted")) {
-                            error "k8s-cleanup was not completed by Tumblebug: ${statusResponse}"
-                        }
-                        def lowerClusterStatus = statusResponse.toLowerCase()
-                        def clusterState = "Unknown"
-                        if (lowerClusterStatus.contains("\"status\":\"deleting\"") || lowerClusterStatus.contains("\"status\": \"deleting\"")) {
-                            clusterState = "Deleting"
-                        }
-                        echo "k8s cluster is still deleting. state=${clusterState}, attempt ${attempt}/${clusterAttempts}"
-                        sleep time: (params.K8S_DELETE_INTERVAL_SECONDS ?: "10").toInteger(), unit: "SECONDS"
-                    }
-                    if (!clusterDeleted) {
-                        error "k8s cluster was not deleted within timeout: ${statusResponse}"
-                    }
-                    echo "K8s cluster ${params.K8S_CLUSTER_ID} cleanup completed in Tumblebug."
-                }
-            }
-        }
+'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 61)
+|| '
     }
 }
-', NULL);
+', NULL;
 
 MERGE INTO workflow (workflow_idx, workflow_name, workflow_purpose, oss_idx, script, run_date) KEY(workflow_idx) VALUES (108, 'multi-csp-k8s-cluster-cleanup', 'For Cleanup', 1,
 (SELECT 'pipeline {
@@ -3926,37 +4066,8 @@ SELECT 110, 'vm-object-storage-data-lab-cleanup', 'For Cleanup', 1,
     agent any
     stages {
 '
-|| '
-        stage("infra-cleanup") {
-            steps {
-                echo ">>>>> STAGE: infra-cleanup"
-                script {
-                    if (!params.TUMBLEBUG?.trim()) {
-                        error "TUMBLEBUG is required"
-                    }
-                    if (!params.NAMESPACE?.trim()) {
-                        error "NAMESPACE is required"
-                    }
-                    if (!params.INFRA_ID?.trim()) {
-                        error "INFRA_ID is required"
-                    }
-
-                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
-                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
-                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
-                    echo response
-                    if (response.contains("Http_Status_code:404")) {
-                        echo "Infra ${params.INFRA_ID} is already absent."
-                    } else if (!response.contains("Http_Status_code:2")) {
-                        error "infra-cleanup failed: ${response}"
-                    } else {
-                        echo "Infra ${params.INFRA_ID} cleanup requested."
-                    }
-                }
-            }
-        }
-'
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57)
 || '
     }
@@ -4274,7 +4385,9 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (110, 'OBJECT_STORAGE_BUCKET', '', 'N'),
 (110, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
 (110, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
-(110, 'OBJECT_STORAGE_REGION', '', 'N');
+(110, 'OBJECT_STORAGE_REGION', '', 'N'),
+(110, 'JUPYTER_PORT', '', 'N'),
+(110, 'JUPYTER_ALLOWED_CIDR', '', 'N');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
@@ -4333,13 +4446,33 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 (104, 1, 51, (SELECT script FROM workflow WHERE workflow_idx = 104));
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(105, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 105));
+(105, 1, null, 'pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 105, 2, 60, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(105, 3, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (106, 1, 52, (SELECT script FROM workflow WHERE workflow_idx = 106));
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(107, 1, null, (SELECT script FROM workflow WHERE workflow_idx = 107));
+(107, 1, null, 'pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 107, 2, 61, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 61;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(107, 3, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (108, 1, 53, (SELECT script FROM workflow WHERE workflow_idx = 108));
@@ -4374,42 +4507,14 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
     agent any
     stages {
 ');
-INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(110, 2, null, '
-        stage("infra-cleanup") {
-            steps {
-                echo ">>>>> STAGE: infra-cleanup"
-                script {
-                    if (!params.TUMBLEBUG?.trim()) {
-                        error "TUMBLEBUG is required"
-                    }
-                    if (!params.NAMESPACE?.trim()) {
-                        error "NAMESPACE is required"
-                    }
-                    if (!params.INFRA_ID?.trim()) {
-                        error "INFRA_ID is required"
-                    }
-
-                    def option = params.INFRA_DELETE_OPTION ?: "terminate"
-                    def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
-                    def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
-                    def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
-                    echo response
-                    if (response.contains("Http_Status_code:404")) {
-                        echo "Infra ${params.INFRA_ID} is already absent."
-                    } else if (!response.contains("Http_Status_code:2")) {
-                        error "infra-cleanup failed: ${response}"
-                    } else {
-                        echo "Infra ${params.INFRA_ID} cleanup requested."
-                    }
-                }
-            }
-        }
-');
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 110, 3, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
+SELECT 110, 2, 59, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 110, 3, 60, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 110, 4, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(110, 4, null, '
+(110, 5, null, '
     }
 }
 ');

@@ -502,7 +502,7 @@ const tumblebugSelectorManagedParamKeys = [
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-create', 'object-storage-delete']
+const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -647,7 +647,7 @@ const isKubernetesImageWorkflow = computed(() => {
 })
 
 // Driven by the stages the workflow has, the same way K8S_VERSION is. Only the stages that
-// address a bucket by its Tumblebug logical name qualify; object-storage-data-lab-install
+// address a bucket by its Tumblebug logical name qualify; jupyter-object-storage-analysis-install
 // consumes the resolved CSP bucket name instead.
 const isObjectStorageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => objectStorageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
@@ -1872,7 +1872,7 @@ const applyInfraSelectionParams = () => {
   applyObjectStorageLocationParams()
 
   if (isObjectStorageWorkflow.value) {
-    // The workflow addresses the bucket by this one name. object-storage-create swaps in the
+    // The workflow addresses the bucket by this one name. object-storage-ensure swaps in the
     // real CSP bucket name through env at run time, so nothing else has to be written here.
     if (selectedObjectStorage.value && hasWorkflowParam('OBJECT_STORAGE_BUCKET')) {
       upsertWorkflowParam('OBJECT_STORAGE_BUCKET', selectedObjectStorage.value)
@@ -2060,7 +2060,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'RELEASE_NAME', paramValue: 'mariadb', eventListenerYn: 'N' },
       { paramKey: 'DB_POD_SELECTOR', paramValue: 'app.kubernetes.io/instance=mariadb,app.kubernetes.io/name=mariadb', eventListenerYn: 'N' },
     ],
-    'object-storage-create': [
+    'object-storage-ensure': [
       { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
@@ -2083,7 +2083,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
     ],
-    'object-storage-data-lab-open-firewall': [
+    'jupyter-inbound-rule-add': [
       { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
@@ -2093,7 +2093,16 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '0.0.0.0/0', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
     ],
-    'object-storage-data-lab-install': [
+    'jupyter-inbound-rule-remove': [
+      { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_PORT', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '', eventListenerYn: 'N' },
+    ],
+    'jupyter-object-storage-analysis-install': [
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },

@@ -119,6 +119,7 @@ const getStageTypeLabel = (stageTypeName: string) => {
     k8s: 'K8s',
     app: 'App',
     database: 'Database',
+    'object-storage': 'Object Storage',
     utility: 'Utility',
     'app-deploy': 'App',
     'db-backup-restore': 'Database',

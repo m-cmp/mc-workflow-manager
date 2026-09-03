@@ -106,7 +106,7 @@ public class WorkflowStageDto {
                     param("INFRA_UPDATE_METHOD", "PUT"),
                     param("INFRA_UPDATE_PATH", ""),
                     param("INFRA_UPDATE_PAYLOAD", "{}"));
-            case "infra-delete" -> tumblebugParams(
+            case "infra-delete", "infra-cleanup" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("INFRA_ID", ""),
                     param("INFRA_DELETE_OPTION", "terminate"));
@@ -161,6 +161,14 @@ public class WorkflowStageDto {
             case "k8s-cluster-delete" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("K8S_CLUSTER_ID", ""));
+            case "k8s-cluster-cleanup" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("K8S_CLUSTER_ID", ""),
+                    param("K8S_NODEGROUP_NAME", "ng1"),
+                    param("K8S_DELETE_OPTION", "force"),
+                    param("K8S_NODEGROUP_DELETE_MAX_ATTEMPTS", "120"),
+                    param("K8S_CLUSTER_DELETE_MAX_ATTEMPTS", "120"),
+                    param("K8S_DELETE_INTERVAL_SECONDS", "10"));
             case "k8s-nodegroup-add" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("PROVIDER", ""),
@@ -291,7 +299,7 @@ public class WorkflowStageDto {
             case "namespace-ensure" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("NAMESPACE_DESC", "Workflow created namespace"));
-            case "object-storage-create" -> tumblebugParams(
+            case "object-storage-ensure" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_NAMESPACE", ""),
@@ -306,13 +314,18 @@ public class WorkflowStageDto {
                     param("OBJECT_STORAGE_NAMESPACE", ""),
                     param("OBJECT_STORAGE_PROVIDER", ""),
                     param("OBJECT_STORAGE_REGION", ""));
-            case "object-storage-data-lab-open-firewall" -> tumblebugParams(
+            case "jupyter-inbound-rule-add" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("INFRA_ID", ""),
                     param("JUPYTER_BIND_HOST", "0.0.0.0"),
                     param("JUPYTER_ALLOWED_CIDR", "0.0.0.0/0"),
                     param("JUPYTER_PORT", "8888"));
-            case "object-storage-data-lab-install" -> params(
+            case "jupyter-inbound-rule-remove" -> tumblebugParams(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("JUPYTER_PORT", ""),
+                    param("JUPYTER_ALLOWED_CIDR", ""));
+            case "jupyter-object-storage-analysis-install" -> params(
                     param("OBJECT_STORAGE_PROVIDER", ""),
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_REGION", ""),

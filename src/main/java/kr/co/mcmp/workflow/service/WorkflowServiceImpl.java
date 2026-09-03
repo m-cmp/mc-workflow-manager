@@ -48,11 +48,12 @@ import java.util.stream.Stream;
 public class WorkflowServiceImpl implements WorkflowService {
 
     private static final int MAX_JENKINS_BUILD_LOOKUP_COUNT = 200;
-    private static final Set<String> WORKFLOW_STAGE_CATEGORIES = Set.of(
+    private static final List<String> WORKFLOW_STAGE_CATEGORIES = List.of(
             "infra",
             "k8s",
             "app",
             "database",
+            "object-storage",
             "utility"
     );
 
@@ -760,6 +761,7 @@ public class WorkflowServiceImpl implements WorkflowService {
                                                                 .stream()
                                                                 .map(WorkflowStageTypeDto::from)
                                                                 .filter(type -> WORKFLOW_STAGE_CATEGORIES.contains(type.getWorkflowStageTypeName()))
+                                                                .sorted(Comparator.comparingInt(type -> WORKFLOW_STAGE_CATEGORIES.indexOf(type.getWorkflowStageTypeName())))
                                                                 .collect(Collectors.toList());
 
         List<WorkflowStageTypeAndStageNameResDto> result = new ArrayList<>();
