@@ -75,6 +75,21 @@ const overlayShow = ref(true as Boolean)
 const toast = useToast()
 const workflowList = ref([] as Array<Workflow>)
 const columns = ref([] as Array<ColumnDefinition>)
+const WORKFLOW_DISPLAY_ORDER = [
+  'vm-mariadb-backup-import-data-init',
+  'vm-mariadb-data-init-cleanup',
+  'k8s-mariadb-backup-import-data-init',
+  'k8s-mariadb-data-init-cleanup',
+  'multi-csp-vm-deploy',
+  'multi-csp-vm-cleanup',
+  'multi-csp-k8s-cluster-deploy',
+  'multi-csp-k8s-cluster-cleanup',
+  'vm-object-storage-data-lab-init',
+  'vm-object-storage-data-lab-cleanup',
+]
+const workflowDisplayOrder = new Map(
+  WORKFLOW_DISPLAY_ORDER.map((workflowName, index) => [workflowName, index])
+)
 
 onMounted(async () => {
   setColumns()
@@ -113,7 +128,7 @@ const _getWorkflowList = async (showLoading = true) => {
       overlayShow.value = true
     }
     await getWorkflowList('N').then(({ data }) => {
-      workflowList.value = mergeWorkflowList(data || [], !showLoading)
+      workflowList.value = sortWorkflowList(mergeWorkflowList(data || [], !showLoading))
     })
   } catch(error) {
     console.log(error)
@@ -127,6 +142,15 @@ const _getWorkflowList = async (showLoading = true) => {
 
 const getWorkflowRowKey = (workflow: Workflow) => {
   return String(workflow.workflowInfo?.workflowIdx || workflow.workflowInfo?.workflowName || '')
+}
+
+const sortWorkflowList = (workflows: Array<Workflow>) => {
+  return [...workflows].sort((left, right) => {
+    const leftOrder = workflowDisplayOrder.get(left.workflowInfo.workflowName) ?? WORKFLOW_DISPLAY_ORDER.length
+    const rightOrder = workflowDisplayOrder.get(right.workflowInfo.workflowName) ?? WORKFLOW_DISPLAY_ORDER.length
+
+    return leftOrder - rightOrder
+  })
 }
 
 const mergeWorkflowList = (nextWorkflowList: Array<Workflow>, preserveCurrentRows = false) => {

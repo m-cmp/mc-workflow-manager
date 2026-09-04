@@ -4415,7 +4415,21 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(102, 1, 50, (SELECT script FROM workflow WHERE workflow_idx = 102));
+(102, 1, null, 'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 102, 2, 54, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 102, 3, 50, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 50;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(102, 4, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (103, 1, null, 'import groovy.json.JsonOutput
@@ -4443,7 +4457,21 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(104, 1, 51, (SELECT script FROM workflow WHERE workflow_idx = 104));
+(104, 1, null, 'import groovy.json.JsonOutput
+
+pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 104, 2, 54, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 54;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 104, 3, 51, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 51;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(104, 4, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (105, 1, null, 'pipeline {
@@ -4459,7 +4487,17 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(106, 1, 52, (SELECT script FROM workflow WHERE workflow_idx = 106));
+(106, 1, null, 'pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 106, 2, 52, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 52;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(106, 3, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (107, 1, null, 'pipeline {
@@ -4475,7 +4513,17 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 ');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(108, 1, 53, (SELECT script FROM workflow WHERE workflow_idx = 108));
+(108, 1, null, 'pipeline {
+    agent any
+    stages {
+');
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 108, 2, 53, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 53;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
+(108, 3, null, '
+    }
+}
+');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (109, 1, null, 'import groovy.json.JsonOutput

@@ -48,6 +48,10 @@ import java.util.stream.Stream;
 public class WorkflowServiceImpl implements WorkflowService {
 
     private static final int MAX_JENKINS_BUILD_LOOKUP_COUNT = 200;
+    private static final List<String> WORKFLOW_PURPOSE_ORDER = List.of(
+            "For Deployment",
+            "For Cleanup"
+    );
     private static final List<String> WORKFLOW_STAGE_CATEGORIES = List.of(
             "infra",
             "k8s",
@@ -90,6 +94,12 @@ public class WorkflowServiceImpl implements WorkflowService {
         List<WorkflowDto> workflowList = workflowRepository.findAll()
             .stream()
             .map(WorkflowDto::from)
+            .sorted(Comparator
+                    .comparingInt((WorkflowDto workflow) -> {
+                        int purposeOrder = WORKFLOW_PURPOSE_ORDER.indexOf(workflow.getWorkflowPurpose());
+                        return purposeOrder >= 0 ? purposeOrder : WORKFLOW_PURPOSE_ORDER.size();
+                    })
+                    .thenComparing(WorkflowDto::getWorkflowIdx, Comparator.nullsLast(Long::compareTo)))
             .collect(Collectors.toList());
 
         List<WorkflowListResDto> list = new ArrayList<>();
