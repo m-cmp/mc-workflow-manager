@@ -32,6 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -412,28 +413,47 @@ public class JenkinsService {
 
             new ArrayList<>(paramsByKey.values()).forEach(item -> {
                 // Create new parameter node
-                Element stringParameterDefinition = document.createElement("hudson.model.StringParameterDefinition");
+                boolean sensitive = isSensitiveParamKey(item.getParamKey());
+                Element parameterDefinition = document.createElement(sensitive
+                        ? "hudson.model.PasswordParameterDefinition"
+                        : "hudson.model.StringParameterDefinition");
 
                 Element name = document.createElement("name");
                 name.appendChild(document.createTextNode(item.getParamKey()));
-                stringParameterDefinition.appendChild(name);
+                parameterDefinition.appendChild(name);
 
 //                Element description = document.createElement("description");
 //                description.appendChild(document.createTextNode(item.getParamDesc()));
-//                stringParameterDefinition.appendChild(description);
+//                parameterDefinition.appendChild(description);
 
                 Element defaultValue = document.createElement("defaultValue");
-                defaultValue.appendChild(document.createTextNode(item.getParamValue()));
-                stringParameterDefinition.appendChild(defaultValue);
+                defaultValue.appendChild(document.createTextNode(sensitive ? "" : item.getParamValue()));
+                parameterDefinition.appendChild(defaultValue);
 
-                Element trim = document.createElement("trim");
-                trim.appendChild(document.createTextNode("true"));
-                stringParameterDefinition.appendChild(trim);
+                if (!sensitive) {
+                    Element trim = document.createElement("trim");
+                    trim.appendChild(document.createTextNode("true"));
+                    parameterDefinition.appendChild(trim);
+                }
 
                 // Add the new parameter to the parameter definitions
-                parameterDefinitions.appendChild(stringParameterDefinition);
+                parameterDefinitions.appendChild(parameterDefinition);
             });
         }
+    }
+
+    private boolean isSensitiveParamKey(String paramKey) {
+        if (!StringUtils.hasText(paramKey)) {
+            return false;
+        }
+
+        String normalizedKey = paramKey.toUpperCase(Locale.ROOT);
+        return normalizedKey.contains("PASSWORD")
+                || normalizedKey.contains("PASS")
+                || normalizedKey.contains("SECRET")
+                || normalizedKey.contains("TOKEN")
+                || normalizedKey.contains("KEY_FILE")
+                || normalizedKey.contains("PRIVATE_KEY");
     }
 
     private void setQuietPeriodZero(Document document) {

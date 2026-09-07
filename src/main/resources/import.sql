@@ -2624,10 +2624,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 // Presigned URLs are issued against the Tumblebug logical ID, not the generated CSP bucket name.
                 def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                if (params.MC_INFRA_MANAGER_RUNTIME_URL != null) {
-                    error "MC_INFRA_MANAGER_RUNTIME_URL is system-managed and cannot be a workflow parameter"
+                if (params.MC_IAM_MANAGER_PUBLIC_URL != null) {
+                    error "MC_IAM_MANAGER_PUBLIC_URL is system-managed and cannot be a workflow parameter"
                 }
-                def runtimeTumblebug = (env.MC_INFRA_MANAGER_RUNTIME_URL ?: "").trim().replaceAll("/+\$", "")
+                def iamUrl = (env.MC_IAM_MANAGER_PUBLIC_URL ?: "").trim().replaceAll("/+\$", "")
+                def iamCaCert = (env.MC_IAM_MANAGER_CA_CERT ?: "").trim()
+                def iamAccessToken = (params.MC_IAM_ACCESS_TOKEN ?: "").trim()
+                def iamRefreshToken = (params.MC_IAM_REFRESH_TOKEN ?: "").trim()
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
@@ -2640,14 +2643,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!storageId || !osNamespace) {
                     error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_NAMESPACE/NAMESPACE are required"
                 }
-                if (!runtimeTumblebug) {
-                    error "MC_INFRA_MANAGER_RUNTIME_URL must be configured in the Jenkins environment"
+                if (!iamUrl || !iamCaCert) {
+                    error "MC_IAM_MANAGER_PUBLIC_URL and MC_IAM_MANAGER_CA_CERT must be configured in the Jenkins environment"
                 }
-                if (!params.USER?.trim() || !params.USERPASS) {
-                    error "USER and USERPASS are required by the presigned URL broker"
+                if (!iamAccessToken || !iamRefreshToken) {
+                    error "An active MCMP login session is required by the presigned URL broker"
                 }
-                if (params.USER.contains("\n") || params.USER.contains("\r") || params.USERPASS.contains("\n") || params.USERPASS.contains("\r")) {
-                    error "Tumblebug credentials must not contain line breaks"
+                if (!(iamAccessToken ==~ /[A-Za-z0-9._~-]+/) || !(iamRefreshToken ==~ /[A-Za-z0-9._~-]+/)) {
+                    error "Invalid MCMP login session token"
                 }
                 if (!(writeResultEnabled in ["true", "false"])) {
                     error "WRITE_RESULT_ENABLED must be true or false"
@@ -2666,7 +2669,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     provider: [provider, /[A-Za-z0-9._-]+/],
                     storageId: [storageId, /[A-Za-z0-9._-]+/],
                     osNamespace: [osNamespace, /[A-Za-z0-9._-]+/],
-                    runtimeTumblebug: [runtimeTumblebug, /https?:\/\/[A-Za-z0-9._:\/-]+/],
+                    iamUrl: [iamUrl, /https:\/\/[A-Za-z0-9.:-]+/],
+                    iamCaCert: [iamCaCert, /[A-Za-z0-9._\/-]+/],
                     dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
                     resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
                     jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
@@ -2677,6 +2681,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (validation[0] && (!(validation[0] ==~ validation[1]) || validation[0].contains(".."))) {
                         error "Invalid ${name}"
                     }
+                }
+                if (!fileExists(iamCaCert)) {
+                    error "MC-IAM Manager CA certificate was not found: ${iamCaCert}"
                 }
 
                 def sshHost = env.SSH_HOST ?: params.SSH_HOST
@@ -2695,15 +2702,16 @@ import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import unquote, urlsplit
 
 import requests
 
 
-TUMBLEBUG_URL = os.environ["TUMBLEBUG_URL"].rstrip("/")
-TUMBLEBUG_API = TUMBLEBUG_URL if TUMBLEBUG_URL.endswith("/tumblebug") else TUMBLEBUG_URL + "/tumblebug"
-TUMBLEBUG_USERNAME = os.environ["TUMBLEBUG_USERNAME"]
-TUMBLEBUG_PASSWORD = os.environ["TUMBLEBUG_PASSWORD"]
+IAM_URL = os.environ["MC_IAM_MANAGER_URL"].rstrip("/")
+IAM_CA_CERT = os.environ["MC_IAM_MANAGER_CA_CERT"]
+IAM_ACCESS_TOKEN = os.environ["MC_IAM_ACCESS_TOKEN"]
+IAM_REFRESH_TOKEN = os.environ["MC_IAM_REFRESH_TOKEN"]
+IAM_TOKEN_STATE_FILE = os.environ.get("MC_IAM_TOKEN_STATE_FILE", "")
 NAMESPACE = os.environ["OBJECT_STORAGE_NAMESPACE"]
 STORAGE_ID = os.environ["OBJECT_STORAGE_ID"]
 DATA_PREFIX = os.environ.get("DATA_PREFIX", "").strip("/")
@@ -2712,10 +2720,40 @@ URL_TTL = int(os.environ.get("PRESIGNED_URL_EXPIRES", "3600"))
 BROKER_TOKEN = os.environ["BROKER_TOKEN"]
 
 CONTROL_SESSION = requests.Session()
-CONTROL_SESSION.auth = (TUMBLEBUG_USERNAME, TUMBLEBUG_PASSWORD)
+CONTROL_SESSION.verify = IAM_CA_CERT
 STORAGE_SESSION = requests.Session()
 SIGNED_URL_CACHE = {}
 CACHE_LOCK = threading.Lock()
+IAM_TOKEN_LOCK = threading.Lock()
+
+
+def load_iam_tokens():
+    global IAM_ACCESS_TOKEN, IAM_REFRESH_TOKEN
+    if not IAM_TOKEN_STATE_FILE or not os.path.isfile(IAM_TOKEN_STATE_FILE):
+        return
+    with open(IAM_TOKEN_STATE_FILE, "r", encoding="utf-8") as token_file:
+        payload = json.load(token_file)
+    access_token = str(payload.get("access_token") or "")
+    refresh_token = str(payload.get("refresh_token") or "")
+    if access_token and refresh_token:
+        IAM_ACCESS_TOKEN = access_token
+        IAM_REFRESH_TOKEN = refresh_token
+
+
+def save_iam_tokens():
+    if not IAM_TOKEN_STATE_FILE:
+        return
+    temp_file = IAM_TOKEN_STATE_FILE + ".tmp"
+    with open(temp_file, "w", encoding="utf-8") as token_file:
+        json.dump(
+            {"access_token": IAM_ACCESS_TOKEN, "refresh_token": IAM_REFRESH_TOKEN},
+            token_file,
+        )
+    os.chmod(temp_file, 0o600)
+    os.replace(temp_file, IAM_TOKEN_STATE_FILE)
+
+
+load_iam_tokens()
 
 
 def is_within(prefix, key):
@@ -2739,14 +2777,61 @@ def can_upload(key):
     return bool(RESULT_PREFIX) and is_within(RESULT_PREFIX, key)
 
 
-def tumblebug_path(suffix):
-    return TUMBLEBUG_API + "/ns/" + quote(NAMESPACE, safe="") + "/resources/objectStorage/" + quote(STORAGE_ID, safe="") + suffix
+def refresh_iam_tokens(stale_access_token):
+    global IAM_ACCESS_TOKEN, IAM_REFRESH_TOKEN
+    with IAM_TOKEN_LOCK:
+        if IAM_ACCESS_TOKEN != stale_access_token:
+            return
+        response = CONTROL_SESSION.post(
+            IAM_URL + "/api/auth/refresh",
+            json={"refresh_token": IAM_REFRESH_TOKEN},
+            timeout=30,
+        )
+        if response.status_code < 200 or response.status_code >= 300:
+            raise RuntimeError("MC-IAM token refresh failed with status %d" % response.status_code)
+        payload = response.json()
+        access_token = str(payload.get("access_token") or "")
+        if not access_token:
+            raise RuntimeError("MC-IAM token refresh returned an empty access token")
+        IAM_ACCESS_TOKEN = access_token
+        IAM_REFRESH_TOKEN = str(payload.get("refresh_token") or IAM_REFRESH_TOKEN)
+        save_iam_tokens()
+        print("mcmp_session_token_refreshed", flush=True)
+
+
+def iam_action(action_name, path_params, query_params=None):
+    request_body = {
+        "serviceName": "mc-infra-manager",
+        "actionName": action_name,
+        "requestParams": {
+            "pathParams": path_params,
+            "queryParams": query_params or {},
+            "body": None,
+        },
+    }
+    for attempt in range(2):
+        with IAM_TOKEN_LOCK:
+            access_token = IAM_ACCESS_TOKEN
+        response = CONTROL_SESSION.post(
+            IAM_URL + "/api/mcmp-apis/call",
+            headers={"Authorization": "Bearer " + access_token},
+            json=request_body,
+            timeout=30,
+        )
+        if response.status_code != 401 or attempt == 1:
+            return response
+        response.close()
+        refresh_iam_tokens(access_token)
+    raise RuntimeError("unreachable")
 
 
 def list_objects():
-    response = CONTROL_SESSION.get(tumblebug_path("/object"), timeout=30)
+    response = iam_action(
+        "ListDataObjects",
+        {"nsId": NAMESPACE, "osId": STORAGE_ID},
+    )
     if response.status_code < 200 or response.status_code >= 300:
-        raise RuntimeError("Tumblebug object list failed with status %d" % response.status_code)
+        raise RuntimeError("MC-IAM object list failed with status %d" % response.status_code)
     objects = response.json().get("objects", [])
     return [item for item in objects if can_download(str(item.get("key", "")))]
 
@@ -2780,18 +2865,17 @@ def presign(key, operation, force=False, reason="request"):
                 return cached
         reason = "expired" if cached else "cache_miss"
 
-    suffix = "/object/" + quote(key, safe="") + "/presignedUrl"
-    response = CONTROL_SESSION.post(
-        tumblebug_path(suffix),
-        params={"operation": operation, "expires": URL_TTL},
-        timeout=30,
+    response = iam_action(
+        "GeneratePresignedURL",
+        {"nsId": NAMESPACE, "osId": STORAGE_ID, "objectKey": key},
+        {"operation": operation, "expires": str(URL_TTL)},
     )
     if response.status_code < 200 or response.status_code >= 300:
-        raise RuntimeError("Tumblebug presigned URL request failed with status %d" % response.status_code)
+        raise RuntimeError("MC-IAM presigned URL request failed with status %d" % response.status_code)
     payload = response.json()
     signed_url = payload.get("presignedURL", "")
     if not signed_url:
-        raise RuntimeError("Tumblebug returned an empty presigned URL")
+        raise RuntimeError("MC-IAM returned an empty presigned URL")
     try:
         expires_at = float(payload.get("expires") or 0)
     except (TypeError, ValueError):
@@ -2902,7 +2986,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
             try:
                 self.send_json(200, {"objects": list_objects()})
             except (RuntimeError, ValueError, requests.RequestException, json.JSONDecodeError):
-                self.send_json(502, {"error": "Tumblebug object list request failed"})
+                self.send_json(502, {"error": "MC-IAM object list request failed"})
             return
         try:
             key = self.object_key("/object/")
@@ -3087,8 +3171,8 @@ if __name__ == "__main__":
                         [cell_type: "markdown", metadata: [:], source: [
                             "# Object Storage Data Lab\n",
                             "\n",
-                            "CB-Tumblebug가 발급한 presigned URL을 제한된 로컬 broker를 통해 사용합니다.\n",
-                            "Jupyter 컨테이너에는 CSP Access Key / Secret Key와 Tumblebug 자격증명이 없습니다.\n",
+                            "MC-IAM Manager가 기존 CB-Tumblebug API로 발급한 presigned URL을 제한된 로컬 broker를 통해 사용합니다.\n",
+                            "Jupyter 컨테이너에는 CSP Access Key / Secret Key와 CB-Tumblebug 자격증명이 없습니다.\n",
                             "노트북은 고정된 broker URL을 사용하며, broker가 만료 전에 새 presigned URL로 자동 교체합니다.\n",
                             "\n",
                             "버킷에 파일을 올린 뒤 아래 셀을 위에서부터 실행하세요."
@@ -3212,16 +3296,19 @@ CONFIG_DIR="\${APP_ROOT}/config"
 WORK_DIR="\${APP_ROOT}/work"
 BUILD_DIR="\${APP_ROOT}/build"
 BROKER_DIR="\${APP_ROOT}/broker"
+BROKER_STATE_DIR="\${APP_ROOT}/broker-state"
 ENV_FILE="\${CONFIG_DIR}/data-lab.env"
 BROKER_ENV_FILE="\${CONFIG_DIR}/broker.env"
+IAM_CA_FILE="\${CONFIG_DIR}/iam-ca.crt"
 INCOMING_ENV="/tmp/object-storage-data-lab.env"
 INCOMING_BROKER_ENV="/tmp/object-storage-data-lab-broker.env"
+INCOMING_IAM_CA="/tmp/iam-ca.crt"
 CONTAINER_NAME="object-storage-data-lab"
 BROKER_CONTAINER_NAME="object-storage-data-lab-broker"
 NETWORK_NAME="object-storage-data-lab"
 
 cleanup_incoming_files() {
-  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
+  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/iam-ca.crt /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
 }
 trap cleanup_incoming_files EXIT
 
@@ -3244,7 +3331,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 sudo systemctl enable --now docker
 
-sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}" "\${BROKER_DIR}"
+sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}" "\${BROKER_DIR}" "\${BROKER_STATE_DIR}"
 jupyter_token=""
 if sudo test -f "\${ENV_FILE}"; then
   jupyter_token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
@@ -3257,12 +3344,15 @@ broker_token=\$(od -An -N32 -tx1 /dev/urandom | tr -d " \\n")
 sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
 printf "JUPYTER_TOKEN=%s\\nOBJECT_STORAGE_BROKER_TOKEN=%s\\n" "\${jupyter_token}" "\${broker_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
 sudo install -m 600 "\${INCOMING_BROKER_ENV}" "\${BROKER_ENV_FILE}"
+sudo install -m 644 "\${INCOMING_IAM_CA}" "\${IAM_CA_FILE}"
 printf "BROKER_TOKEN=%s\\n" "\${broker_token}" | sudo tee -a "\${BROKER_ENV_FILE}" >/dev/null
 sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
 sudo install -m 644 /tmp/object_storage_access.py "\${WORK_DIR}/object_storage_access.py"
 sudo install -m 644 /tmp/verify_object_storage.py "\${WORK_DIR}/verify_object_storage.py"
 sudo install -m 644 /tmp/presigned_broker.py "\${BROKER_DIR}/presigned_broker.py"
 sudo chown -R 1000:100 "\${WORK_DIR}"
+sudo chown -R 1000:100 "\${BROKER_STATE_DIR}"
+sudo chmod 700 "\${BROKER_STATE_DIR}"
 
 JUPYTER_IMAGE=\$(get_env_value JUPYTER_IMAGE)
 DUCKDB_VERSION=\$(get_env_value DUCKDB_VERSION)
@@ -3278,12 +3368,15 @@ sudo docker build --pull -t "\${LOCAL_IMAGE}" "\${BUILD_DIR}"
 sudo docker network inspect "\${NETWORK_NAME}" >/dev/null 2>&1 || sudo docker network create "\${NETWORK_NAME}" >/dev/null
 
 sudo docker rm -f "\${CONTAINER_NAME}" "\${BROKER_CONTAINER_NAME}" >/dev/null 2>&1 || true
+sudo rm -f "\${BROKER_STATE_DIR}/iam-token.json" "\${BROKER_STATE_DIR}/iam-token.json.tmp"
 sudo docker run -d \\
   --name "\${BROKER_CONTAINER_NAME}" \\
   --restart unless-stopped \\
   --network "\${NETWORK_NAME}" \\
   --network-alias object-storage-broker \\
   --env-file "\${BROKER_ENV_FILE}" \\
+  -v "\${IAM_CA_FILE}:/opt/mcmp/iam-ca.crt:ro" \\
+  -v "\${BROKER_STATE_DIR}:/opt/mcmp-state:rw" \\
   -v "\${BROKER_DIR}/presigned_broker.py:/opt/presigned_broker.py:ro" \\
   "\${LOCAL_IMAGE}" \\
   python /opt/presigned_broker.py
@@ -3335,7 +3428,7 @@ fi
 
 echo ""
 echo ">>>>> Object Storage Data Lab is ready."
-echo "      access mode   : CB-Tumblebug presigned URL broker"
+echo "      access mode   : MC-IAM Manager presigned URL broker"
 echo "      remote bind   : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
 echo "      token file    : \${ENV_FILE} (on the VM)"
 echo "      jupyter token : \${jupyter_token}"
@@ -3367,9 +3460,11 @@ DUCKDB_VERSION=${duckdbVersion}
 JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
 """
-                writeFile file: "object-storage-data-lab-broker.env", text: """TUMBLEBUG_URL=${runtimeTumblebug}
-TUMBLEBUG_USERNAME=${params.USER}
-TUMBLEBUG_PASSWORD=${params.USERPASS}
+                writeFile file: "object-storage-data-lab-broker.env", text: """MC_IAM_MANAGER_URL=${iamUrl}
+MC_IAM_MANAGER_CA_CERT=/opt/mcmp/iam-ca.crt
+MC_IAM_ACCESS_TOKEN=${iamAccessToken}
+MC_IAM_REFRESH_TOKEN=${iamRefreshToken}
+MC_IAM_TOKEN_STATE_FILE=/opt/mcmp-state/iam-token.json
 OBJECT_STORAGE_NAMESPACE=${osNamespace}
 OBJECT_STORAGE_ID=${storageId}
 DATA_PREFIX=${dataPrefix}
@@ -3378,8 +3473,8 @@ PRESIGNED_URL_EXPIRES=${presignedExpires}
 """
                 try {
                     sh "chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env && chmod 700 object-storage-data-lab-install.sh"
-                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
-ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "${iamCaCert}" object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 644 /tmp/iam-ca.crt && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
 """
                 } finally {
                     sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
@@ -3393,7 +3488,13 @@ SET workflow_stage_idx = 62,
     stage = (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 62)
 WHERE workflow_stage_idx = 55;
 DELETE FROM workflow_param
-WHERE UPPER(param_key) IN ('TUMBLEBUG_RUNTIME_URL', 'MC_INFRA_MANAGER_RUNTIME_URL')
+WHERE UPPER(param_key) IN (
+    'TUMBLEBUG_RUNTIME_URL',
+    'MC_INFRA_MANAGER_RUNTIME_URL',
+    'MC_IAM_MANAGER_PUBLIC_URL',
+    'MC_IAM_ACCESS_TOKEN',
+    'MC_IAM_REFRESH_TOKEN'
+)
   AND workflow_idx IN (
       SELECT workflow_idx FROM workflow_stage_mapping WHERE workflow_stage_idx = 62
   );
