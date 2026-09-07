@@ -2624,13 +2624,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 // Presigned URLs are issued against the Tumblebug logical ID, not the generated CSP bucket name.
                 def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                if (params.MC_IAM_MANAGER_PUBLIC_URL != null) {
-                    error "MC_IAM_MANAGER_PUBLIC_URL is system-managed and cannot be a workflow parameter"
-                }
-                def iamUrl = (env.MC_IAM_MANAGER_PUBLIC_URL ?: "").trim().replaceAll("/+\$", "")
-                def iamCaCert = (env.MC_IAM_MANAGER_CA_CERT ?: "").trim()
-                def iamAccessToken = (params.MC_IAM_ACCESS_TOKEN ?: "").trim()
-                def iamRefreshToken = (params.MC_IAM_REFRESH_TOKEN ?: "").trim()
+                def iamTunnelPort = "8889"
+                def iamUrl = "http://127.0.0.1:${iamTunnelPort}"
+                def iamAccessToken = (env.MC_IAM_ACCESS_TOKEN ?: "").trim()
+                def iamRefreshToken = (env.MC_IAM_REFRESH_TOKEN ?: "").trim()
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
@@ -2642,9 +2639,6 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                 if (!storageId || !osNamespace) {
                     error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_NAMESPACE/NAMESPACE are required"
-                }
-                if (!iamUrl || !iamCaCert) {
-                    error "MC_IAM_MANAGER_PUBLIC_URL and MC_IAM_MANAGER_CA_CERT must be configured in the Jenkins environment"
                 }
                 if (!iamAccessToken || !iamRefreshToken) {
                     error "An active MCMP login session is required by the presigned URL broker"
@@ -2669,8 +2663,6 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     provider: [provider, /[A-Za-z0-9._-]+/],
                     storageId: [storageId, /[A-Za-z0-9._-]+/],
                     osNamespace: [osNamespace, /[A-Za-z0-9._-]+/],
-                    iamUrl: [iamUrl, /https:\/\/[A-Za-z0-9.:-]+/],
-                    iamCaCert: [iamCaCert, /[A-Za-z0-9._\/-]+/],
                     dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
                     resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
                     jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
@@ -2682,10 +2674,6 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "Invalid ${name}"
                     }
                 }
-                if (!fileExists(iamCaCert)) {
-                    error "MC-IAM Manager CA certificate was not found: ${iamCaCert}"
-                }
-
                 def sshHost = env.SSH_HOST ?: params.SSH_HOST
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
                 def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
@@ -2693,6 +2681,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-presigned-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                def tunnelHostId = sshHost.replaceAll(/[^A-Za-z0-9_.-]/, "_")
+                def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${tunnelHostId}.sock"
 
                 def brokerSource = """import hashlib
 import json
@@ -2708,7 +2698,6 @@ import requests
 
 
 IAM_URL = os.environ["MC_IAM_MANAGER_URL"].rstrip("/")
-IAM_CA_CERT = os.environ["MC_IAM_MANAGER_CA_CERT"]
 IAM_ACCESS_TOKEN = os.environ["MC_IAM_ACCESS_TOKEN"]
 IAM_REFRESH_TOKEN = os.environ["MC_IAM_REFRESH_TOKEN"]
 IAM_TOKEN_STATE_FILE = os.environ.get("MC_IAM_TOKEN_STATE_FILE", "")
@@ -2720,7 +2709,6 @@ URL_TTL = int(os.environ.get("PRESIGNED_URL_EXPIRES", "3600"))
 BROKER_TOKEN = os.environ["BROKER_TOKEN"]
 
 CONTROL_SESSION = requests.Session()
-CONTROL_SESSION.verify = IAM_CA_CERT
 STORAGE_SESSION = requests.Session()
 SIGNED_URL_CACHE = {}
 CACHE_LOCK = threading.Lock()
@@ -3299,16 +3287,14 @@ BROKER_DIR="\${APP_ROOT}/broker"
 BROKER_STATE_DIR="\${APP_ROOT}/broker-state"
 ENV_FILE="\${CONFIG_DIR}/data-lab.env"
 BROKER_ENV_FILE="\${CONFIG_DIR}/broker.env"
-IAM_CA_FILE="\${CONFIG_DIR}/iam-ca.crt"
 INCOMING_ENV="/tmp/object-storage-data-lab.env"
 INCOMING_BROKER_ENV="/tmp/object-storage-data-lab-broker.env"
-INCOMING_IAM_CA="/tmp/iam-ca.crt"
 CONTAINER_NAME="object-storage-data-lab"
 BROKER_CONTAINER_NAME="object-storage-data-lab-broker"
 NETWORK_NAME="object-storage-data-lab"
 
 cleanup_incoming_files() {
-  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/iam-ca.crt /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
+  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
 }
 trap cleanup_incoming_files EXIT
 
@@ -3344,7 +3330,6 @@ broker_token=\$(od -An -N32 -tx1 /dev/urandom | tr -d " \\n")
 sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
 printf "JUPYTER_TOKEN=%s\\nOBJECT_STORAGE_BROKER_TOKEN=%s\\n" "\${jupyter_token}" "\${broker_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
 sudo install -m 600 "\${INCOMING_BROKER_ENV}" "\${BROKER_ENV_FILE}"
-sudo install -m 644 "\${INCOMING_IAM_CA}" "\${IAM_CA_FILE}"
 printf "BROKER_TOKEN=%s\\n" "\${broker_token}" | sudo tee -a "\${BROKER_ENV_FILE}" >/dev/null
 sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
 sudo install -m 644 /tmp/object_storage_access.py "\${WORK_DIR}/object_storage_access.py"
@@ -3372,10 +3357,8 @@ sudo rm -f "\${BROKER_STATE_DIR}/iam-token.json" "\${BROKER_STATE_DIR}/iam-token
 sudo docker run -d \\
   --name "\${BROKER_CONTAINER_NAME}" \\
   --restart unless-stopped \\
-  --network "\${NETWORK_NAME}" \\
-  --network-alias object-storage-broker \\
+  --network host \\
   --env-file "\${BROKER_ENV_FILE}" \\
-  -v "\${IAM_CA_FILE}:/opt/mcmp/iam-ca.crt:ro" \\
   -v "\${BROKER_STATE_DIR}:/opt/mcmp-state:rw" \\
   -v "\${BROKER_DIR}/presigned_broker.py:/opt/presigned_broker.py:ro" \\
   "\${LOCAL_IMAGE}" \\
@@ -3398,6 +3381,7 @@ fi
 sudo docker run --rm \\
   --env-file "\${ENV_FILE}" \\
   --network "\${NETWORK_NAME}" \\
+  --add-host object-storage-broker:host-gateway \\
   -v "\${WORK_DIR}:/home/jovyan/work" \\
   "\${LOCAL_IMAGE}" \\
   python /home/jovyan/work/verify_object_storage.py
@@ -3406,6 +3390,7 @@ sudo docker run -d \\
   --name "\${CONTAINER_NAME}" \\
   --restart unless-stopped \\
   --network "\${NETWORK_NAME}" \\
+  --add-host object-storage-broker:host-gateway \\
   --env-file "\${ENV_FILE}" \\
   -p "\${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}:8888" \\
   -v "\${WORK_DIR}:/home/jovyan/work" \\
@@ -3461,7 +3446,6 @@ JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
 """
                 writeFile file: "object-storage-data-lab-broker.env", text: """MC_IAM_MANAGER_URL=${iamUrl}
-MC_IAM_MANAGER_CA_CERT=/opt/mcmp/iam-ca.crt
 MC_IAM_ACCESS_TOKEN=${iamAccessToken}
 MC_IAM_REFRESH_TOKEN=${iamRefreshToken}
 MC_IAM_TOKEN_STATE_FILE=/opt/mcmp-state/iam-token.json
@@ -3473,8 +3457,16 @@ PRESIGNED_URL_EXPIRES=${presignedExpires}
 """
                 try {
                     sh "chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env && chmod 700 object-storage-data-lab-install.sh"
-                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} "${iamCaCert}" object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
-ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 644 /tmp/iam-ca.crt && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+"""
+                    withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
+                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+rm -f "${tunnelControlPath}"
+ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${iamTunnelPort}:mc-iam-manager:5000 "${sshUser}@${sshHost}"
+"""
+                    }
+                    sh """
+ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
 """
                 } finally {
                     sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
