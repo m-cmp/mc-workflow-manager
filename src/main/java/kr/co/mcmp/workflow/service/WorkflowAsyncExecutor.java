@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Slf4j
@@ -143,11 +144,25 @@ public class WorkflowAsyncExecutor {
                         ossDto,
                         ossTypeDto,
                         "paramValue",
-                        paramDto.getParamValue(),
+                        isSensitiveParamKey(paramDto.getParamKey()) ? "******" : paramDto.getParamValue(),
                         "root",
                         null);
             }
         }
+    }
+
+    private boolean isSensitiveParamKey(String paramKey) {
+        if (!StringUtils.hasText(paramKey)) {
+            return false;
+        }
+
+        String normalizedKey = paramKey.toUpperCase(Locale.ROOT);
+        return normalizedKey.contains("PASSWORD")
+                || normalizedKey.contains("PASS")
+                || normalizedKey.contains("SECRET")
+                || normalizedKey.contains("TOKEN")
+                || normalizedKey.contains("KEY_FILE")
+                || normalizedKey.contains("PRIVATE_KEY");
     }
 
     private void synchronizeJenkinsJobForRun(WorkflowReqDto workflowReqDto, List<WorkflowParamDto> workflowParams, OssDto ossDto) {
