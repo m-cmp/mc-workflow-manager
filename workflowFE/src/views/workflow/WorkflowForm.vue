@@ -502,7 +502,7 @@ const tumblebugSelectorManagedParamKeys = [
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete']
+const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete', 'jupyter-object-storage-presigned-analysis-install']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -646,9 +646,7 @@ const isKubernetesImageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
 })
 
-// Driven by the stages the workflow has, the same way K8S_VERSION is. Only the stages that
-// address a bucket by its Tumblebug logical name qualify; jupyter-object-storage-analysis-install
-// consumes the resolved CSP bucket name instead.
+// Driven by the stages the workflow has, the same way K8S_VERSION is.
 const isObjectStorageWorkflow = computed(() => {
   return workflowStageMappingsFormData.value.some((stage) => objectStorageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
 })
@@ -1818,10 +1816,6 @@ const applyObjectStorageLocationParams = () => {
   if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
     upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)
   }
-  const credentialProvider = infraProvider.value.trim().toLowerCase()
-  if (credentialProvider && hasWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID')) {
-    upsertWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID', `object-storage-credential-${credentialProvider}`)
-  }
   // A picked bucket dictates its own region: pointing DuckDB at the VM's region instead would
   // hit the wrong S3 endpoint. Only a name that is not in the list yet follows the VM, because
   // that bucket does not exist and the run creates it next to the VM.
@@ -2102,14 +2096,15 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'JUPYTER_PORT', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '', eventListenerYn: 'N' },
     ],
-    'jupyter-object-storage-analysis-install': [
+    'jupyter-object-storage-presigned-analysis-install': [
+      { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_PROVIDER', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'OBJECT_STORAGE_ENDPOINT', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'OBJECT_STORAGE_CREDENTIALS_ID', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'OBJECT_STORAGE_URL_STYLE', paramValue: 'vhost', eventListenerYn: 'N' },
-      { paramKey: 'OBJECT_STORAGE_USE_SSL', paramValue: 'true', eventListenerYn: 'N' },
+      { paramKey: 'PRESIGNED_URL_EXPIRES', paramValue: '3600', eventListenerYn: 'N' },
       { paramKey: 'SSH_HOST', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'SSH_USER', paramValue: 'cb-user', eventListenerYn: 'N' },
       { paramKey: 'SSH_KEY_FILE', paramValue: '', eventListenerYn: 'N' },
@@ -2156,10 +2151,6 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
         return existingValue || paramValue || defaultInfraId
       case 'K8S_CLUSTER_ID':
         return existingValue || paramValue || defaultClusterId
-      case 'OBJECT_STORAGE_CREDENTIALS_ID': {
-        const credentialProvider = infraProvider.value.trim().toLowerCase()
-        return credentialProvider ? `object-storage-credential-${credentialProvider}` : paramValue
-      }
       case 'SSH_HOST':
       case 'DB_HOST':
         return selectedAccessHost.value || existingValue || paramValue

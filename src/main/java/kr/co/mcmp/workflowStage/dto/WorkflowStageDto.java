@@ -325,14 +325,15 @@ public class WorkflowStageDto {
                     param("INFRA_ID", ""),
                     param("JUPYTER_PORT", ""),
                     param("JUPYTER_ALLOWED_CIDR", ""));
-            case "jupyter-object-storage-analysis-install" -> params(
+            case "jupyter-object-storage-presigned-analysis-install" -> params(
+                    param("USER", "default"),
+                    param("USERPASS", "default"),
+                    param("NAMESPACE", ""),
                     param("OBJECT_STORAGE_PROVIDER", ""),
                     param("OBJECT_STORAGE_BUCKET", ""),
+                    param("OBJECT_STORAGE_NAMESPACE", ""),
                     param("OBJECT_STORAGE_REGION", ""),
-                    param("OBJECT_STORAGE_ENDPOINT", ""),
-                    param("OBJECT_STORAGE_CREDENTIALS_ID", ""),
-                    param("OBJECT_STORAGE_URL_STYLE", "vhost"),
-                    param("OBJECT_STORAGE_USE_SSL", "true"),
+                    param("PRESIGNED_URL_EXPIRES", "3600"),
                     param("SSH_HOST", ""),
                     param("SSH_USER", "cb-user"),
                     param("SSH_KEY_FILE", ""),
