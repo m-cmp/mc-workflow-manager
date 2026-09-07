@@ -2610,72 +2610,63 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         }
     }');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (55, 19, 7, 'jupyter-object-storage-analysis-install', 'Install JupyterLab and DuckDB for Object Storage analysis', '
-    stage("jupyter-object-storage-analysis-install") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (62, 19, 7, 'jupyter-object-storage-presigned-analysis-install', 'Install JupyterLab with a restricted presigned URL broker for Object Storage analysis', '
+    stage("jupyter-object-storage-presigned-analysis-install") {
         steps {
-            echo ">>>>> STAGE: jupyter-object-storage-analysis-install"
+            echo ">>>>> STAGE: jupyter-object-storage-presigned-analysis-install"
             script {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
-                // The same set CB-Spider resolves S3 connection info for. Keep this list, the
-                // endpoint defaults and the url style defaults below in step with
-                // S3Manager.GetS3ConnectionInfo, which is what actually created the bucket.
                 def supportedProviders = ["aws", "gcp", "ncp", "alibaba", "tencent", "ibm", "nhn"]
                 if (!supportedProviders.contains(provider)) {
                     error "OBJECT_STORAGE_PROVIDER must be one of: ${supportedProviders.join(", ")}"
                 }
 
-                def bucket = (env.OBJECT_STORAGE_BUCKET ?: params.OBJECT_STORAGE_BUCKET ?: "").trim()
-                def region = (params.OBJECT_STORAGE_REGION ?: params.REGION ?: "").trim()
-                def endpoint = (params.OBJECT_STORAGE_ENDPOINT ?: "").trim()
-                def configuredCredentialId = (params.OBJECT_STORAGE_CREDENTIALS_ID ?: "").trim()
-                def credentialId = (!configuredCredentialId || configuredCredentialId == "object-storage-credential") ?
-                    "object-storage-credential-${provider}" : configuredCredentialId
-                def urlStyle = (params.OBJECT_STORAGE_URL_STYLE ?: "vhost").trim().toLowerCase()
-                def useSsl = (params.OBJECT_STORAGE_USE_SSL ?: "true").trim().toLowerCase()
+                // Presigned URLs are issued against the Tumblebug logical ID, not the generated CSP bucket name.
+                def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
+                def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+                if (params.MC_INFRA_MANAGER_RUNTIME_URL != null) {
+                    error "MC_INFRA_MANAGER_RUNTIME_URL is system-managed and cannot be a workflow parameter"
+                }
+                def runtimeTumblebug = (env.MC_INFRA_MANAGER_RUNTIME_URL ?: "").trim().replaceAll("/+\$", "")
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
+                def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "3600").trim()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
                 def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
                 def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
                 def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
 
-                if (!bucket || !region) {
-                    error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_REGION are required"
+                if (!storageId || !osNamespace) {
+                    error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_NAMESPACE/NAMESPACE are required"
                 }
-                if (!endpoint) {
-                    // Mirrors CB-Spider S3Manager.GetS3ConnectionInfo. A wrong endpoint fails as an
-                    // opaque access error, so never fall through to another CSP default: any
-                    // provider without an entry here is rejected above by supportedProviders.
-                    def endpointsByProvider = [
-                        aws:     "s3.${region}.amazonaws.com",
-                        gcp:     "storage.googleapis.com",
-                        ncp:     "${region}.object.ncloudstorage.com",
-                        alibaba: "oss-${region}.aliyuncs.com",
-                        tencent: "cos.${region}.myqcloud.com",
-                        ibm:     "s3.${region}.cloud-object-storage.appdomain.cloud",
-                        nhn:     "${region}-api-object-storage.nhncloudservice.com"
-                    ]
-                    endpoint = endpointsByProvider[provider]
-                    if (!endpoint) {
-                        error "No default OBJECT_STORAGE_ENDPOINT for provider ${provider}. Set it explicitly."
-                    }
+                if (!runtimeTumblebug) {
+                    error "MC_INFRA_MANAGER_RUNTIME_URL must be configured in the Jenkins environment"
                 }
-                if (!(urlStyle in ["path", "vhost"])) {
-                    error "OBJECT_STORAGE_URL_STYLE must be path or vhost"
+                if (!params.USER?.trim() || !params.USERPASS) {
+                    error "USER and USERPASS are required by the presigned URL broker"
                 }
-                if (!(useSsl in ["true", "false"]) || !(writeResultEnabled in ["true", "false"])) {
-                    error "OBJECT_STORAGE_USE_SSL and WRITE_RESULT_ENABLED must be true or false"
+                if (params.USER.contains("\n") || params.USER.contains("\r") || params.USERPASS.contains("\n") || params.USERPASS.contains("\r")) {
+                    error "Tumblebug credentials must not contain line breaks"
+                }
+                if (!(writeResultEnabled in ["true", "false"])) {
+                    error "WRITE_RESULT_ENABLED must be true or false"
+                }
+                if (writeResultEnabled == "true" && !resultPrefix) {
+                    error "RESULT_PREFIX is required when WRITE_RESULT_ENABLED is true"
+                }
+                if (!(presignedExpires ==~ /[0-9]+/) || presignedExpires.toInteger() < 60 || presignedExpires.toInteger() > 86400) {
+                    error "PRESIGNED_URL_EXPIRES must be between 60 and 86400 seconds"
                 }
                 if (!(jupyterPort ==~ /[0-9]+/) || jupyterPort.toInteger() < 1 || jupyterPort.toInteger() > 65535) {
                     error "JUPYTER_PORT must be between 1 and 65535"
                 }
 
                 def safePatterns = [
-                    bucket: [bucket, /[A-Za-z0-9._-]+/],
-                    region: [region, /[A-Za-z0-9._-]+/],
-                    endpoint: [endpoint, /[A-Za-z0-9._:\/-]+/],
-                    credentialId: [credentialId, /[A-Za-z0-9._-]+/],
+                    provider: [provider, /[A-Za-z0-9._-]+/],
+                    storageId: [storageId, /[A-Za-z0-9._-]+/],
+                    osNamespace: [osNamespace, /[A-Za-z0-9._-]+/],
+                    runtimeTumblebug: [runtimeTumblebug, /https?:\/\/[A-Za-z0-9._:\/-]+/],
                     dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
                     resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
                     jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
@@ -2692,12 +2683,326 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
                 def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
                 if (!sshHost || !sshUser) {
-                    error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
+                    error "SSH_HOST and SSH_USER are required for jupyter-object-storage-presigned-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
 
-                def verifierSource = """import os
+                def brokerSource = """import hashlib
+import json
+import os
+import shutil
+import tempfile
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import quote, unquote, urlsplit
+
+import requests
+
+
+TUMBLEBUG_URL = os.environ["TUMBLEBUG_URL"].rstrip("/")
+TUMBLEBUG_API = TUMBLEBUG_URL if TUMBLEBUG_URL.endswith("/tumblebug") else TUMBLEBUG_URL + "/tumblebug"
+TUMBLEBUG_USERNAME = os.environ["TUMBLEBUG_USERNAME"]
+TUMBLEBUG_PASSWORD = os.environ["TUMBLEBUG_PASSWORD"]
+NAMESPACE = os.environ["OBJECT_STORAGE_NAMESPACE"]
+STORAGE_ID = os.environ["OBJECT_STORAGE_ID"]
+DATA_PREFIX = os.environ.get("DATA_PREFIX", "").strip("/")
+RESULT_PREFIX = os.environ.get("RESULT_PREFIX", "results").strip("/")
+URL_TTL = int(os.environ.get("PRESIGNED_URL_EXPIRES", "3600"))
+BROKER_TOKEN = os.environ["BROKER_TOKEN"]
+
+CONTROL_SESSION = requests.Session()
+CONTROL_SESSION.auth = (TUMBLEBUG_USERNAME, TUMBLEBUG_PASSWORD)
+STORAGE_SESSION = requests.Session()
+SIGNED_URL_CACHE = {}
+CACHE_LOCK = threading.Lock()
+
+
+def is_within(prefix, key):
+    return not prefix or key == prefix or key.startswith(prefix + "/")
+
+
+def normalize_key(raw_key):
+    key = unquote(raw_key)
+    if not key or key.startswith("/") or "\\\\" in key or "\\n" in key or "\\r" in key:
+        raise ValueError("invalid object key")
+    if any(part == ".." for part in key.split("/")):
+        raise ValueError("invalid object key")
+    return key
+
+
+def can_download(key):
+    return is_within(DATA_PREFIX, key) or is_within(RESULT_PREFIX, key)
+
+
+def can_upload(key):
+    return bool(RESULT_PREFIX) and is_within(RESULT_PREFIX, key)
+
+
+def tumblebug_path(suffix):
+    return TUMBLEBUG_API + "/ns/" + quote(NAMESPACE, safe="") + "/resources/objectStorage/" + quote(STORAGE_ID, safe="") + suffix
+
+
+def list_objects():
+    response = CONTROL_SESSION.get(tumblebug_path("/object"), timeout=30)
+    if response.status_code < 200 or response.status_code >= 300:
+        raise RuntimeError("Tumblebug object list failed with status %d" % response.status_code)
+    objects = response.json().get("objects", [])
+    return [item for item in objects if can_download(str(item.get("key", "")))]
+
+
+def invalidate_url(key, operation):
+    with CACHE_LOCK:
+        SIGNED_URL_CACHE.pop((operation, key), None)
+
+
+def key_fingerprint(key):
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
+
+
+def audit_presign(operation, key, expires_at, reason):
+    expires_text = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(expires_at))
+    print(
+        "presigned_url_issued operation=%s key_sha256=%s expires_at=%s reason=%s"
+        % (operation, key_fingerprint(key), expires_text, reason),
+        flush=True,
+    )
+
+
+def presign(key, operation, force=False, reason="request"):
+    cache_key = (operation, key)
+    now = time.time()
+    cached = None
+    if operation == "download" and not force:
+        with CACHE_LOCK:
+            cached = SIGNED_URL_CACHE.get(cache_key)
+            if cached and cached["refresh_at"] > now:
+                return cached
+        reason = "expired" if cached else "cache_miss"
+
+    suffix = "/object/" + quote(key, safe="") + "/presignedUrl"
+    response = CONTROL_SESSION.post(
+        tumblebug_path(suffix),
+        params={"operation": operation, "expires": URL_TTL},
+        timeout=30,
+    )
+    if response.status_code < 200 or response.status_code >= 300:
+        raise RuntimeError("Tumblebug presigned URL request failed with status %d" % response.status_code)
+    payload = response.json()
+    signed_url = payload.get("presignedURL", "")
+    if not signed_url:
+        raise RuntimeError("Tumblebug returned an empty presigned URL")
+    try:
+        expires_at = float(payload.get("expires") or 0)
+    except (TypeError, ValueError):
+        expires_at = 0
+    if expires_at <= now:
+        expires_at = now + URL_TTL
+    entry = {
+        "url": signed_url,
+        "headers": payload.get("requiredHeaders") or {},
+        "expires_at": expires_at,
+        "refresh_at": max(now + 1, expires_at - 30),
+    }
+    if operation == "download":
+        with CACHE_LOCK:
+            SIGNED_URL_CACHE[cache_key] = entry
+    audit_presign(operation, key, expires_at, reason)
+    return entry
+
+
+def storage_get(key, range_header=None):
+    for attempt in range(2):
+        signed = presign(
+            key,
+            "download",
+            force=attempt > 0,
+            reason="storage_auth_retry" if attempt > 0 else "request",
+        )
+        headers = dict(signed["headers"])
+        headers["Accept-Encoding"] = "identity"
+        if range_header:
+            headers["Range"] = range_header
+        response = STORAGE_SESSION.get(signed["url"], headers=headers, stream=True, timeout=(10, 300))
+        response.raw.decode_content = False
+        if response.status_code not in (401, 403) or attempt == 1:
+            return response
+        response.close()
+        invalidate_url(key, "download")
+    raise RuntimeError("unreachable")
+
+
+class BrokerHandler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, format_text, *args):
+        print("%s %s" % (self.command, urlsplit(self.path).path), flush=True)
+
+    def authorized(self):
+        return self.headers.get("Authorization", "") == "Bearer " + BROKER_TOKEN
+
+    def send_json(self, status, payload):
+        body = json.dumps(payload).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
+
+    def object_key(self, route_prefix):
+        path = urlsplit(self.path).path
+        if not path.startswith(route_prefix):
+            raise ValueError("invalid route")
+        return normalize_key(path[len(route_prefix):])
+
+    def do_HEAD(self):
+        if self.path == "/health":
+            self.send_response(200)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+        if not self.authorized():
+            self.send_json(401, {"error": "unauthorized"})
+            return
+        try:
+            key = self.object_key("/object/")
+            if not can_download(key):
+                self.send_json(403, {"error": "object is outside the allowed prefixes"})
+                return
+            upstream = storage_get(key, "bytes=0-0")
+            try:
+                if upstream.status_code not in (200, 206):
+                    self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
+                    return
+                content_range = upstream.headers.get("Content-Range", "")
+                total_size = content_range.rsplit("/", 1)[-1] if "/" in content_range else upstream.headers.get("Content-Length", "")
+                self.send_response(200)
+                if total_size and total_size.isdigit():
+                    self.send_header("Content-Length", total_size)
+                self.send_header("Accept-Ranges", "bytes")
+                for header_name in ("Content-Type", "ETag", "Last-Modified"):
+                    if upstream.headers.get(header_name):
+                        self.send_header(header_name, upstream.headers[header_name])
+                self.end_headers()
+            finally:
+                upstream.close()
+        except (ValueError, RuntimeError, requests.RequestException):
+            self.send_json(502, {"error": "object metadata request failed"})
+
+    def do_GET(self):
+        path = urlsplit(self.path).path
+        if path == "/health":
+            self.send_json(200, {"status": "ok"})
+            return
+        if not self.authorized():
+            self.send_json(401, {"error": "unauthorized"})
+            return
+        if path == "/objects":
+            try:
+                self.send_json(200, {"objects": list_objects()})
+            except (RuntimeError, ValueError, requests.RequestException, json.JSONDecodeError):
+                self.send_json(502, {"error": "Tumblebug object list request failed"})
+            return
+        try:
+            key = self.object_key("/object/")
+            if not can_download(key):
+                self.send_json(403, {"error": "object is outside the allowed prefixes"})
+                return
+            range_header = self.headers.get("Range")
+            upstream = storage_get(key, range_header)
+            try:
+                if upstream.status_code not in (200, 206):
+                    self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
+                    return
+                self.send_response(upstream.status_code)
+                for header_name in ("Content-Length", "Content-Range", "Accept-Ranges", "Content-Type", "ETag", "Last-Modified"):
+                    if upstream.headers.get(header_name):
+                        self.send_header(header_name, upstream.headers[header_name])
+                self.send_header("Connection", "close")
+                self.end_headers()
+                self.close_connection = True
+                shutil.copyfileobj(upstream.raw, self.wfile, length=1024 * 1024)
+            finally:
+                upstream.close()
+        except (ValueError, RuntimeError, requests.RequestException, BrokenPipeError, ConnectionResetError):
+            if not self.wfile.closed:
+                self.close_connection = True
+
+    def do_PUT(self):
+        if not self.authorized():
+            self.send_json(401, {"error": "unauthorized"})
+            return
+        temp_path = ""
+        try:
+            key = self.object_key("/result/")
+            if not can_upload(key):
+                self.send_json(403, {"error": "object is outside RESULT_PREFIX"})
+                return
+            content_length = self.headers.get("Content-Length", "")
+            if not content_length.isdigit():
+                self.send_json(411, {"error": "Content-Length is required"})
+                return
+            remaining = int(content_length)
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_path = temp_file.name
+                while remaining:
+                    chunk = self.rfile.read(min(1024 * 1024, remaining))
+                    if not chunk:
+                        raise RuntimeError("incomplete upload")
+                    temp_file.write(chunk)
+                    remaining -= len(chunk)
+
+            for attempt in range(2):
+                signed = presign(
+                    key,
+                    "upload",
+                    force=True,
+                    reason="storage_auth_retry" if attempt > 0 else "upload_request",
+                )
+                headers = dict(signed["headers"])
+                headers["Content-Length"] = content_length
+                with open(temp_path, "rb") as upload_file:
+                    upstream = STORAGE_SESSION.put(
+                        signed["url"],
+                        headers=headers,
+                        data=upload_file,
+                        timeout=(10, 3600),
+                        allow_redirects=False,
+                    )
+                if upstream.status_code not in (401, 403) or attempt == 1:
+                    break
+            if upstream.status_code < 200 or upstream.status_code >= 300:
+                self.send_json(502, {"error": "Object Storage upload returned status %d" % upstream.status_code})
+                return
+            self.send_json(200, {"key": key, "size": int(content_length)})
+        except (ValueError, RuntimeError, requests.RequestException):
+            self.send_json(502, {"error": "result upload failed"})
+        finally:
+            if temp_path:
+                try:
+                    os.remove(temp_path)
+                except FileNotFoundError:
+                    pass
+
+
+if __name__ == "__main__":
+    ThreadingHTTPServer(("0.0.0.0", 8765), BrokerHandler).serve_forever()
+"""
+
+                def helperSource = """import os
+from urllib.parse import quote
+
 import duckdb
+import requests
+
+
+BROKER_URL = os.environ.get("OBJECT_STORAGE_BROKER_URL", "http://object-storage-broker:8765").rstrip("/")
+BROKER_TOKEN = os.environ["OBJECT_STORAGE_BROKER_TOKEN"]
+
+
+def broker_headers():
+    return {"Authorization": "Bearer " + BROKER_TOKEN}
 
 
 def sql_quote(value):
@@ -2705,75 +3010,72 @@ def sql_quote(value):
     return chr(39) + text.replace(chr(39), chr(39) * 2) + chr(39)
 
 
-def object_uri(path):
-    provider = os.environ.get("OBJECT_STORAGE_PROVIDER", "").lower()
-    scheme = "gs" if provider == "gcp" else "s3"
-    bucket = os.environ["OBJECT_STORAGE_BUCKET"]
-    clean_path = path.strip("/")
-    return f"{scheme}://{bucket}/{clean_path}"
+def sql_identifier(value):
+    text = str(value)
+    return chr(34) + text.replace(chr(34), chr(34) * 2) + chr(34)
 
 
 def create_connection():
-    provider = os.environ["OBJECT_STORAGE_PROVIDER"].lower()
-    endpoint = os.environ.get("OBJECT_STORAGE_ENDPOINT", "")
-    endpoint = endpoint.removeprefix("https://").removeprefix("http://").rstrip("/")
-    key_id = os.environ["OBJECT_STORAGE_ACCESS_KEY_ID"]
-    secret_key = os.environ["OBJECT_STORAGE_SECRET_ACCESS_KEY"]
-    use_ssl = os.environ.get("OBJECT_STORAGE_USE_SSL", "true").lower()
-
     connection = duckdb.connect()
     connection.execute("INSTALL httpfs")
     connection.execute("LOAD httpfs")
-    secret_type = "gcs" if provider == "gcp" else "s3"
-    options = [
-        f"TYPE {secret_type}",
-        f"KEY_ID {sql_quote(key_id)}",
-        f"SECRET {sql_quote(secret_key)}",
-        f"USE_SSL {use_ssl}"
-    ]
-    if endpoint:
-        options.append(f"ENDPOINT {sql_quote(endpoint)}")
-    if provider != "gcp":
-        # Region participates in the SigV4 signing scope, so send it only where CB-Spider does
-        # (S3Manager.GetS3ConnectionInfo sets options.Region when RegionRequired). Sending one
-        # to a CSP that ignores regions can make the signature not match.
-        region_required = provider in ("aws", "tencent", "nhn")
-        region = os.environ.get("OBJECT_STORAGE_REGION", "")
-        url_style = os.environ.get("OBJECT_STORAGE_URL_STYLE", "vhost")
-        if region and region_required:
-            options.append(f"REGION {sql_quote(region)}")
-        options.append(f"URL_STYLE {sql_quote(url_style)}")
-    # No TEMP keyword: the DuckDB secret grammar takes TEMPORARY or nothing, and TEMP fails to
-    # parse. A secret is temporary by default, so it lives only for this connection.
-    connection.execute("CREATE OR REPLACE SECRET object_storage (" + ", ".join(options) + ")")
+    connection.execute(
+        "CREATE SECRET object_storage_broker (TYPE http, SCOPE "
+        + sql_quote(BROKER_URL)
+        + ", BEARER_TOKEN ?)",
+        [BROKER_TOKEN],
+    )
     return connection
 
 
-def list_objects(connection, prefix):
-    pattern = prefix + "/**" if prefix else "**"
-    uri = object_uri(pattern)
-    try:
-        rows = connection.execute("SELECT file FROM glob(" + sql_quote(uri) + ") ORDER BY file").fetchall()
-        return [r[0] for r in rows], uri
-    except Exception as exc:
-        message = str(exc)
-        if "No files found" in message or "no files found" in message:
-            return [], uri
-        raise RuntimeError("Object Storage access failed. Check endpoint, region, url style, bucket and credentials. " + message)
+def list_objects():
+    response = requests.get(BROKER_URL + "/objects", headers=broker_headers(), timeout=30)
+    response.raise_for_status()
+    return response.json().get("objects", [])
+
+
+def object_url(key):
+    return BROKER_URL + "/object/" + quote(key, safe="")
+
+
+def upload_file(key, local_path):
+    size = os.path.getsize(local_path)
+    headers = broker_headers()
+    headers["Content-Length"] = str(size)
+    with open(local_path, "rb") as source:
+        response = requests.put(
+            BROKER_URL + "/result/" + quote(key, safe=""),
+            headers=headers,
+            data=source,
+            timeout=(10, 3600),
+        )
+    response.raise_for_status()
+    return response.json()
+"""
+
+                def verifierSource = """import os
+import requests
+
+from object_storage_access import broker_headers, list_objects, object_url
 
 
 def verify():
-    connection = create_connection()
-    data_prefix = os.environ.get("DATA_PREFIX", "").strip("/")
-    files, uri = list_objects(connection, data_prefix)
-    print("Object Storage access verified. provider=%s, bucket=%s, objects=%d" % (os.environ["OBJECT_STORAGE_PROVIDER"], os.environ["OBJECT_STORAGE_BUCKET"], len(files)))
-    if files:
-        for name in files[:10]:
-            print("  -", name)
-        if len(files) > 10:
-            print("  ... and %d more" % (len(files) - 10))
+    objects = list_objects()
+    print("Object Storage broker access verified. provider=%s, storageId=%s, objects=%d" % (
+        os.environ.get("OBJECT_STORAGE_PROVIDER", ""),
+        os.environ.get("OBJECT_STORAGE_ID", ""),
+        len(objects),
+    ))
+    if objects:
+        first_key = str(objects[0].get("key", ""))
+        response = requests.head(object_url(first_key), headers=broker_headers(), timeout=30)
+        response.raise_for_status()
+        for item in objects[:10]:
+            print("  -", item.get("key", ""))
+        if len(objects) > 10:
+            print("  ... and %d more" % (len(objects) - 10))
     else:
-        print("The bucket is empty. Upload your data files to " + uri + " and rerun the notebook cells.")
+        print("The bucket is empty. Upload data and rerun the notebook cells.")
 
 
 if __name__ == "__main__":
@@ -2785,8 +3087,9 @@ if __name__ == "__main__":
                         [cell_type: "markdown", metadata: [:], source: [
                             "# Object Storage Data Lab\n",
                             "\n",
-                            "DuckDB 로 Object Storage 의 Parquet / CSV / JSON 파일을 직접 SQL 로 조회합니다.\n",
-                            "자격증명은 Notebook 이 아니라 컨테이너 환경변수에서 읽습니다.\n",
+                            "CB-Tumblebug가 발급한 presigned URL을 제한된 로컬 broker를 통해 사용합니다.\n",
+                            "Jupyter 컨테이너에는 CSP Access Key / Secret Key와 Tumblebug 자격증명이 없습니다.\n",
+                            "노트북은 고정된 broker URL을 사용하며, broker가 만료 전에 새 presigned URL로 자동 교체합니다.\n",
                             "\n",
                             "버킷에 파일을 올린 뒤 아래 셀을 위에서부터 실행하세요."
                         ]],
@@ -2796,12 +3099,12 @@ if __name__ == "__main__":
                         [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
                             "import os\n",
                             "import matplotlib.pyplot as plt\n",
-                            "from verify_object_storage import create_connection, object_uri, sql_quote, list_objects\n",
+                            "from object_storage_access import create_connection, list_objects, object_url, sql_identifier, sql_quote, upload_file\n",
                             "\n",
                             "con = create_connection()\n",
-                            "data_prefix = os.environ.get(\"DATA_PREFIX\", \"\").strip(\"/\")\n",
-                            "files, uri = list_objects(con, data_prefix)\n",
-                            "print(\"scanned:\", uri)\n",
+                            "objects = list_objects()\n",
+                            "files = [str(item.get(\"key\", \"\")) for item in objects if item.get(\"key\")]\n",
+                            "print(\"storage:\", os.environ.get(\"OBJECT_STORAGE_ID\", \"\"))\n",
                             "print(\"objects:\", len(files))\n",
                             "for name in files[:30]:\n",
                             "    print(\" -\", name)"
@@ -2809,37 +3112,40 @@ if __name__ == "__main__":
                         [cell_type: "markdown", metadata: [:], source: [
                             "## 2. 데이터 로드\n",
                             "\n",
-                            "Parquet 이 있으면 Parquet 을, 없으면 CSV 를 읽습니다. `TARGET_GLOB` 를 직접 지정할 수도 있습니다."
+                            "Parquet이 있으면 Parquet을, 없으면 CSV를 읽습니다. `TARGET_KEYS`에 분석할 객체 키 목록을 직접 지정할 수도 있습니다."
                         ]],
                         [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
-                            "prefix_part = data_prefix + \"/\" if data_prefix else \"\"\n",
-                            "TARGET_GLOB = None\n",
+                            "TARGET_KEYS = None\n",
                             "\n",
                             "def pick_reader():\n",
-                            "    if TARGET_GLOB:\n",
-                            "        return TARGET_GLOB, \"read_parquet\" if TARGET_GLOB.endswith(\".parquet\") else \"read_csv_auto\"\n",
-                            "    parquet_files = [f for f in files if f.lower().endswith(\".parquet\")]\n",
+                            "    selected = list(TARGET_KEYS) if TARGET_KEYS else []\n",
+                            "    if selected:\n",
+                            "        reader = \"read_parquet\" if all(name.lower().endswith(\".parquet\") for name in selected) else \"read_csv_auto\"\n",
+                            "        return selected, reader\n",
+                            "    parquet_files = [name for name in files if name.lower().endswith(\".parquet\")]\n",
                             "    if parquet_files:\n",
-                            "        return object_uri(prefix_part + \"**/*.parquet\"), \"read_parquet\"\n",
-                            "    csv_files = [f for f in files if f.lower().endswith(\".csv\")]\n",
+                            "        return parquet_files, \"read_parquet\"\n",
+                            "    csv_files = [name for name in files if name.lower().endswith(\".csv\")]\n",
                             "    if csv_files:\n",
-                            "        return object_uri(prefix_part + \"**/*.csv\"), \"read_csv_auto\"\n",
-                            "    return None, None\n",
+                            "        return csv_files, \"read_csv_auto\"\n",
+                            "    return [], None\n",
                             "\n",
-                            "target, reader = pick_reader()\n",
-                            "if target is None:\n",
+                            "selected_keys, reader = pick_reader()\n",
+                            "if not selected_keys:\n",
                             "    df = None\n",
                             "    print(\"읽을 Parquet / CSV 파일이 없습니다. 버킷에 파일을 올린 뒤 1번 셀부터 다시 실행하세요.\")\n",
                             "else:\n",
-                            "    df = con.execute(\"SELECT * FROM \" + reader + \"(\" + sql_quote(target) + \", union_by_name=true)\").df()\n",
-                            "    print(reader, target)\n",
+                            "    urls = [object_url(name) for name in selected_keys]\n",
+                            "    url_list_sql = \"[\" + \", \".join(sql_quote(url) for url in urls) + \"]\"\n",
+                            "    df = con.execute(\"SELECT * FROM \" + reader + \"(\" + url_list_sql + \", union_by_name=true)\").df()\n",
+                            "    print(reader, \"objects:\", len(selected_keys))\n",
                             "    print(\"rows:\", len(df), \"columns:\", list(df.columns))\n",
                             "    display(df.head())"
                         ]],
                         [cell_type: "markdown", metadata: [:], source: [
                             "## 3. 집계와 차트\n",
                             "\n",
-                            "문자열 컬럼을 기준으로 숫자 컬럼을 합계 냅니다. `GROUP_COL` / `VALUE_COL` 로 직접 지정할 수 있습니다."
+                            "문자열 컬럼을 기준으로 숫자 컬럼을 합계 냅니다. `GROUP_COL` / `VALUE_COL`로 직접 지정할 수 있습니다."
                         ]],
                         [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
                             "GROUP_COL = None\n",
@@ -2854,11 +3160,11 @@ if __name__ == "__main__":
                             "    group_col = GROUP_COL or (\"region\" if \"region\" in df.columns else (text_cols[0] if text_cols else None))\n",
                             "    value_col = VALUE_COL or (num_cols[0] if num_cols else None)\n",
                             "    if group_col is None or value_col is None:\n",
-                            "        print(\"집계할 컬럼을 찾지 못했습니다. GROUP_COL 과 VALUE_COL 을 직접 지정하세요.\")\n",
+                            "        print(\"집계할 컬럼을 찾지 못했습니다. GROUP_COL과 VALUE_COL을 직접 지정하세요.\")\n",
                             "    else:\n",
                             "        con.register(\"loaded\", df)\n",
                             "        summary = con.execute(\n",
-                            "            \"SELECT \" + group_col + \" AS group_key, SUM(\" + value_col + \") AS total \"\n",
+                            "            \"SELECT \" + sql_identifier(group_col) + \" AS group_key, SUM(\" + sql_identifier(value_col) + \") AS total \"\n",
                             "            \"FROM loaded GROUP BY 1 ORDER BY 1\"\n",
                             "        ).df()\n",
                             "        display(summary)\n",
@@ -2878,14 +3184,16 @@ if __name__ == "__main__":
                             "if summary is None:\n",
                             "    print(\"저장할 집계 결과가 없습니다.\")\n",
                             "elif os.environ.get(\"WRITE_RESULT_ENABLED\", \"true\").lower() != \"true\":\n",
-                            "    print(\"WRITE_RESULT_ENABLED 가 false 라 저장하지 않습니다.\")\n",
+                            "    print(\"WRITE_RESULT_ENABLED가 false라 저장하지 않습니다.\")\n",
                             "else:\n",
                             "    result_prefix = os.environ.get(\"RESULT_PREFIX\", \"results\").strip(\"/\")\n",
-                            "    result_uri = object_uri(result_prefix + \"/summary.parquet\")\n",
+                            "    result_key = result_prefix + \"/summary.parquet\"\n",
+                            "    local_result = \"/tmp/object-storage-data-lab-summary.parquet\"\n",
                             "    con.register(\"summary_data\", summary)\n",
-                            "    con.execute(\"COPY summary_data TO \" + sql_quote(result_uri) + \" (FORMAT PARQUET)\")\n",
-                            "    print(\"Saved:\", result_uri)\n",
-                            "    display(con.execute(\"SELECT * FROM read_parquet(\" + sql_quote(result_uri) + \")\").df())"
+                            "    con.execute(\"COPY summary_data TO \" + sql_quote(local_result) + \" (FORMAT PARQUET)\")\n",
+                            "    upload_file(result_key, local_result)\n",
+                            "    print(\"Saved:\", result_key)\n",
+                            "    display(con.execute(\"SELECT * FROM read_parquet(\" + sql_quote(object_url(result_key)) + \")\").df())"
                         ]]
                     ],
                     metadata: [
@@ -2903,12 +3211,17 @@ APP_ROOT="/opt/object-storage-data-lab"
 CONFIG_DIR="\${APP_ROOT}/config"
 WORK_DIR="\${APP_ROOT}/work"
 BUILD_DIR="\${APP_ROOT}/build"
+BROKER_DIR="\${APP_ROOT}/broker"
 ENV_FILE="\${CONFIG_DIR}/data-lab.env"
+BROKER_ENV_FILE="\${CONFIG_DIR}/broker.env"
 INCOMING_ENV="/tmp/object-storage-data-lab.env"
+INCOMING_BROKER_ENV="/tmp/object-storage-data-lab-broker.env"
 CONTAINER_NAME="object-storage-data-lab"
+BROKER_CONTAINER_NAME="object-storage-data-lab-broker"
+NETWORK_NAME="object-storage-data-lab"
 
 cleanup_incoming_files() {
-  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab.ipynb /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
+  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
 }
 trap cleanup_incoming_files EXIT
 
@@ -2928,32 +3241,27 @@ if ! command -v docker >/dev/null 2>&1; then
     echo "Unsupported package manager"
     exit 1
   fi
-else
-  if ! command -v curl >/dev/null 2>&1; then
-    if command -v apt-get >/dev/null 2>&1; then
-      sudo apt-get update
-      sudo DEBIAN_FRONTEND=noninteractive apt-get install -y curl ca-certificates
-    elif command -v dnf >/dev/null 2>&1; then
-      sudo dnf install -y curl ca-certificates
-    elif command -v yum >/dev/null 2>&1; then
-      sudo yum install -y curl ca-certificates
-    fi
-  fi
 fi
 sudo systemctl enable --now docker
 
-sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}"
-token=""
+sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}" "\${BROKER_DIR}"
+jupyter_token=""
 if sudo test -f "\${ENV_FILE}"; then
-  token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
+  jupyter_token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
 fi
-if [ -z "\${token}" ]; then
-  token=\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\n")
+if [ -z "\${jupyter_token}" ]; then
+  jupyter_token=\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\n")
 fi
+broker_token=\$(od -An -N32 -tx1 /dev/urandom | tr -d " \\n")
+
 sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
-printf "JUPYTER_TOKEN=%s\\n" "\${token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
+printf "JUPYTER_TOKEN=%s\\nOBJECT_STORAGE_BROKER_TOKEN=%s\\n" "\${jupyter_token}" "\${broker_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
+sudo install -m 600 "\${INCOMING_BROKER_ENV}" "\${BROKER_ENV_FILE}"
+printf "BROKER_TOKEN=%s\\n" "\${broker_token}" | sudo tee -a "\${BROKER_ENV_FILE}" >/dev/null
 sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
+sudo install -m 644 /tmp/object_storage_access.py "\${WORK_DIR}/object_storage_access.py"
 sudo install -m 644 /tmp/verify_object_storage.py "\${WORK_DIR}/verify_object_storage.py"
+sudo install -m 644 /tmp/presigned_broker.py "\${BROKER_DIR}/presigned_broker.py"
 sudo chown -R 1000:100 "\${WORK_DIR}"
 
 JUPYTER_IMAGE=\$(get_env_value JUPYTER_IMAGE)
@@ -2964,99 +3272,133 @@ LOCAL_IMAGE="object-storage-data-lab:duckdb-\${DUCKDB_VERSION}"
 
 sudo tee "\${BUILD_DIR}/Dockerfile" >/dev/null <<EOF
 FROM \${JUPYTER_IMAGE}
-RUN python -m pip install --no-cache-dir duckdb==\${DUCKDB_VERSION}
+RUN python -m pip install --no-cache-dir duckdb==\${DUCKDB_VERSION} requests
 EOF
 sudo docker build --pull -t "\${LOCAL_IMAGE}" "\${BUILD_DIR}"
+sudo docker network inspect "\${NETWORK_NAME}" >/dev/null 2>&1 || sudo docker network create "\${NETWORK_NAME}" >/dev/null
 
-sudo docker run --rm \
-  --env-file "\${ENV_FILE}" \
-  -v "\${WORK_DIR}:/home/jovyan/work" \
-  "\${LOCAL_IMAGE}" \
+sudo docker rm -f "\${CONTAINER_NAME}" "\${BROKER_CONTAINER_NAME}" >/dev/null 2>&1 || true
+sudo docker run -d \\
+  --name "\${BROKER_CONTAINER_NAME}" \\
+  --restart unless-stopped \\
+  --network "\${NETWORK_NAME}" \\
+  --network-alias object-storage-broker \\
+  --env-file "\${BROKER_ENV_FILE}" \\
+  -v "\${BROKER_DIR}/presigned_broker.py:/opt/presigned_broker.py:ro" \\
+  "\${LOCAL_IMAGE}" \\
+  python /opt/presigned_broker.py
+
+broker_healthy="false"
+for attempt in \$(seq 1 30); do
+  if sudo docker exec "\${BROKER_CONTAINER_NAME}" python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null; then
+    broker_healthy="true"
+    break
+  fi
+  sleep 2
+done
+if [ "\${broker_healthy}" != "true" ]; then
+  sudo docker logs --tail 100 "\${BROKER_CONTAINER_NAME}"
+  echo "Object Storage presigned URL broker health check failed"
+  exit 1
+fi
+
+sudo docker run --rm \\
+  --env-file "\${ENV_FILE}" \\
+  --network "\${NETWORK_NAME}" \\
+  -v "\${WORK_DIR}:/home/jovyan/work" \\
+  "\${LOCAL_IMAGE}" \\
   python /home/jovyan/work/verify_object_storage.py
 
-sudo docker rm -f "\${CONTAINER_NAME}" >/dev/null 2>&1 || true
-sudo docker run -d \
-  --name "\${CONTAINER_NAME}" \
-  --restart unless-stopped \
-  --env-file "\${ENV_FILE}" \
-  -p "\${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}:8888" \
-  -v "\${WORK_DIR}:/home/jovyan/work" \
-  "\${LOCAL_IMAGE}" \
+sudo docker run -d \\
+  --name "\${CONTAINER_NAME}" \\
+  --restart unless-stopped \\
+  --network "\${NETWORK_NAME}" \\
+  --env-file "\${ENV_FILE}" \\
+  -p "\${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}:8888" \\
+  -v "\${WORK_DIR}:/home/jovyan/work" \\
+  "\${LOCAL_IMAGE}" \\
   start-notebook.py --ServerApp.ip=0.0.0.0
 
 healthy="false"
 for attempt in \$(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:\${JUPYTER_PORT}/api?token=\${token}" >/dev/null; then
+  if curl -fsS "http://127.0.0.1:\${JUPYTER_PORT}/api?token=\${jupyter_token}" >/dev/null; then
     healthy="true"
     break
   fi
   sleep 5
 done
 if [ "\${healthy}" != "true" ]; then
-  sudo docker logs --tail 100 "\${CONTAINER_NAME}" | sed "s/\${token}/****/g"
+  sudo docker logs --tail 100 "\${CONTAINER_NAME}" | sed "s/\${jupyter_token}/****/g"
   echo "JupyterLab health check failed"
   exit 1
 fi
 
 echo ""
 echo ">>>>> Object Storage Data Lab is ready."
-echo "      remote bind  : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
-echo "      token file   : \${ENV_FILE} (on the VM)"
-echo "      jupyter token: \${token}"
+echo "      access mode   : CB-Tumblebug presigned URL broker"
+echo "      remote bind   : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
+echo "      token file    : \${ENV_FILE} (on the VM)"
+echo "      jupyter token : \${jupyter_token}"
 echo ""
 if [ "\${JUPYTER_BIND_HOST}" != "127.0.0.1" ] && [ "\${JUPYTER_BIND_HOST}" != "localhost" ] && [ "\${JUPYTER_BIND_HOST}" != "::1" ]; then
-  echo "      direct URL   : http://${sshHost}:\${JUPYTER_PORT}/lab?token=\${token}"
+  echo "      direct URL    : http://${sshHost}:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
   echo ""
 fi
 echo "      SSH tunnel alternative:"
 echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@${sshHost}"
 echo "      then open:"
-echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${token}"
-echo ""
-echo "      To restrict the Lab to SSH tunnels, rerun with JUPYTER_BIND_HOST=127.0.0.1"
+echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
 """
 
+                writeFile file: "presigned_broker.py", text: brokerSource
+                writeFile file: "object_storage_access.py", text: helperSource
                 writeFile file: "verify_object_storage.py", text: verifierSource
                 writeFile file: "object-storage-data-lab.ipynb", text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(notebook))
                 writeFile file: "object-storage-data-lab-install.sh", text: installerSource
-                sh "chmod 700 object-storage-data-lab-install.sh"
-
-                withCredentials([usernamePassword(credentialsId: credentialId, usernameVariable: "OBJECT_STORAGE_ACCESS_KEY_ID", passwordVariable: "OBJECT_STORAGE_SECRET_ACCESS_KEY")]) {
-                    if (env.OBJECT_STORAGE_ACCESS_KEY_ID.contains("\n") || env.OBJECT_STORAGE_ACCESS_KEY_ID.contains("\r") ||
-                            env.OBJECT_STORAGE_SECRET_ACCESS_KEY.contains("\n") || env.OBJECT_STORAGE_SECRET_ACCESS_KEY.contains("\r")) {
-                        error "Object Storage credentials must not contain line breaks"
-                    }
-                    try {
-                        writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
-OBJECT_STORAGE_ENDPOINT=${endpoint}
-OBJECT_STORAGE_REGION=${region}
-OBJECT_STORAGE_BUCKET=${bucket}
-OBJECT_STORAGE_URL_STYLE=${urlStyle}
-OBJECT_STORAGE_USE_SSL=${useSsl}
+                writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
+OBJECT_STORAGE_ID=${storageId}
 DATA_PREFIX=${dataPrefix}
 RESULT_PREFIX=${resultPrefix}
 WRITE_RESULT_ENABLED=${writeResultEnabled}
+PRESIGNED_URL_EXPIRES=${presignedExpires}
+OBJECT_STORAGE_BROKER_URL=http://object-storage-broker:8765
 JUPYTER_IMAGE=${jupyterImage}
 DUCKDB_VERSION=${duckdbVersion}
 JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
 """
-                        sh """set +x
-umask 077
-printf "OBJECT_STORAGE_ACCESS_KEY_ID=%s\\n" "\$OBJECT_STORAGE_ACCESS_KEY_ID" >> object-storage-data-lab.env
-printf "OBJECT_STORAGE_SECRET_ACCESS_KEY=%s\\n" "\$OBJECT_STORAGE_SECRET_ACCESS_KEY" >> object-storage-data-lab.env
-chmod 600 object-storage-data-lab.env
+                writeFile file: "object-storage-data-lab-broker.env", text: """TUMBLEBUG_URL=${runtimeTumblebug}
+TUMBLEBUG_USERNAME=${params.USER}
+TUMBLEBUG_PASSWORD=${params.USERPASS}
+OBJECT_STORAGE_NAMESPACE=${osNamespace}
+OBJECT_STORAGE_ID=${storageId}
+DATA_PREFIX=${dataPrefix}
+RESULT_PREFIX=${resultPrefix}
+PRESIGNED_URL_EXPIRES=${presignedExpires}
 """
-                        sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
-ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+                try {
+                    sh "chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env && chmod 700 object-storage-data-lab-install.sh"
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
 """
-                    } finally {
-                        sh "rm -f object-storage-data-lab.env object-storage-data-lab.ipynb verify_object_storage.py object-storage-data-lab-install.sh"
-                    }
+                } finally {
+                    sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
                 }
             }
         }
     }');
+-- Replace any existing direct-credential mappings before retiring the legacy catalog stage.
+UPDATE workflow_stage_mapping
+SET workflow_stage_idx = 62,
+    stage = (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 62)
+WHERE workflow_stage_idx = 55;
+DELETE FROM workflow_param
+WHERE UPPER(param_key) IN ('TUMBLEBUG_RUNTIME_URL', 'MC_INFRA_MANAGER_RUNTIME_URL')
+  AND workflow_idx IN (
+      SELECT workflow_idx FROM workflow_stage_mapping WHERE workflow_stage_idx = 62
+  );
+DELETE FROM workflow_stage WHERE workflow_stage_idx = 55;
+
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'Install MariaDB', '
     stage("mariadb-install") {
         steps {
@@ -3559,8 +3901,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "Unable to resolve the CSP bucket name for ${storageName} within ${maxAttempts} attempts. Tumblebug creates the bucket under a generated name, so the pipeline cannot continue without it."
                 }
 
-                // Hand the real CSP bucket name down under the same key the parameter uses. Later
-                // stages talk to S3 directly, where the Tumblebug logical name does not resolve.
+                // Preserve the resolved CSP name for legacy direct-access stages. The presigned
+                // stage intentionally reads params.OBJECT_STORAGE_BUCKET as the Tumblebug logical ID.
                 env.OBJECT_STORAGE_BUCKET = cspBucket
                 echo "Bucket ready. tumblebugId=${storageName}, cspBucket=${cspBucket}"
             }
@@ -4054,7 +4396,7 @@ pipeline {
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 17)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 25)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 58)
-|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 62)
 || '
     }
 }
@@ -4359,11 +4701,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
 (109, 'OBJECT_STORAGE_READY_MAX_ATTEMPTS', '30', 'N'),
 (109, 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', '5', 'N'),
-(109, 'OBJECT_STORAGE_ENDPOINT', '', 'N'),
 (109, 'OBJECT_STORAGE_REGION', '', 'N'),
-(109, 'OBJECT_STORAGE_CREDENTIALS_ID', '', 'N'),
-(109, 'OBJECT_STORAGE_URL_STYLE', 'vhost', 'N'),
-(109, 'OBJECT_STORAGE_USE_SSL', 'true', 'N'),
+(109, 'PRESIGNED_URL_EXPIRES', '3600', 'N'),
 (109, 'DATA_PREFIX', '', 'N'),
 (109, 'RESULT_PREFIX', 'results', 'N'),
 (109, 'WRITE_RESULT_ENABLED', 'true', 'N'),
@@ -4543,7 +4882,7 @@ SELECT 109, 5, 25, workflow_stage_content FROM workflow_stage WHERE workflow_sta
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
 SELECT 109, 6, 58, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 58;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 109, 7, 55, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 55;
+SELECT 109, 7, 62, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 62;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (109, 8, null, '
     }

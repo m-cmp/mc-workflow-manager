@@ -270,7 +270,7 @@ let infraLoadSeq = 0
 let accessHostLoadSeq = 0
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete']
+const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete', 'jupyter-object-storage-presigned-analysis-install']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -416,9 +416,7 @@ const isKubernetesImageWorkflow = computed(() => {
   return props.workflowStageMappings.some((stage) => kubernetesImageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
 })
 
-// Driven by the stages the workflow actually has, the same way K8S_VERSION is. Only the stages
-// that address a bucket by its Tumblebug logical name qualify; jupyter-object-storage-analysis-install
-// consumes the resolved CSP bucket name instead, so picking a logical name there means nothing.
+// Driven by the stages the workflow actually has, the same way K8S_VERSION is.
 const isObjectStorageWorkflow = computed(() => {
   return props.workflowStageMappings.some((stage) => objectStorageStageNames.includes((stage.workflowStageName || '').toLowerCase()))
 })
@@ -1598,10 +1596,6 @@ const applyObjectStorageLocationParams = () => {
 
   if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
     upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)
-  }
-  const credentialProvider = infraProvider.value.trim().toLowerCase()
-  if (credentialProvider && hasWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID')) {
-    upsertWorkflowParam('OBJECT_STORAGE_CREDENTIALS_ID', `object-storage-credential-${credentialProvider}`)
   }
   // A picked bucket dictates its own region: pointing DuckDB at the VM's region instead would
   // hit the wrong S3 endpoint. Only a name that is not in the list yet follows the VM, because
