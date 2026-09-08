@@ -2498,6 +2498,21 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: jupyter-inbound-rule-remove"
             script {
+                def cleanupInfraId = (params.INFRA_ID ?: "").toString().trim()
+                if (cleanupInfraId) {
+                    def cleanupNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").toString().trim()
+                    if (!(cleanupInfraId ==~ /[A-Za-z0-9._-]+/) || cleanupInfraId.contains("..") ||
+                        !(cleanupNamespace ==~ /[A-Za-z0-9._-]+/) || cleanupNamespace.contains("..")) {
+                        error "Invalid NAMESPACE or INFRA_ID"
+                    }
+                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(40)
+                    def cleanupBrokerName = "object-storage-data-lab-broker-${cleanupBrokerId}"
+                    def cleanupControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupBrokerId}.sock"
+                    sh """docker rm -f "${cleanupBrokerName}" >/dev/null 2>&1 || true
+rm -f "${cleanupControlPath}"
+"""
+                }
+
                 def jupyterPort = (params.JUPYTER_PORT ?: "").trim()
                 def allowedCidr = (params.JUPYTER_ALLOWED_CIDR ?: "").trim()
 
@@ -2624,11 +2639,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 // Presigned URLs are issued against the Tumblebug logical ID, not the generated CSP bucket name.
                 def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                def iamTunnelPort = "8889"
-                def iamUrl = "http://127.0.0.1:${iamTunnelPort}"
-                def iamAccessToken = (env.MC_IAM_ACCESS_TOKEN ?: "").trim()
-                def iamRefreshToken = (env.MC_IAM_REFRESH_TOKEN ?: "").trim()
-                def iamWorkspaceId = (env.MC_IAM_WORKSPACE_ID ?: "").trim()
+                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\$", "")
+                def tumblebugUser = (params.USER ?: "").toString()
+                def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
+                def infraId = (params.INFRA_ID ?: "").toString().trim()
+                def brokerTunnelPort = "8889"
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
@@ -2638,17 +2653,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
                 def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
 
-                if (!storageId || !osNamespace) {
-                    error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_NAMESPACE/NAMESPACE are required"
+                if (!storageId || !osNamespace || !tumblebug || !tumblebugUser || !tumblebugPassword || !infraId) {
+                    error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_NAMESPACE/NAMESPACE, TUMBLEBUG, USER, USERPASS and INFRA_ID are required"
                 }
-                if (!iamAccessToken || !iamRefreshToken || !iamWorkspaceId) {
-                    error "An active MCMP login session is required by the presigned URL broker"
-                }
-                if (!(iamAccessToken ==~ /[A-Za-z0-9._~-]+/) || !(iamRefreshToken ==~ /[A-Za-z0-9._~-]+/)) {
-                    error "Invalid MCMP login session token"
-                }
-                if (!(iamWorkspaceId ==~ /[0-9]+/)) {
-                    error "Invalid MCMP workspace ID"
+                if (tumblebugUser.contains("\n") || tumblebugUser.contains("\r") || tumblebugPassword.contains("\n") || tumblebugPassword.contains("\r")) {
+                    error "USER and USERPASS must not contain line breaks"
                 }
                 if (!(writeResultEnabled in ["true", "false"])) {
                     error "WRITE_RESULT_ENABLED must be true or false"
@@ -2667,6 +2676,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     provider: [provider, /[A-Za-z0-9._-]+/],
                     storageId: [storageId, /[A-Za-z0-9._-]+/],
                     osNamespace: [osNamespace, /[A-Za-z0-9._-]+/],
+                    tumblebug: [tumblebug, /[A-Za-z0-9._:~\/\-]+/],
+                    infraId: [infraId, /[A-Za-z0-9._-]+/],
                     dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
                     resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
                     jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
@@ -2685,8 +2696,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-presigned-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                def tunnelHostId = sshHost.replaceAll(/[^A-Za-z0-9_.-]/, "_")
-                def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${tunnelHostId}.sock"
+                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(40)
+                def brokerContainerName = "object-storage-data-lab-broker-${brokerId}"
+                def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${brokerId}.sock"
 
                 def brokerSource = """import hashlib
 import json
@@ -2696,17 +2708,14 @@ import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 import requests
 
 
-IAM_URL = os.environ["MC_IAM_MANAGER_URL"].rstrip("/")
-IAM_ACCESS_TOKEN = os.environ["MC_IAM_ACCESS_TOKEN"]
-IAM_REFRESH_TOKEN = os.environ["MC_IAM_REFRESH_TOKEN"]
-IAM_WORKSPACE_ID = os.environ["MC_IAM_WORKSPACE_ID"]
-IAM_TOKEN_STATE_FILE = os.environ.get("MC_IAM_TOKEN_STATE_FILE", "")
-IAM_RPT_TOKEN = ""
+TUMBLEBUG_URL = os.environ["TUMBLEBUG_URL"].rstrip("/")
+TUMBLEBUG_USERNAME = os.environ["TUMBLEBUG_USERNAME"]
+TUMBLEBUG_PASSWORD = os.environ["TUMBLEBUG_PASSWORD"]
 NAMESPACE = os.environ["OBJECT_STORAGE_NAMESPACE"]
 STORAGE_ID = os.environ["OBJECT_STORAGE_ID"]
 DATA_PREFIX = os.environ.get("DATA_PREFIX", "").strip("/")
@@ -2715,40 +2724,10 @@ URL_TTL = int(os.environ.get("PRESIGNED_URL_EXPIRES", "3600"))
 BROKER_TOKEN = os.environ["BROKER_TOKEN"]
 
 CONTROL_SESSION = requests.Session()
+CONTROL_SESSION.auth = (TUMBLEBUG_USERNAME, TUMBLEBUG_PASSWORD)
 STORAGE_SESSION = requests.Session()
 SIGNED_URL_CACHE = {}
 CACHE_LOCK = threading.Lock()
-IAM_TOKEN_LOCK = threading.Lock()
-IAM_RPT_LOCK = threading.Lock()
-
-
-def load_iam_tokens():
-    global IAM_ACCESS_TOKEN, IAM_REFRESH_TOKEN
-    if not IAM_TOKEN_STATE_FILE or not os.path.isfile(IAM_TOKEN_STATE_FILE):
-        return
-    with open(IAM_TOKEN_STATE_FILE, "r", encoding="utf-8") as token_file:
-        payload = json.load(token_file)
-    access_token = str(payload.get("access_token") or "")
-    refresh_token = str(payload.get("refresh_token") or "")
-    if access_token and refresh_token:
-        IAM_ACCESS_TOKEN = access_token
-        IAM_REFRESH_TOKEN = refresh_token
-
-
-def save_iam_tokens():
-    if not IAM_TOKEN_STATE_FILE:
-        return
-    temp_file = IAM_TOKEN_STATE_FILE + ".tmp"
-    with open(temp_file, "w", encoding="utf-8") as token_file:
-        json.dump(
-            {"access_token": IAM_ACCESS_TOKEN, "refresh_token": IAM_REFRESH_TOKEN},
-            token_file,
-        )
-    os.chmod(temp_file, 0o600)
-    os.replace(temp_file, IAM_TOKEN_STATE_FILE)
-
-
-load_iam_tokens()
 
 
 def is_within(prefix, key):
@@ -2772,91 +2751,15 @@ def can_upload(key):
     return bool(RESULT_PREFIX) and is_within(RESULT_PREFIX, key)
 
 
-def refresh_iam_tokens(stale_access_token):
-    global IAM_ACCESS_TOKEN, IAM_REFRESH_TOKEN
-    with IAM_TOKEN_LOCK:
-        if IAM_ACCESS_TOKEN != stale_access_token:
-            return
-        response = CONTROL_SESSION.post(
-            IAM_URL + "/api/auth/refresh",
-            json={"refresh_token": IAM_REFRESH_TOKEN},
-            timeout=30,
-        )
-        if response.status_code < 200 or response.status_code >= 300:
-            raise RuntimeError("MC-IAM token refresh failed with status %d" % response.status_code)
-        payload = response.json()
-        access_token = str(payload.get("access_token") or "")
-        if not access_token:
-            raise RuntimeError("MC-IAM token refresh returned an empty access token")
-        IAM_ACCESS_TOKEN = access_token
-        IAM_REFRESH_TOKEN = str(payload.get("refresh_token") or IAM_REFRESH_TOKEN)
-        save_iam_tokens()
-        print("mcmp_session_token_refreshed", flush=True)
-
-
-def get_iam_rpt(force=False):
-    global IAM_RPT_TOKEN
-    with IAM_RPT_LOCK:
-        if IAM_RPT_TOKEN and not force:
-            return IAM_RPT_TOKEN
-
-        for attempt in range(2):
-            with IAM_TOKEN_LOCK:
-                access_token = IAM_ACCESS_TOKEN
-            response = CONTROL_SESSION.post(
-                IAM_URL + "/api/workspaces/workspace-ticket",
-                headers={"Authorization": "Bearer " + access_token},
-                json={"workspace_id": IAM_WORKSPACE_ID},
-                timeout=30,
-            )
-            if response.status_code == 401 and attempt == 0:
-                response.close()
-                refresh_iam_tokens(access_token)
-                continue
-            if response.status_code < 200 or response.status_code >= 300:
-                raise RuntimeError("MC-IAM RPT issuance failed with status %d" % response.status_code)
-
-            payload = response.json().get("rpt") or {}
-            rpt_token = payload.get("access_token", "") if isinstance(payload, dict) else str(payload)
-            if not rpt_token:
-                raise RuntimeError("MC-IAM RPT issuance returned an empty access token")
-            IAM_RPT_TOKEN = rpt_token
-            print("mcmp_rpt_issued", flush=True)
-            return IAM_RPT_TOKEN
-    raise RuntimeError("unreachable")
-
-
-def iam_action(action_name, path_params, query_params=None):
-    request_body = {
-        "serviceName": "mc-infra-manager",
-        "actionName": action_name,
-        "requestParams": {
-            "pathParams": path_params,
-            "queryParams": query_params or {},
-            "body": None,
-        },
-    }
-    for attempt in range(2):
-        rpt_token = get_iam_rpt(force=attempt > 0)
-        response = CONTROL_SESSION.post(
-            IAM_URL + "/api/mcmp-apis/call",
-            headers={"Authorization": "Bearer " + rpt_token},
-            json=request_body,
-            timeout=30,
-        )
-        if response.status_code != 401 or attempt == 1:
-            return response
-        response.close()
-    raise RuntimeError("unreachable")
-
-
 def list_objects():
-    response = iam_action(
-        "ListDataObjects",
-        {"nsId": NAMESPACE, "osId": STORAGE_ID},
+    response = CONTROL_SESSION.get(
+        TUMBLEBUG_URL
+        + "/ns/%s/resources/objectStorage/%s/object"
+        % (quote(NAMESPACE, safe=""), quote(STORAGE_ID, safe="")),
+        timeout=30,
     )
     if response.status_code < 200 or response.status_code >= 300:
-        raise RuntimeError("MC-IAM object list failed with status %d" % response.status_code)
+        raise RuntimeError("Tumblebug object list failed with status %d" % response.status_code)
     objects = response.json().get("objects", [])
     return [item for item in objects if can_download(str(item.get("key", "")))]
 
@@ -2890,17 +2793,19 @@ def presign(key, operation, force=False, reason="request"):
                 return cached
         reason = "expired" if cached else "cache_miss"
 
-    response = iam_action(
-        "GeneratePresignedURL",
-        {"nsId": NAMESPACE, "osId": STORAGE_ID, "objectKey": key},
-        {"operation": operation, "expires": str(URL_TTL)},
+    response = CONTROL_SESSION.post(
+        TUMBLEBUG_URL
+        + "/ns/%s/resources/objectStorage/%s/object/%s/presignedUrl"
+        % (quote(NAMESPACE, safe=""), quote(STORAGE_ID, safe=""), quote(key, safe="")),
+        params={"operation": operation, "expires": str(URL_TTL)},
+        timeout=30,
     )
     if response.status_code < 200 or response.status_code >= 300:
-        raise RuntimeError("MC-IAM presigned URL request failed with status %d" % response.status_code)
+        raise RuntimeError("Tumblebug presigned URL request failed with status %d" % response.status_code)
     payload = response.json()
     signed_url = payload.get("presignedURL", "")
     if not signed_url:
-        raise RuntimeError("MC-IAM returned an empty presigned URL")
+        raise RuntimeError("Tumblebug returned an empty presigned URL")
     try:
         expires_at = float(payload.get("expires") or 0)
     except (TypeError, ValueError):
@@ -3010,8 +2915,13 @@ class BrokerHandler(BaseHTTPRequestHandler):
         if path == "/objects":
             try:
                 self.send_json(200, {"objects": list_objects()})
-            except (RuntimeError, ValueError, requests.RequestException, json.JSONDecodeError):
-                self.send_json(502, {"error": "MC-IAM object list request failed"})
+            except (RuntimeError, ValueError, requests.RequestException, json.JSONDecodeError) as error:
+                print(
+                    "object_list_failed type=%s message=%s"
+                    % (type(error).__name__, str(error)),
+                    flush=True,
+                )
+                self.send_json(502, {"error": "Tumblebug object list request failed"})
             return
         try:
             key = self.object_key("/object/")
@@ -3106,7 +3016,7 @@ import duckdb
 import requests
 
 
-BROKER_URL = os.environ.get("OBJECT_STORAGE_BROKER_URL", "http://object-storage-broker:8765").rstrip("/")
+BROKER_URL = os.environ.get("OBJECT_STORAGE_BROKER_URL", "http://127.0.0.1:8889").rstrip("/")
 BROKER_TOKEN = os.environ["OBJECT_STORAGE_BROKER_TOKEN"]
 
 
@@ -3196,7 +3106,7 @@ if __name__ == "__main__":
                         [cell_type: "markdown", metadata: [:], source: [
                             "# Object Storage Data Lab\n",
                             "\n",
-                            "MC-IAM Manager가 기존 CB-Tumblebug API로 발급한 presigned URL을 제한된 로컬 broker를 통해 사용합니다.\n",
+                            "MCMP 서버의 broker가 기존 CB-Tumblebug API로 발급한 presigned URL을 제한된 터널을 통해 제공합니다.\n",
                             "Jupyter 컨테이너에는 CSP Access Key / Secret Key와 CB-Tumblebug 자격증명이 없습니다.\n",
                             "노트북은 고정된 broker URL을 사용하며, broker가 만료 전에 새 presigned URL로 자동 교체합니다.\n",
                             "\n",
@@ -3320,18 +3230,12 @@ APP_ROOT="/opt/object-storage-data-lab"
 CONFIG_DIR="\${APP_ROOT}/config"
 WORK_DIR="\${APP_ROOT}/work"
 BUILD_DIR="\${APP_ROOT}/build"
-BROKER_DIR="\${APP_ROOT}/broker"
-BROKER_STATE_DIR="\${APP_ROOT}/broker-state"
 ENV_FILE="\${CONFIG_DIR}/data-lab.env"
-BROKER_ENV_FILE="\${CONFIG_DIR}/broker.env"
 INCOMING_ENV="/tmp/object-storage-data-lab.env"
-INCOMING_BROKER_ENV="/tmp/object-storage-data-lab-broker.env"
 CONTAINER_NAME="object-storage-data-lab"
-BROKER_CONTAINER_NAME="object-storage-data-lab-broker"
-NETWORK_NAME="object-storage-data-lab"
 
 cleanup_incoming_files() {
-  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/presigned_broker.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
+  sudo rm -f /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab.ipynb /tmp/object_storage_access.py /tmp/verify_object_storage.py /tmp/object-storage-data-lab-install.sh || true
 }
 trap cleanup_incoming_files EXIT
 
@@ -3354,7 +3258,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 sudo systemctl enable --now docker
 
-sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}" "\${BROKER_DIR}" "\${BROKER_STATE_DIR}"
+sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}"
 jupyter_token=""
 if sudo test -f "\${ENV_FILE}"; then
   jupyter_token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
@@ -3362,19 +3266,12 @@ fi
 if [ -z "\${jupyter_token}" ]; then
   jupyter_token=\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\n")
 fi
-broker_token=\$(od -An -N32 -tx1 /dev/urandom | tr -d " \\n")
-
 sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
-printf "JUPYTER_TOKEN=%s\\nOBJECT_STORAGE_BROKER_TOKEN=%s\\n" "\${jupyter_token}" "\${broker_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
-sudo install -m 600 "\${INCOMING_BROKER_ENV}" "\${BROKER_ENV_FILE}"
-printf "BROKER_TOKEN=%s\\n" "\${broker_token}" | sudo tee -a "\${BROKER_ENV_FILE}" >/dev/null
+printf "JUPYTER_TOKEN=%s\\n" "\${jupyter_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
 sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
 sudo install -m 644 /tmp/object_storage_access.py "\${WORK_DIR}/object_storage_access.py"
 sudo install -m 644 /tmp/verify_object_storage.py "\${WORK_DIR}/verify_object_storage.py"
-sudo install -m 644 /tmp/presigned_broker.py "\${BROKER_DIR}/presigned_broker.py"
 sudo chown -R 1000:100 "\${WORK_DIR}"
-sudo chown -R 1000:100 "\${BROKER_STATE_DIR}"
-sudo chmod 700 "\${BROKER_STATE_DIR}"
 
 JUPYTER_IMAGE=\$(get_env_value JUPYTER_IMAGE)
 DUCKDB_VERSION=\$(get_env_value DUCKDB_VERSION)
@@ -3387,38 +3284,11 @@ FROM \${JUPYTER_IMAGE}
 RUN python -m pip install --no-cache-dir duckdb==\${DUCKDB_VERSION} requests
 EOF
 sudo docker build --pull -t "\${LOCAL_IMAGE}" "\${BUILD_DIR}"
-sudo docker network inspect "\${NETWORK_NAME}" >/dev/null 2>&1 || sudo docker network create "\${NETWORK_NAME}" >/dev/null
-
-sudo docker rm -f "\${CONTAINER_NAME}" "\${BROKER_CONTAINER_NAME}" >/dev/null 2>&1 || true
-sudo rm -f "\${BROKER_STATE_DIR}/iam-token.json" "\${BROKER_STATE_DIR}/iam-token.json.tmp"
-sudo docker run -d \\
-  --name "\${BROKER_CONTAINER_NAME}" \\
-  --restart unless-stopped \\
-  --network host \\
-  --env-file "\${BROKER_ENV_FILE}" \\
-  -v "\${BROKER_STATE_DIR}:/opt/mcmp-state:rw" \\
-  -v "\${BROKER_DIR}/presigned_broker.py:/opt/presigned_broker.py:ro" \\
-  "\${LOCAL_IMAGE}" \\
-  python /opt/presigned_broker.py
-
-broker_healthy="false"
-for attempt in \$(seq 1 30); do
-  if sudo docker exec "\${BROKER_CONTAINER_NAME}" python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null; then
-    broker_healthy="true"
-    break
-  fi
-  sleep 2
-done
-if [ "\${broker_healthy}" != "true" ]; then
-  sudo docker logs --tail 100 "\${BROKER_CONTAINER_NAME}"
-  echo "Object Storage presigned URL broker health check failed"
-  exit 1
-fi
+sudo docker rm -f "\${CONTAINER_NAME}" object-storage-data-lab-broker >/dev/null 2>&1 || true
 
 sudo docker run --rm \\
   --env-file "\${ENV_FILE}" \\
-  --network "\${NETWORK_NAME}" \\
-  --add-host object-storage-broker:host-gateway \\
+  --network host \\
   -v "\${WORK_DIR}:/home/jovyan/work" \\
   "\${LOCAL_IMAGE}" \\
   python /home/jovyan/work/verify_object_storage.py
@@ -3426,13 +3296,11 @@ sudo docker run --rm \\
 sudo docker run -d \\
   --name "\${CONTAINER_NAME}" \\
   --restart unless-stopped \\
-  --network "\${NETWORK_NAME}" \\
-  --add-host object-storage-broker:host-gateway \\
+  --network host \\
   --env-file "\${ENV_FILE}" \\
-  -p "\${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}:8888" \\
   -v "\${WORK_DIR}:/home/jovyan/work" \\
   "\${LOCAL_IMAGE}" \\
-  start-notebook.py --ServerApp.ip=0.0.0.0
+  start-notebook.py --ServerApp.ip="\${JUPYTER_BIND_HOST}" --ServerApp.port="\${JUPYTER_PORT}"
 
 healthy="false"
 for attempt in \$(seq 1 30); do
@@ -3450,7 +3318,7 @@ fi
 
 echo ""
 echo ">>>>> Object Storage Data Lab is ready."
-echo "      access mode   : MC-IAM Manager presigned URL broker"
+echo "      access mode   : MCMP-hosted presigned URL broker"
 echo "      remote bind   : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
 echo "      token file    : \${ENV_FILE} (on the VM)"
 echo "      jupyter token : \${jupyter_token}"
@@ -3465,48 +3333,97 @@ echo "      then open:"
 echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
 """
 
+                def installComplete = false
+                try {
                 writeFile file: "presigned_broker.py", text: brokerSource
                 writeFile file: "object_storage_access.py", text: helperSource
                 writeFile file: "verify_object_storage.py", text: verifierSource
                 writeFile file: "object-storage-data-lab.ipynb", text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(notebook))
                 writeFile file: "object-storage-data-lab-install.sh", text: installerSource
+                def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
+                if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
+                    error "Failed to generate the Object Storage broker token"
+                }
                 writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
 OBJECT_STORAGE_ID=${storageId}
 DATA_PREFIX=${dataPrefix}
 RESULT_PREFIX=${resultPrefix}
 WRITE_RESULT_ENABLED=${writeResultEnabled}
 PRESIGNED_URL_EXPIRES=${presignedExpires}
-OBJECT_STORAGE_BROKER_URL=http://object-storage-broker:8765
+OBJECT_STORAGE_BROKER_URL=http://127.0.0.1:${brokerTunnelPort}
+OBJECT_STORAGE_BROKER_TOKEN=${brokerToken}
 JUPYTER_IMAGE=${jupyterImage}
 DUCKDB_VERSION=${duckdbVersion}
 JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
 """
-                writeFile file: "object-storage-data-lab-broker.env", text: """MC_IAM_MANAGER_URL=${iamUrl}
-MC_IAM_ACCESS_TOKEN=${iamAccessToken}
-MC_IAM_REFRESH_TOKEN=${iamRefreshToken}
-MC_IAM_WORKSPACE_ID=${iamWorkspaceId}
-MC_IAM_TOKEN_STATE_FILE=/opt/mcmp-state/iam-token.json
+                writeFile file: "object-storage-data-lab-broker.env", text: """TUMBLEBUG_URL=${tumblebug}/tumblebug
+TUMBLEBUG_USERNAME=${tumblebugUser}
+TUMBLEBUG_PASSWORD=${tumblebugPassword}
 OBJECT_STORAGE_NAMESPACE=${osNamespace}
 OBJECT_STORAGE_ID=${storageId}
 DATA_PREFIX=${dataPrefix}
 RESULT_PREFIX=${resultPrefix}
 PRESIGNED_URL_EXPIRES=${presignedExpires}
+BROKER_TOKEN=${brokerToken}
 """
-                try {
-                    sh "chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env && chmod 700 object-storage-data-lab-install.sh"
-                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+                sh """chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env
+chmod 700 object-storage-data-lab-install.sh
+"""
+
+                def infraNetworks = sh(
+                    script: """docker inspect --format="{{range \$networkName, \$networkConfig := .NetworkSettings.Networks}}{{println \$networkName}}{{end}}" mc-workflow-manager-jenkins""",
+                    returnStdout: true
+                ).trim().readLines().collect { it.trim() }.findAll { it }
+                def infraNetwork = infraNetworks.find { it.endsWith("mc-infra-manager-network") }
+                if (!infraNetwork || !(infraNetwork ==~ /[A-Za-z0-9_.-]+/)) {
+                    error "Could not resolve the internal mc-infra-manager Docker network"
+                }
+
+                    sh """docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+docker create \\
+  --name "${brokerContainerName}" \\
+  --restart unless-stopped \\
+  --network "${infraNetwork}" \\
+  --env-file object-storage-data-lab-broker.env \\
+  python:3.12-slim \\
+  sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
+docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
+docker start "${brokerContainerName}" >/dev/null
+
+broker_healthy="false"
+for attempt in \$(seq 1 30); do
+  if docker exec "${brokerContainerName}" python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null 2>&1; then
+    broker_healthy="true"
+    break
+  fi
+  sleep 2
+done
+if [ "\${broker_healthy}" != "true" ]; then
+  docker logs --tail 100 "${brokerContainerName}"
+  echo "Object Storage presigned URL broker health check failed"
+  exit 1
+fi
+"""
+                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb object_storage_access.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
 """
                     withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
                         sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
 rm -f "${tunnelControlPath}"
-ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${iamTunnelPort}:mc-iam-manager:5000 "${sshUser}@${sshHost}"
+ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${brokerTunnelPort}:${brokerContainerName}:8765 "${sshUser}@${sshHost}"
 """
                     }
                     sh """
-ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env /tmp/object-storage-data-lab-broker.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
 """
+                    installComplete = true
                 } finally {
+                    if (!installComplete) {
+                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+rm -f "${tunnelControlPath}"
+docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+"""
+                    }
                     sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
                 }
             }

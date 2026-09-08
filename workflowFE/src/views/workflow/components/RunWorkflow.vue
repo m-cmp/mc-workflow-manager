@@ -171,11 +171,6 @@ const onClickRun = async () => {
     return
   }
 
-  if (usesPresignedObjectStorage() && !hasIamSessionTokens()) {
-    toast.error('MCMP login session is required to start the Object Storage Data Lab.')
-    return
-  }
-
   running.value = true
   try {
     await startRunProgress()
@@ -212,48 +207,9 @@ const buildRunWorkflowPayload = () => {
     workflowInfo: {
       workflowIdx: workflowInfo?.workflowIdx,
     },
-    workflowParams: [
-      ...(workflowFormData.value.workflowParams || []),
-      ...buildIamSessionParams(),
-    ],
+    workflowParams: [...(workflowFormData.value.workflowParams || [])],
     workflowStageMappings: [],
   }
-}
-
-const usesPresignedObjectStorage = () => {
-  return getWorkflowStageNames().includes('jupyter-object-storage-presigned-analysis-install')
-}
-
-const readCookie = (name: string) => {
-  const prefix = `${name}=`
-  const value = document.cookie
-    .split(';')
-    .map((cookie) => cookie.trim())
-    .find((cookie) => cookie.startsWith(prefix))
-    ?.slice(prefix.length) || ''
-
-  try {
-    return decodeURIComponent(value)
-  } catch {
-    return value
-  }
-}
-
-const getIamRefreshToken = () => readCookie('RefreshToken')
-const getIamWorkspaceId = () => String(userInfo.workspaceInfo?.id ?? '').trim()
-
-const hasIamSessionTokens = () => {
-  return Boolean(userInfo.accessToken?.trim() && getIamRefreshToken() && getIamWorkspaceId())
-}
-
-const buildIamSessionParams = () => {
-  if (!usesPresignedObjectStorage()) return []
-
-  return [
-    { paramKey: 'MC_IAM_ACCESS_TOKEN', paramValue: userInfo.accessToken.trim(), eventListenerYn: 'N' },
-    { paramKey: 'MC_IAM_REFRESH_TOKEN', paramValue: getIamRefreshToken(), eventListenerYn: 'N' },
-    { paramKey: 'MC_IAM_WORKSPACE_ID', paramValue: getIamWorkspaceId(), eventListenerYn: 'N' },
-  ]
 }
 
 const closeModal = () => {
