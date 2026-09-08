@@ -3332,7 +3332,7 @@ chmod 700 object-storage-data-lab-install.sh
 """
 
                 def infraNetworks = sh(
-                    script: """docker inspect --format="{{range \$networkName, \$networkConfig := .NetworkSettings.Networks}}{{println \$networkName}}{{end}}" mc-workflow-manager-jenkins""",
+                    script: """docker inspect --format=''{{range \$networkName, \$networkConfig := .NetworkSettings.Networks}}{{println \$networkName}}{{end}}'' mc-workflow-manager-jenkins""",
                     returnStdout: true
                 ).trim().readLines().collect { it.trim() }.findAll { it }
                 def infraNetwork = infraNetworks.find { it.endsWith("mc-infra-manager-network") }
