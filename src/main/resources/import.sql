@@ -2493,10 +2493,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         }
     }');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (59, 19, 8, 'jupyter-inbound-rule-remove', 'Remove the selected Jupyter inbound rule when both port and CIDR are provided', '
-    stage("jupyter-inbound-rule-remove") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (63, 19, 8, 'jupyter-object-storage-analysis-remove', 'Remove the Jupyter Object Storage analysis session, tunnel, and unused shared broker', '
+    stage("jupyter-object-storage-analysis-remove") {
         steps {
-            echo ">>>>> STAGE: jupyter-inbound-rule-remove"
+            echo ">>>>> STAGE: jupyter-object-storage-analysis-remove"
             script {
                 def cleanupInfraId = (params.INFRA_ID ?: "").toString().trim()
                 if (cleanupInfraId) {
@@ -2505,14 +2505,60 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         !(cleanupNamespace ==~ /[A-Za-z0-9._-]+/) || cleanupNamespace.contains("..")) {
                         error "Invalid NAMESPACE or INFRA_ID"
                     }
-                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
-                    def cleanupBrokerName = "broker-${cleanupBrokerId}"
-                    def cleanupControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupBrokerId}.sock"
-                    sh """docker rm -f "${cleanupBrokerName}" >/dev/null 2>&1 || true
-rm -f "${cleanupControlPath}"
+                    def cleanupLegacyBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
+                    def cleanupLegacyBrokerName = "broker-${cleanupLegacyBrokerId}"
+                    def cleanupLegacyControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupLegacyBrokerId}.sock"
+                    def cleanupSessionId = "${cleanupNamespace}-${cleanupInfraId}"
+                    def cleanupControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${cleanupSessionId}.sock"
+                    sh """set -eu
+command -v flock >/dev/null
+exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+flock -x 9
+
+if docker inspect mc-workflow-presigned-broker >/dev/null 2>&1; then
+  if [ "\$(docker inspect --format=''{{.State.Running}}'' mc-workflow-presigned-broker)" != "true" ]; then
+    docker start mc-workflow-presigned-broker >/dev/null
+  fi
+  broker_healthy="false"
+  for attempt in \$(seq 1 30); do
+    if docker exec mc-workflow-presigned-broker python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null 2>&1; then
+      broker_healthy="true"
+      break
+    fi
+    sleep 2
+  done
+  if [ "\${broker_healthy}" != "true" ]; then
+    docker logs --tail 100 mc-workflow-presigned-broker
+    echo "Workflow presigned broker health check failed during session cleanup"
+    exit 1
+  fi
+  remaining_sessions=\$(docker exec mc-workflow-presigned-broker python -c "import json, os, urllib.request; request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${cleanupSessionId}\\\", method=\\\"DELETE\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\"remainingSessionCount\\\"])")
+  case "\${remaining_sessions}" in
+    ""|*[!0-9]*)
+      echo "Invalid remaining session count from workflow presigned broker"
+      exit 1
+      ;;
+  esac
+  if [ "\${remaining_sessions}" = "0" ]; then
+    docker rm -f mc-workflow-presigned-broker >/dev/null
+  fi
+fi
+
+ssh -o StrictHostKeyChecking=no -S "${cleanupControlPath}" -O exit ignored >/dev/null 2>&1 || true
+ssh -o StrictHostKeyChecking=no -S "${cleanupLegacyControlPath}" -O exit ignored >/dev/null 2>&1 || true
+docker rm -f "${cleanupLegacyBrokerName}" >/dev/null 2>&1 || true
+rm -f "${cleanupControlPath}" "${cleanupLegacyControlPath}"
 """
                 }
+            }
+        }
+    }');
 
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (59, 19, 9, 'jupyter-inbound-rule-remove', 'Remove the selected Jupyter inbound rule when both port and CIDR are provided', '
+    stage("jupyter-inbound-rule-remove") {
+        steps {
+            echo ">>>>> STAGE: jupyter-inbound-rule-remove"
+            script {
                 def jupyterPort = (params.JUPYTER_PORT ?: "").trim()
                 def allowedCidr = (params.JUPYTER_ALLOWED_CIDR ?: "").trim()
 
@@ -2625,7 +2671,7 @@ rm -f "${cleanupControlPath}"
         }
     }');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (62, 19, 7, 'jupyter-object-storage-analysis-install', 'Install JupyterLab with a restricted presigned URL broker for Object Storage analysis', '
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (62, 19, 7, 'jupyter-object-storage-analysis-install', 'Install JupyterLab with the shared workflow presigned broker for Object Storage analysis', '
     stage("jupyter-object-storage-analysis-install") {
         steps {
             echo ">>>>> STAGE: jupyter-object-storage-analysis-install"
@@ -2647,7 +2693,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
-                def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "3600").trim()
+                def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
                 def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
                 def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
@@ -2696,13 +2742,18 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
-                def brokerContainerName = "broker-${brokerId}"
-                def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${brokerId}.sock"
+                def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
+                def legacyBrokerContainerName = "broker-${legacyBrokerId}"
+                def brokerContainerName = "mc-workflow-presigned-broker"
+                def brokerVolumeName = "mc-workflow-presigned-broker-data"
+                def brokerSessionId = "${osNamespace}-${infraId}"
+                def tunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
 
                 def brokerSource = """import hashlib
+import hmac
 import json
 import os
+import re
 import shutil
 import tempfile
 import threading
@@ -2713,21 +2764,176 @@ from urllib.parse import quote, unquote, urlsplit
 import requests
 
 
-TUMBLEBUG_URL = os.environ["TUMBLEBUG_URL"].rstrip("/")
-TUMBLEBUG_USERNAME = os.environ["TUMBLEBUG_USERNAME"]
-TUMBLEBUG_PASSWORD = os.environ["TUMBLEBUG_PASSWORD"]
-NAMESPACE = os.environ["OBJECT_STORAGE_NAMESPACE"]
-STORAGE_ID = os.environ["OBJECT_STORAGE_ID"]
-DATA_PREFIX = os.environ.get("DATA_PREFIX", "").strip("/")
-RESULT_PREFIX = os.environ.get("RESULT_PREFIX", "results").strip("/")
-URL_TTL = int(os.environ.get("PRESIGNED_URL_EXPIRES", "3600"))
-BROKER_TOKEN = os.environ["BROKER_TOKEN"]
-
-CONTROL_SESSION = requests.Session()
-CONTROL_SESSION.auth = (TUMBLEBUG_USERNAME, TUMBLEBUG_PASSWORD)
+ADMIN_TOKEN = os.environ["BROKER_ADMIN_TOKEN"]
+SESSION_STORE = os.environ.get(
+    "BROKER_SESSION_STORE",
+    "/var/lib/mc-workflow-presigned-broker/sessions.json",
+)
 STORAGE_SESSION = requests.Session()
 SIGNED_URL_CACHE = {}
 CACHE_LOCK = threading.Lock()
+SESSIONS_LOCK = threading.RLock()
+
+
+def load_sessions():
+    if not os.path.exists(SESSION_STORE):
+        return {}
+    with open(SESSION_STORE, "r", encoding="utf-8") as session_file:
+        sessions = json.load(session_file)
+    if not isinstance(sessions, dict):
+        raise RuntimeError("invalid broker session store")
+    return sessions
+
+
+SESSIONS = load_sessions()
+
+
+def save_sessions_locked():
+    session_dir = os.path.dirname(SESSION_STORE)
+    os.makedirs(session_dir, mode=0o700, exist_ok=True)
+    descriptor, temp_path = tempfile.mkstemp(prefix=".sessions-", dir=session_dir)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as session_file:
+            json.dump(SESSIONS, session_file, separators=(",", ":"), sort_keys=True)
+            session_file.flush()
+            os.fsync(session_file.fileno())
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, SESSION_STORE)
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+
+def hash_token(token):
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def bearer_token(headers):
+    authorization = headers.get("Authorization", "")
+    if not authorization.startswith("Bearer "):
+        return ""
+    return authorization[len("Bearer "):]
+
+
+def authorized_admin(headers):
+    return hmac.compare_digest(bearer_token(headers), ADMIN_TOKEN)
+
+
+def authorized_session(headers):
+    token = bearer_token(headers)
+    if not token:
+        return None
+    token_hash = hash_token(token)
+    with SESSIONS_LOCK:
+        for session in SESSIONS.values():
+            if hmac.compare_digest(session["token_hash"], token_hash):
+                return dict(session)
+    return None
+
+
+def normalize_prefix(value):
+    prefix = value.strip("/")
+    if "\\\\" in prefix or "\\n" in prefix or "\\r" in prefix:
+        raise ValueError("invalid object prefix")
+    if any(part == ".." for part in prefix.split("/")):
+        raise ValueError("invalid object prefix")
+    return prefix
+
+
+def validate_session(session_id, payload):
+    if not session_id or len(session_id) > 160 or not re.fullmatch("[A-Za-z0-9._-]+", session_id):
+        raise ValueError("invalid session id")
+    required_strings = (
+        "session_name",
+        "token_hash",
+        "tumblebug_url",
+        "tumblebug_username",
+        "tumblebug_password",
+        "namespace",
+        "storage_id",
+        "data_prefix",
+        "result_prefix",
+    )
+    if not isinstance(payload, dict) or any(not isinstance(payload.get(key), str) for key in required_strings):
+        raise ValueError("invalid session payload")
+    if not payload["session_name"] or len(payload["session_name"]) > 200 or "\\n" in payload["session_name"] or "\\r" in payload["session_name"]:
+        raise ValueError("invalid session name")
+    if not re.fullmatch("[a-f0-9]{64}", payload["token_hash"]):
+        raise ValueError("invalid token hash")
+    tumblebug_url = payload["tumblebug_url"].rstrip("/")
+    parsed_url = urlsplit(tumblebug_url)
+    if parsed_url.scheme not in ("http", "https") or not parsed_url.netloc:
+        raise ValueError("invalid Tumblebug URL")
+    if not payload["tumblebug_username"] or not payload["tumblebug_password"]:
+        raise ValueError("Tumblebug credentials are required")
+    if "\\n" in payload["tumblebug_username"] or "\\r" in payload["tumblebug_username"] or "\\n" in payload["tumblebug_password"] or "\\r" in payload["tumblebug_password"]:
+        raise ValueError("invalid Tumblebug credentials")
+    if not payload["namespace"] or not payload["storage_id"]:
+        raise ValueError("namespace and storage id are required")
+    if not isinstance(payload.get("write_enabled"), bool):
+        raise ValueError("invalid write permission")
+    url_ttl = payload.get("url_ttl")
+    if isinstance(url_ttl, bool) or not isinstance(url_ttl, int) or url_ttl < 60 or url_ttl > 86400:
+        raise ValueError("invalid presigned URL TTL")
+    result_prefix = normalize_prefix(payload["result_prefix"])
+    if payload["write_enabled"] and not result_prefix:
+        raise ValueError("result prefix is required when writes are enabled")
+    return {
+        "id": session_id,
+        "session_name": payload["session_name"],
+        "token_hash": payload["token_hash"],
+        "tumblebug_url": tumblebug_url,
+        "tumblebug_username": payload["tumblebug_username"],
+        "tumblebug_password": payload["tumblebug_password"],
+        "namespace": payload["namespace"],
+        "storage_id": payload["storage_id"],
+        "data_prefix": normalize_prefix(payload["data_prefix"]),
+        "result_prefix": result_prefix,
+        "write_enabled": payload["write_enabled"],
+        "url_ttl": url_ttl,
+        "updated_at": int(time.time()),
+    }
+
+
+def invalidate_session_cache(session_id):
+    with CACHE_LOCK:
+        cache_keys = [key for key in SIGNED_URL_CACHE if key[0] == session_id]
+        for cache_key in cache_keys:
+            SIGNED_URL_CACHE.pop(cache_key, None)
+
+
+def register_session(session_id, payload):
+    session = validate_session(session_id, payload)
+    with SESSIONS_LOCK:
+        for existing_id, existing in SESSIONS.items():
+            if existing_id != session_id and hmac.compare_digest(existing["token_hash"], session["token_hash"]):
+                raise ValueError("token is already assigned to another session")
+        previous = SESSIONS.get(session_id)
+        SESSIONS[session_id] = session
+        try:
+            save_sessions_locked()
+        except OSError:
+            if previous is None:
+                SESSIONS.pop(session_id, None)
+            else:
+                SESSIONS[session_id] = previous
+            raise
+    invalidate_session_cache(session_id)
+
+
+def delete_session(session_id):
+    with SESSIONS_LOCK:
+        previous = SESSIONS.pop(session_id, None)
+        if previous is None:
+            return len(SESSIONS)
+        try:
+            save_sessions_locked()
+        except OSError:
+            SESSIONS[session_id] = previous
+            raise
+        remaining_count = len(SESSIONS)
+    invalidate_session_cache(session_id)
+    return remaining_count
 
 
 def is_within(prefix, key):
@@ -2743,47 +2949,48 @@ def normalize_key(raw_key):
     return key
 
 
-def can_download(key):
-    return is_within(DATA_PREFIX, key) or is_within(RESULT_PREFIX, key)
+def can_download(session, key):
+    return is_within(session["data_prefix"], key) or is_within(session["result_prefix"], key)
 
 
-def can_upload(key):
-    return bool(RESULT_PREFIX) and is_within(RESULT_PREFIX, key)
+def can_upload(session, key):
+    return session["write_enabled"] and bool(session["result_prefix"]) and is_within(session["result_prefix"], key)
 
 
-def list_objects():
-    response = CONTROL_SESSION.get(
-        TUMBLEBUG_URL
+def list_objects(session):
+    response = requests.get(
+        session["tumblebug_url"]
         + "/ns/%s/resources/objectStorage/%s/object"
-        % (quote(NAMESPACE, safe=""), quote(STORAGE_ID, safe="")),
+        % (quote(session["namespace"], safe=""), quote(session["storage_id"], safe="")),
+        auth=(session["tumblebug_username"], session["tumblebug_password"]),
         timeout=30,
     )
     if response.status_code < 200 or response.status_code >= 300:
         raise RuntimeError("Tumblebug object list failed with status %d" % response.status_code)
     objects = response.json().get("objects", [])
-    return [item for item in objects if can_download(str(item.get("key", "")))]
+    return [item for item in objects if can_download(session, str(item.get("key", "")))]
 
 
-def invalidate_url(key, operation):
+def invalidate_url(session, key, operation):
     with CACHE_LOCK:
-        SIGNED_URL_CACHE.pop((operation, key), None)
+        SIGNED_URL_CACHE.pop((session["id"], operation, key), None)
 
 
 def key_fingerprint(key):
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
 
 
-def audit_presign(operation, key, expires_at, reason):
+def audit_presign(session, operation, key, expires_at, reason):
     expires_text = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(expires_at))
     print(
-        "presigned_url_issued operation=%s key_sha256=%s expires_at=%s reason=%s"
-        % (operation, key_fingerprint(key), expires_text, reason),
+        "presigned_url_issued session=%s operation=%s key_sha256=%s expires_at=%s reason=%s"
+        % (session["id"][:12], operation, key_fingerprint(key), expires_text, reason),
         flush=True,
     )
 
 
-def presign(key, operation, force=False, reason="request"):
-    cache_key = (operation, key)
+def presign(session, key, operation, force=False, reason="request"):
+    cache_key = (session["id"], operation, key)
     now = time.time()
     cached = None
     if operation == "download" and not force:
@@ -2793,11 +3000,16 @@ def presign(key, operation, force=False, reason="request"):
                 return cached
         reason = "expired" if cached else "cache_miss"
 
-    response = CONTROL_SESSION.post(
-        TUMBLEBUG_URL
+    response = requests.post(
+        session["tumblebug_url"]
         + "/ns/%s/resources/objectStorage/%s/object/%s/presignedUrl"
-        % (quote(NAMESPACE, safe=""), quote(STORAGE_ID, safe=""), quote(key, safe="")),
-        params={"operation": operation, "expires": str(URL_TTL)},
+        % (
+            quote(session["namespace"], safe=""),
+            quote(session["storage_id"], safe=""),
+            quote(key, safe=""),
+        ),
+        params={"operation": operation, "expires": str(session["url_ttl"])},
+        auth=(session["tumblebug_username"], session["tumblebug_password"]),
         timeout=30,
     )
     if response.status_code < 200 or response.status_code >= 300:
@@ -2811,7 +3023,7 @@ def presign(key, operation, force=False, reason="request"):
     except (TypeError, ValueError):
         expires_at = 0
     if expires_at <= now:
-        expires_at = now + URL_TTL
+        expires_at = now + session["url_ttl"]
     entry = {
         "url": signed_url,
         "headers": payload.get("requiredHeaders") or {},
@@ -2821,13 +3033,14 @@ def presign(key, operation, force=False, reason="request"):
     if operation == "download":
         with CACHE_LOCK:
             SIGNED_URL_CACHE[cache_key] = entry
-    audit_presign(operation, key, expires_at, reason)
+    audit_presign(session, operation, key, expires_at, reason)
     return entry
 
 
-def storage_get(key, range_header=None):
+def storage_get(session, key, range_header=None):
     for attempt in range(2):
         signed = presign(
+            session,
             key,
             "download",
             force=attempt > 0,
@@ -2842,7 +3055,7 @@ def storage_get(key, range_header=None):
         if response.status_code not in (401, 403) or attempt == 1:
             return response
         response.close()
-        invalidate_url(key, "download")
+        invalidate_url(session, key, "download")
     raise RuntimeError("unreachable")
 
 
@@ -2851,9 +3064,6 @@ class BrokerHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format_text, *args):
         print("%s %s" % (self.command, urlsplit(self.path).path), flush=True)
-
-    def authorized(self):
-        return self.headers.get("Authorization", "") == "Bearer " + BROKER_TOKEN
 
     def send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
@@ -2864,11 +3074,32 @@ class BrokerHandler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
+    def send_empty(self, status):
+        self.send_response(status)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def object_key(self, route_prefix):
         path = urlsplit(self.path).path
         if not path.startswith(route_prefix):
             raise ValueError("invalid route")
         return normalize_key(path[len(route_prefix):])
+
+    def session_id(self):
+        path = urlsplit(self.path).path
+        route_prefix = "/admin/sessions/"
+        if not path.startswith(route_prefix):
+            raise ValueError("invalid admin route")
+        session_id = unquote(path[len(route_prefix):])
+        if not session_id or len(session_id) > 160 or not re.fullmatch("[A-Za-z0-9._-]+", session_id):
+            raise ValueError("invalid session id")
+        return session_id
+
+    def read_json(self):
+        content_length = self.headers.get("Content-Length", "")
+        if not content_length.isdigit() or int(content_length) > 65536:
+            raise ValueError("invalid Content-Length")
+        return json.loads(self.rfile.read(int(content_length)).decode("utf-8"))
 
     def do_HEAD(self):
         if self.path == "/health":
@@ -2876,15 +3107,16 @@ class BrokerHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
-        if not self.authorized():
+        session = authorized_session(self.headers)
+        if session is None:
             self.send_json(401, {"error": "unauthorized"})
             return
         try:
             key = self.object_key("/object/")
-            if not can_download(key):
+            if not can_download(session, key):
                 self.send_json(403, {"error": "object is outside the allowed prefixes"})
                 return
-            upstream = storage_get(key, "bytes=0-0")
+            upstream = storage_get(session, key, "bytes=0-0")
             try:
                 if upstream.status_code not in (200, 206):
                     self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
@@ -2909,12 +3141,13 @@ class BrokerHandler(BaseHTTPRequestHandler):
         if path == "/health":
             self.send_json(200, {"status": "ok"})
             return
-        if not self.authorized():
+        session = authorized_session(self.headers)
+        if session is None:
             self.send_json(401, {"error": "unauthorized"})
             return
         if path == "/objects":
             try:
-                self.send_json(200, {"objects": list_objects()})
+                self.send_json(200, {"objects": list_objects(session)})
             except (RuntimeError, ValueError, requests.RequestException, json.JSONDecodeError) as error:
                 print(
                     "object_list_failed type=%s message=%s"
@@ -2925,11 +3158,11 @@ class BrokerHandler(BaseHTTPRequestHandler):
             return
         try:
             key = self.object_key("/object/")
-            if not can_download(key):
+            if not can_download(session, key):
                 self.send_json(403, {"error": "object is outside the allowed prefixes"})
                 return
             range_header = self.headers.get("Range")
-            upstream = storage_get(key, range_header)
+            upstream = storage_get(session, key, range_header)
             try:
                 if upstream.status_code not in (200, 206):
                     self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
@@ -2949,14 +3182,30 @@ class BrokerHandler(BaseHTTPRequestHandler):
                 self.close_connection = True
 
     def do_PUT(self):
-        if not self.authorized():
+        path = urlsplit(self.path).path
+        if path.startswith("/admin/sessions/"):
+            if not authorized_admin(self.headers):
+                self.send_json(401, {"error": "unauthorized"})
+                return
+            try:
+                session_id = self.session_id()
+                register_session(session_id, self.read_json())
+                self.send_json(200, {"sessionId": session_id})
+            except (ValueError, TypeError, json.JSONDecodeError):
+                self.send_json(400, {"error": "invalid session registration"})
+            except OSError:
+                self.send_json(500, {"error": "session store update failed"})
+            return
+
+        session = authorized_session(self.headers)
+        if session is None:
             self.send_json(401, {"error": "unauthorized"})
             return
         temp_path = ""
         try:
             key = self.object_key("/result/")
-            if not can_upload(key):
-                self.send_json(403, {"error": "object is outside RESULT_PREFIX"})
+            if not can_upload(session, key):
+                self.send_json(403, {"error": "result upload is not allowed for this session"})
                 return
             content_length = self.headers.get("Content-Length", "")
             if not content_length.isdigit():
@@ -2974,6 +3223,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
 
             for attempt in range(2):
                 signed = presign(
+                    session,
                     key,
                     "upload",
                     force=True,
@@ -3003,6 +3253,21 @@ class BrokerHandler(BaseHTTPRequestHandler):
                     os.remove(temp_path)
                 except FileNotFoundError:
                     pass
+
+    def do_DELETE(self):
+        if not urlsplit(self.path).path.startswith("/admin/sessions/"):
+            self.send_json(404, {"error": "not found"})
+            return
+        if not authorized_admin(self.headers):
+            self.send_json(401, {"error": "unauthorized"})
+            return
+        try:
+            remaining_count = delete_session(self.session_id())
+            self.send_json(200, {"remainingSessionCount": remaining_count})
+        except ValueError:
+            self.send_json(400, {"error": "invalid session id"})
+        except OSError:
+            self.send_json(500, {"error": "session store update failed"})
 
 
 if __name__ == "__main__":
@@ -3293,6 +3558,7 @@ echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
 """
 
                 def installComplete = false
+                def brokerSessionRegistered = false
                 try {
                 writeFile file: "presigned_broker.py", text: brokerSource
                 writeFile file: "object_storage_access.py", text: helperSource
@@ -3303,6 +3569,42 @@ echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
                 def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
                 if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
                     error "Failed to generate the Object Storage broker token"
+                }
+                writeFile file: "mc-workflow-presigned-broker-token", text: brokerToken
+                sh "chmod 600 mc-workflow-presigned-broker-token"
+                def brokerTokenHash = sh(
+                    script: "sha256sum mc-workflow-presigned-broker-token | cut -d\" \" -f1",
+                    returnStdout: true
+                ).trim()
+                if (!(brokerTokenHash ==~ /[a-f0-9]{64}/)) {
+                    error "Failed to hash the Object Storage broker token"
+                }
+                def brokerAdminToken = sh(
+                    script: """set +x
+token_file="/var/jenkins_home/mc-workflow-presigned-broker-admin-token"
+command -v flock >/dev/null
+exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+flock -x 9
+umask 077
+if [ ! -s "\${token_file}" ]; then
+  od -An -N32 -tx1 /dev/urandom | tr -d " \\n" > "\${token_file}"
+fi
+chmod 600 "\${token_file}"
+cat "\${token_file}"
+""",
+                    returnStdout: true
+                ).trim()
+                if (!(brokerAdminToken ==~ /[a-f0-9]{64}/)) {
+                    error "Failed to load the workflow presigned broker admin token"
+                }
+                def brokerRuntimeHash = sh(
+                    script: """set +x
+sha256sum presigned_broker.py /var/jenkins_home/mc-workflow-presigned-broker-admin-token | sha256sum | cut -d" " -f1
+""",
+                    returnStdout: true
+                ).trim()
+                if (!(brokerRuntimeHash ==~ /[a-f0-9]{64}/)) {
+                    error "Failed to calculate the workflow presigned broker runtime hash"
                 }
                 writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
 OBJECT_STORAGE_ID=${storageId}
@@ -3317,17 +3619,23 @@ DUCKDB_VERSION=${duckdbVersion}
 JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
 """
-                writeFile file: "object-storage-data-lab-broker.env", text: """TUMBLEBUG_URL=${tumblebug}/tumblebug
-TUMBLEBUG_USERNAME=${tumblebugUser}
-TUMBLEBUG_PASSWORD=${tumblebugPassword}
-OBJECT_STORAGE_NAMESPACE=${osNamespace}
-OBJECT_STORAGE_ID=${storageId}
-DATA_PREFIX=${dataPrefix}
-RESULT_PREFIX=${resultPrefix}
-PRESIGNED_URL_EXPIRES=${presignedExpires}
-BROKER_TOKEN=${brokerToken}
+                writeFile file: "mc-workflow-presigned-broker.env", text: """BROKER_ADMIN_TOKEN=${brokerAdminToken}
+BROKER_SESSION_STORE=/var/lib/mc-workflow-presigned-broker/sessions.json
 """
-                sh """chmod 600 object-storage-data-lab.env object-storage-data-lab-broker.env
+                writeFile file: "mc-workflow-presigned-broker-session.json", text: groovy.json.JsonOutput.toJson([
+                    session_name: brokerSessionId,
+                    token_hash: brokerTokenHash,
+                    tumblebug_url: "${tumblebug}/tumblebug",
+                    tumblebug_username: tumblebugUser,
+                    tumblebug_password: tumblebugPassword,
+                    namespace: osNamespace,
+                    storage_id: storageId,
+                    data_prefix: dataPrefix,
+                    result_prefix: resultPrefix,
+                    write_enabled: writeResultEnabled == "true",
+                    url_ttl: presignedExpires.toInteger()
+                ])
+                sh """chmod 600 object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json
 chmod 700 object-storage-data-lab-install.sh
 """
 
@@ -3340,16 +3648,29 @@ chmod 700 object-storage-data-lab-install.sh
                     error "Could not resolve the internal mc-infra-manager Docker network"
                 }
 
-                    sh """docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
-docker create \\
-  --name "${brokerContainerName}" \\
-  --restart unless-stopped \\
-  --network "${infraNetwork}" \\
-  --env-file object-storage-data-lab-broker.env \\
-  python:3.12-slim \\
-  sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
-docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
-docker start "${brokerContainerName}" >/dev/null
+                    sh """set -eu
+command -v flock >/dev/null
+exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+flock -x 9
+
+docker volume create "${brokerVolumeName}" >/dev/null
+current_broker_hash=\$(docker inspect --format=''{{ index .Config.Labels "mc-workflow-presigned-broker.runtime-sha256" }}'' "${brokerContainerName}" 2>/dev/null || true)
+if [ "\${current_broker_hash}" != "${brokerRuntimeHash}" ]; then
+  docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+  docker create \\
+    --name "${brokerContainerName}" \\
+    --restart unless-stopped \\
+    --network "${infraNetwork}" \\
+    --label "mc-workflow-presigned-broker.runtime-sha256=${brokerRuntimeHash}" \\
+    --env-file mc-workflow-presigned-broker.env \\
+    -v "${brokerVolumeName}:/var/lib/mc-workflow-presigned-broker" \\
+    python:3.12-slim \\
+    sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
+  docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
+  docker start "${brokerContainerName}" >/dev/null
+elif [ "\$(docker inspect --format=''{{.State.Running}}'' "${brokerContainerName}")" != "true" ]; then
+  docker start "${brokerContainerName}" >/dev/null
+fi
 
 broker_healthy="false"
 for attempt in \$(seq 1 30); do
@@ -3364,7 +3685,16 @@ if [ "\${broker_healthy}" != "true" ]; then
   echo "Object Storage presigned URL broker health check failed"
   exit 1
 fi
+
+docker cp mc-workflow-presigned-broker-session.json "${brokerContainerName}:/tmp/mc-workflow-presigned-broker-session.json"
+if ! docker exec "${brokerContainerName}" python -c "import os, urllib.request; data=open(\\\"/tmp/mc-workflow-presigned-broker-session.json\\\", \\\"rb\\\").read(); request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\", data=data, method=\\\"PUT\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"], \\\"Content-Type\\\": \\\"application/json\\\"}); urllib.request.urlopen(request, timeout=30).read()"; then
+  docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
+  exit 1
+fi
+docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
+docker rm -f "${legacyBrokerContainerName}" >/dev/null 2>&1 || true
 """
+                    brokerSessionRegistered = true
                     sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb object_storage_access.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
 """
                     withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
@@ -3381,10 +3711,18 @@ ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tm
                     if (!installComplete) {
                         sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
 rm -f "${tunnelControlPath}"
-docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
 """
+                        if (brokerSessionRegistered) {
+                            sh """exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+flock -x 9
+remaining_sessions=\$(docker exec "${brokerContainerName}" python -c "import json, os, urllib.request; request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\", method=\\\"DELETE\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\"remainingSessionCount\\\"])" 2>/dev/null || true)
+if [ "\${remaining_sessions}" = "0" ]; then
+  docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+fi
+"""
+                        }
                     }
-                    sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
+                    sh "rm -f object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json mc-workflow-presigned-broker-token object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
                 }
             }
         }
@@ -4417,8 +4755,9 @@ SELECT 110, 'vm-object-storage-data-lab-cleanup', 'For Cleanup', 1,
     agent any
     stages {
 '
-|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 63)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57)
 || '
     }
@@ -4711,7 +5050,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'OBJECT_STORAGE_READY_MAX_ATTEMPTS', '30', 'N'),
 (109, 'OBJECT_STORAGE_READY_INTERVAL_SECONDS', '5', 'N'),
 (109, 'OBJECT_STORAGE_REGION', '', 'N'),
-(109, 'PRESIGNED_URL_EXPIRES', '3600', 'N'),
+(109, 'PRESIGNED_URL_EXPIRES', '600', 'N'),
 (109, 'DATA_PREFIX', '', 'N'),
 (109, 'RESULT_PREFIX', 'results', 'N'),
 (109, 'WRITE_RESULT_ENABLED', 'true', 'N'),
@@ -4904,13 +5243,15 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
     stages {
 ');
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 110, 2, 59, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59;
+SELECT 110, 2, 63, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 63;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
 SELECT 110, 3, 60, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 110, 4, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
+SELECT 110, 4, 59, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59;
+INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
+SELECT 110, 5, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
-(110, 5, null, '
+(110, 6, null, '
     }
 }
 ');
