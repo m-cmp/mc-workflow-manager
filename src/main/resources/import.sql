@@ -2505,8 +2505,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         !(cleanupNamespace ==~ /[A-Za-z0-9._-]+/) || cleanupNamespace.contains("..")) {
                         error "Invalid NAMESPACE or INFRA_ID"
                     }
-                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(40)
-                    def cleanupBrokerName = "object-storage-data-lab-broker-${cleanupBrokerId}"
+                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").takeRight(50)
+                    def cleanupBrokerName = "broker-${cleanupBrokerId}"
                     def cleanupControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupBrokerId}.sock"
                     sh """docker rm -f "${cleanupBrokerName}" >/dev/null 2>&1 || true
 rm -f "${cleanupControlPath}"
@@ -2696,8 +2696,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-presigned-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(40)
-                def brokerContainerName = "object-storage-data-lab-broker-${brokerId}"
+                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").takeRight(50)
+                def brokerContainerName = "broker-${brokerId}"
                 def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${brokerId}.sock"
 
                 def brokerSource = """import hashlib
