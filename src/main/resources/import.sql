@@ -2505,7 +2505,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         !(cleanupNamespace ==~ /[A-Za-z0-9._-]+/) || cleanupNamespace.contains("..")) {
                         error "Invalid NAMESPACE or INFRA_ID"
                     }
-                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").takeRight(50)
+                    def cleanupBrokerId = "${cleanupNamespace}-${cleanupInfraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
                     def cleanupBrokerName = "broker-${cleanupBrokerId}"
                     def cleanupControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupBrokerId}.sock"
                     sh """docker rm -f "${cleanupBrokerName}" >/dev/null 2>&1 || true
@@ -2625,10 +2625,10 @@ rm -f "${cleanupControlPath}"
         }
     }');
 
-INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (62, 19, 7, 'jupyter-object-storage-presigned-analysis-install', 'Install JupyterLab with a restricted presigned URL broker for Object Storage analysis', '
-    stage("jupyter-object-storage-presigned-analysis-install") {
+INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (62, 19, 7, 'jupyter-object-storage-analysis-install', 'Install JupyterLab with a restricted presigned URL broker for Object Storage analysis', '
+    stage("jupyter-object-storage-analysis-install") {
         steps {
-            echo ">>>>> STAGE: jupyter-object-storage-presigned-analysis-install"
+            echo ">>>>> STAGE: jupyter-object-storage-analysis-install"
             script {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                 def supportedProviders = ["aws", "gcp", "ncp", "alibaba", "tencent", "ibm", "nhn"]
@@ -2693,10 +2693,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
                 def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
                 if (!sshHost || !sshUser) {
-                    error "SSH_HOST and SSH_USER are required for jupyter-object-storage-presigned-analysis-install"
+                    error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
                 }
                 def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").takeRight(50)
+                def brokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
                 def brokerContainerName = "broker-${brokerId}"
                 def tunnelControlPath = "/var/jenkins_home/object-storage-data-lab-${brokerId}.sock"
 
@@ -4718,8 +4718,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'JUPYTER_IMAGE', 'quay.io/jupyter/scipy-notebook:2025-03-14', 'N'),
 (109, 'DUCKDB_VERSION', '1.3.2', 'N'),
 (109, 'JUPYTER_BIND_HOST', '0.0.0.0', 'N'),
-(109, 'JUPYTER_ALLOWED_CIDR', '0.0.0.0/0', 'N'),
-(109, 'JUPYTER_PORT', '8888', 'N');
+(109, 'JUPYTER_PORT', '8888', 'N'),
+(109, 'JUPYTER_ALLOWED_CIDR', '0.0.0.0/0', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (110, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),

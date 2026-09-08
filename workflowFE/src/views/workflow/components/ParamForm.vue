@@ -361,8 +361,6 @@ const paramLabels: Record<string, string> = {
   SSH_HOST: 'SSH Host',
   SSH_USER: 'SSH User',
   SSH_KEY_FILE: 'SSH Key File',
-  JUPYTER_ALLOWED_CIDR: 'Jupyter Allowed CIDR',
-  JUPYTER_PORT: 'Jupyter Port',
   K8S_CLUSTER_ID: 'Cluster ID',
   K8S_NODEGROUP_NAME: 'Node Group',
   K8S_NODEGROUP_CREATE_IF_MISSING: 'Create Missing Node Group',

@@ -502,7 +502,7 @@ const tumblebugSelectorManagedParamKeys = [
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete', 'jupyter-object-storage-presigned-analysis-install']
+const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete', 'jupyter-object-storage-analysis-install']
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -2084,8 +2084,8 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
       { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_BIND_HOST', paramValue: '0.0.0.0', eventListenerYn: 'N' },
-      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '0.0.0.0/0', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '0.0.0.0/0', eventListenerYn: 'N' },
     ],
     'jupyter-inbound-rule-remove': [
       { paramKey: 'TUMBLEBUG', paramValue: 'http://mc-infra-manager:1323', eventListenerYn: 'N' },
@@ -2096,7 +2096,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'JUPYTER_PORT', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '', eventListenerYn: 'N' },
     ],
-    'jupyter-object-storage-presigned-analysis-install': [
+    'jupyter-object-storage-analysis-install': [
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
