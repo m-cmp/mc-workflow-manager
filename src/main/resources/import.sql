@@ -2676,6 +2676,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: jupyter-object-storage-analysis-install"
             script {
+                def runnerName = "jupyter-object-storage-analysis-install.groovy"
+                def runnerSource = ''''''def validateInputs() {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                 def supportedProviders = ["aws", "gcp", "ncp", "alibaba", "tencent", "ibm", "nhn"]
                 if (!supportedProviders.contains(provider)) {
@@ -2685,13 +2687,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 // Presigned URLs are issued against the Tumblebug logical ID, not the generated CSP bucket name.
                 def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\$", "")
+                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\\$", "")
                 def tumblebugUser = (params.USER ?: "").toString()
                 def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
                 def infraId = (params.INFRA_ID ?: "").toString().trim()
                 def brokerTunnelPort = "8889"
-                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
-                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
+                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\\$", "")
+                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
                 def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
@@ -2702,7 +2704,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!storageId || !osNamespace || !tumblebug || !tumblebugUser || !tumblebugPassword || !infraId) {
                     error "OBJECT_STORAGE_BUCKET, OBJECT_STORAGE_NAMESPACE/NAMESPACE, TUMBLEBUG, USER, USERPASS and INFRA_ID are required"
                 }
-                if (tumblebugUser.contains("\n") || tumblebugUser.contains("\r") || tumblebugPassword.contains("\n") || tumblebugPassword.contains("\r")) {
+                if (tumblebugUser.contains("\\n") || tumblebugUser.contains("\\r") || tumblebugPassword.contains("\\n") || tumblebugPassword.contains("\\r")) {
                     error "USER and USERPASS must not contain line breaks"
                 }
                 if (!(writeResultEnabled in ["true", "false"])) {
@@ -2722,11 +2724,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     provider: [provider, /[A-Za-z0-9._-]+/],
                     storageId: [storageId, /[A-Za-z0-9._-]+/],
                     osNamespace: [osNamespace, /[A-Za-z0-9._-]+/],
-                    tumblebug: [tumblebug, /[A-Za-z0-9._:~\/\-]+/],
+                    tumblebug: [tumblebug, /[A-Za-z0-9._:~\\/\\-]+/],
                     infraId: [infraId, /[A-Za-z0-9._-]+/],
-                    dataPrefix: [dataPrefix, /[A-Za-z0-9._\/-]+/],
-                    resultPrefix: [resultPrefix, /[A-Za-z0-9._\/-]+/],
-                    jupyterImage: [jupyterImage, /[A-Za-z0-9._:\/@-]+/],
+                    dataPrefix: [dataPrefix, /[A-Za-z0-9._\\/-]+/],
+                    resultPrefix: [resultPrefix, /[A-Za-z0-9._\\/-]+/],
+                    jupyterImage: [jupyterImage, /[A-Za-z0-9._:\\/@-]+/],
                     duckdbVersion: [duckdbVersion, /[0-9.]+/],
                     jupyterBindHost: [jupyterBindHost, /[A-Za-z0-9.:-]+/]
                 ]
@@ -2740,12 +2742,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!sshHost || !sshUser) {
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
                 }
-            }
+                if (!(sshHost ==~ /[A-Za-z0-9._:-]+/) || sshHost.contains("..")) {
+                    error "Invalid SSH_HOST"
+                }
+                if (!(sshUser ==~ /[A-Za-z0-9._-]+/) || sshUser.contains("..")) {
+                    error "Invalid SSH_USER"
+                }
+}
 
-            script {
-                // Split generated artifacts into separate CPS closures to stay below the JVM method-size limit.
-                def writeBrokerSource = {
-                    def brokerSource = """import hashlib
+def writeBrokerSource() {
+    def brokerSource = """import hashlib
 import hmac
 import json
 import os
@@ -2829,7 +2835,7 @@ def authorized_session(headers):
 
 def normalize_prefix(value):
     prefix = value.strip("/")
-    if "\\\\" in prefix or "\\n" in prefix or "\\r" in prefix:
+    if "\\\\\\\\" in prefix or "\\\\n" in prefix or "\\\\r" in prefix:
         raise ValueError("invalid object prefix")
     if any(part == ".." for part in prefix.split("/")):
         raise ValueError("invalid object prefix")
@@ -2852,7 +2858,7 @@ def validate_session(session_id, payload):
     )
     if not isinstance(payload, dict) or any(not isinstance(payload.get(key), str) for key in required_strings):
         raise ValueError("invalid session payload")
-    if not payload["session_name"] or len(payload["session_name"]) > 200 or "\\n" in payload["session_name"] or "\\r" in payload["session_name"]:
+    if not payload["session_name"] or len(payload["session_name"]) > 200 or "\\\\n" in payload["session_name"] or "\\\\r" in payload["session_name"]:
         raise ValueError("invalid session name")
     if not re.fullmatch("[a-f0-9]{64}", payload["token_hash"]):
         raise ValueError("invalid token hash")
@@ -2862,7 +2868,7 @@ def validate_session(session_id, payload):
         raise ValueError("invalid Tumblebug URL")
     if not payload["tumblebug_username"] or not payload["tumblebug_password"]:
         raise ValueError("Tumblebug credentials are required")
-    if "\\n" in payload["tumblebug_username"] or "\\r" in payload["tumblebug_username"] or "\\n" in payload["tumblebug_password"] or "\\r" in payload["tumblebug_password"]:
+    if "\\\\n" in payload["tumblebug_username"] or "\\\\r" in payload["tumblebug_username"] or "\\\\n" in payload["tumblebug_password"] or "\\\\r" in payload["tumblebug_password"]:
         raise ValueError("invalid Tumblebug credentials")
     if not payload["namespace"] or not payload["storage_id"]:
         raise ValueError("namespace and storage id are required")
@@ -2938,7 +2944,7 @@ def is_within(prefix, key):
 
 def normalize_key(raw_key):
     key = unquote(raw_key)
-    if not key or key.startswith("/") or "\\\\" in key or "\\n" in key or "\\r" in key:
+    if not key or key.startswith("/") or "\\\\\\\\" in key or "\\\\n" in key or "\\\\r" in key:
         raise ValueError("invalid object key")
     if any(part == ".." for part in key.split("/")):
         raise ValueError("invalid object key")
@@ -3269,215 +3275,18 @@ class BrokerHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     ThreadingHTTPServer(("0.0.0.0", 8765), BrokerHandler).serve_forever()
 """
-                    writeFile file: "presigned_broker.py", text: brokerSource
-                }
-                writeBrokerSource()
-            }
+    writeFile file: "presigned_broker.py", text: brokerSource
+}
 
-            script {
-                def writeHelperSource = {
-                    def helperSource = """import os
-from urllib.parse import quote
-
-import duckdb
-import requests
-
-
-BROKER_URL = os.environ.get("OBJECT_STORAGE_BROKER_URL", "http://127.0.0.1:8889").rstrip("/")
-BROKER_TOKEN = os.environ["OBJECT_STORAGE_BROKER_TOKEN"]
-
-
-def broker_headers():
-    return {"Authorization": "Bearer " + BROKER_TOKEN}
-
-
-def sql_quote(value):
-    text = str(value)
-    return chr(39) + text.replace(chr(39), chr(39) * 2) + chr(39)
-
-
-def sql_identifier(value):
-    text = str(value)
-    return chr(34) + text.replace(chr(34), chr(34) * 2) + chr(34)
-
-
-def create_connection():
-    connection = duckdb.connect()
-    connection.execute("INSTALL httpfs")
-    connection.execute("LOAD httpfs")
-    connection.execute(
-        "CREATE SECRET object_storage_broker (TYPE http, SCOPE "
-        + sql_quote(BROKER_URL)
-        + ", BEARER_TOKEN ?)",
-        [BROKER_TOKEN],
-    )
-    return connection
-
-
-def list_objects():
-    response = requests.get(BROKER_URL + "/objects", headers=broker_headers(), timeout=30)
-    response.raise_for_status()
-    return response.json().get("objects", [])
-
-
-def object_url(key):
-    return BROKER_URL + "/object/" + quote(key, safe="")
-
-
-def upload_file(key, local_path):
-    size = os.path.getsize(local_path)
-    headers = broker_headers()
-    headers["Content-Length"] = str(size)
-    with open(local_path, "rb") as source:
-        response = requests.put(
-            BROKER_URL + "/result/" + quote(key, safe=""),
-            headers=headers,
-            data=source,
-            timeout=(10, 3600),
-        )
-    response.raise_for_status()
-    return response.json()
-"""
-                    writeFile file: "object_storage_access.py", text: helperSource
-                }
-                writeHelperSource()
-            }
-
-            script {
-                def writeVerifierSource = {
-                    def verifierSource = """import os
-import requests
-
-from object_storage_access import broker_headers, list_objects, object_url
-
-
-def verify():
-    objects = list_objects()
-    print("Object Storage broker access verified. provider=%s, storageId=%s, objects=%d" % (
-        os.environ.get("OBJECT_STORAGE_PROVIDER", ""),
-        os.environ.get("OBJECT_STORAGE_ID", ""),
-        len(objects),
-    ))
-    if objects:
-        first_key = str(objects[0].get("key", ""))
-        response = requests.head(object_url(first_key), headers=broker_headers(), timeout=30)
-        response.raise_for_status()
-        for item in objects[:10]:
-            print("  -", item.get("key", ""))
-        if len(objects) > 10:
-            print("  ... and %d more" % (len(objects) - 10))
-    else:
-        print("The bucket is empty. Upload data and rerun the notebook cells.")
-
-
-if __name__ == "__main__":
-    verify()
-"""
-                    writeFile file: "verify_object_storage.py", text: verifierSource
-                }
-                writeVerifierSource()
-            }
-
-            script {
-                def writeNotebook = {
-                    def notebookBase64 = """
-ewogICJjZWxscyI6IFsKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjog
-WwogICAgICAgICIjIE9iamVjdCBTdG9yYWdlIERhdGEgTGFiXG4iLAogICAgICAgICJcbiIsCiAgICAgICAgIk1DTVAg7ISc67KE7J2YIGJyb2tlcuqwgCDq
-uLDsobQgQ0ItVHVtYmxlYnVnIEFQSeuhnCDrsJzquIntlZwgcHJlc2lnbmVkIFVSTOydhCDsoJztlZzrkJwg7YSw64SQ7J2EIO2Gte2VtCDsoJzqs7Xtlanr
-i4jri6QuXG4iLAogICAgICAgICJKdXB5dGVyIOy7qO2FjOydtOuEiOyXkOuKlCBDU1AgQWNjZXNzIEtleSAvIFNlY3JldCBLZXnsmYAgQ0ItVHVtYmxlYnVn
-IOyekOqyqeymneuqheydtCDsl4bsirXri4jri6QuXG4iLAogICAgICAgICLrhbjtirjrtoHsnYAg6rOg7KCV65CcIGJyb2tlciBVUkzsnYQg7IKs7Jqp7ZWY
-66mwLCBicm9rZXLqsIAg66eM66OMIOyghOyXkCDsg4ggcHJlc2lnbmVkIFVSTOuhnCDsnpDrj5kg6rWQ7LK07ZWp64uI64ukLlxuIiwKICAgICAgICAiXG4i
-LAogICAgICAgICLrsoTtgrfsl5Ag7YyM7J287J2EIOyYrOumsCDrkqQg7JWE656YIOyFgOydhCDsnITsl5DshJzrtoDthLAg7Iuk7ZaJ7ZWY7IS47JqULiIK
-ICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjog
-WwogICAgICAgICIjIyAxLiDrsoTtgrcg7YyM7J28IOuqqeuhnSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJjb2RlIiwKICAg
-ICAgImV4ZWN1dGlvbl9jb3VudCI6IG51bGwsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAib3V0cHV0cyI6IFtdLAogICAgICAic291cmNlIjogWwog
-ICAgICAgICJpbXBvcnQgb3NcbiIsCiAgICAgICAgImltcG9ydCBtYXRwbG90bGliLnB5cGxvdCBhcyBwbHRcbiIsCiAgICAgICAgImZyb20gb2JqZWN0X3N0
-b3JhZ2VfYWNjZXNzIGltcG9ydCBjcmVhdGVfY29ubmVjdGlvbiwgbGlzdF9vYmplY3RzLCBvYmplY3RfdXJsLCBzcWxfaWRlbnRpZmllciwgc3FsX3F1b3Rl
-LCB1cGxvYWRfZmlsZVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICJjb24gPSBjcmVhdGVfY29ubmVjdGlvbigpXG4iLAogICAgICAgICJvYmplY3RzID0g
-bGlzdF9vYmplY3RzKClcbiIsCiAgICAgICAgImZpbGVzID0gW3N0cihpdGVtLmdldChcImtleVwiLCBcIlwiKSkgZm9yIGl0ZW0gaW4gb2JqZWN0cyBpZiBp
-dGVtLmdldChcImtleVwiKV1cbiIsCiAgICAgICAgInByaW50KFwic3RvcmFnZTpcIiwgb3MuZW52aXJvbi5nZXQoXCJPQkpFQ1RfU1RPUkFHRV9JRFwiLCBc
-IlwiKSlcbiIsCiAgICAgICAgInByaW50KFwib2JqZWN0czpcIiwgbGVuKGZpbGVzKSlcbiIsCiAgICAgICAgImZvciBuYW1lIGluIGZpbGVzWzozMF06XG4i
-LAogICAgICAgICIgICAgcHJpbnQoXCIgLVwiLCBuYW1lKSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAg
-ICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjogWwogICAgICAgICIjIyAyLiDrjbDsnbTthLAg66Gc65OcXG4iLAogICAgICAgICJcbiIsCiAg
-ICAgICAgIlBhcnF1ZXTsnbQg7J6I7Jy866m0IFBhcnF1ZXTsnYQsIOyXhuycvOuptCBDU1brpbwg7J297Iq164uI64ukLiBgVEFSR0VUX0tFWVNg7JeQIOu2
-hOyEne2VoCDqsJ3ssrQg7YKkIOuqqeuhneydhCDsp4HsoJEg7KeA7KCV7ZWgIOyImOuPhCDsnojsirXri4jri6QuIgogICAgICBdCiAgICB9LAogICAgewog
-ICAgICAiY2VsbF90eXBlIjogImNvZGUiLAogICAgICAiZXhlY3V0aW9uX2NvdW50IjogbnVsbCwKICAgICAgIm1ldGFkYXRhIjoge30sCiAgICAgICJvdXRw
-dXRzIjogW10sCiAgICAgICJzb3VyY2UiOiBbCiAgICAgICAgIlRBUkdFVF9LRVlTID0gTm9uZVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICJkZWYgcGlj
-a19yZWFkZXIoKTpcbiIsCiAgICAgICAgIiAgICBzZWxlY3RlZCA9IGxpc3QoVEFSR0VUX0tFWVMpIGlmIFRBUkdFVF9LRVlTIGVsc2UgW11cbiIsCiAgICAg
-ICAgIiAgICBpZiBzZWxlY3RlZDpcbiIsCiAgICAgICAgIiAgICAgICAgcmVhZGVyID0gXCJyZWFkX3BhcnF1ZXRcIiBpZiBhbGwobmFtZS5sb3dlcigpLmVu
-ZHN3aXRoKFwiLnBhcnF1ZXRcIikgZm9yIG5hbWUgaW4gc2VsZWN0ZWQpIGVsc2UgXCJyZWFkX2Nzdl9hdXRvXCJcbiIsCiAgICAgICAgIiAgICAgICAgcmV0
-dXJuIHNlbGVjdGVkLCByZWFkZXJcbiIsCiAgICAgICAgIiAgICBwYXJxdWV0X2ZpbGVzID0gW25hbWUgZm9yIG5hbWUgaW4gZmlsZXMgaWYgbmFtZS5sb3dl
-cigpLmVuZHN3aXRoKFwiLnBhcnF1ZXRcIildXG4iLAogICAgICAgICIgICAgaWYgcGFycXVldF9maWxlczpcbiIsCiAgICAgICAgIiAgICAgICAgcmV0dXJu
-IHBhcnF1ZXRfZmlsZXMsIFwicmVhZF9wYXJxdWV0XCJcbiIsCiAgICAgICAgIiAgICBjc3ZfZmlsZXMgPSBbbmFtZSBmb3IgbmFtZSBpbiBmaWxlcyBpZiBu
-YW1lLmxvd2VyKCkuZW5kc3dpdGgoXCIuY3N2XCIpXVxuIiwKICAgICAgICAiICAgIGlmIGNzdl9maWxlczpcbiIsCiAgICAgICAgIiAgICAgICAgcmV0dXJu
-IGNzdl9maWxlcywgXCJyZWFkX2Nzdl9hdXRvXCJcbiIsCiAgICAgICAgIiAgICByZXR1cm4gW10sIE5vbmVcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAi
-c2VsZWN0ZWRfa2V5cywgcmVhZGVyID0gcGlja19yZWFkZXIoKVxuIiwKICAgICAgICAiaWYgbm90IHNlbGVjdGVkX2tleXM6XG4iLAogICAgICAgICIgICAg
-ZGYgPSBOb25lXG4iLAogICAgICAgICIgICAgcHJpbnQoXCLsnb3snYQgUGFycXVldCAvIENTViDtjIzsnbzsnbQg7JeG7Iq164uI64ukLiDrsoTtgrfsl5Ag
-7YyM7J287J2EIOyYrOumsCDrkqQgMeuyiCDshYDrtoDthLAg64uk7IucIOyLpO2Wie2VmOyEuOyalC5cIilcbiIsCiAgICAgICAgImVsc2U6XG4iLAogICAg
-ICAgICIgICAgdXJscyA9IFtvYmplY3RfdXJsKG5hbWUpIGZvciBuYW1lIGluIHNlbGVjdGVkX2tleXNdXG4iLAogICAgICAgICIgICAgdXJsX2xpc3Rfc3Fs
-ID0gXCJbXCIgKyBcIiwgXCIuam9pbihzcWxfcXVvdGUodXJsKSBmb3IgdXJsIGluIHVybHMpICsgXCJdXCJcbiIsCiAgICAgICAgIiAgICBkZiA9IGNvbi5l
-eGVjdXRlKFwiU0VMRUNUICogRlJPTSBcIiArIHJlYWRlciArIFwiKFwiICsgdXJsX2xpc3Rfc3FsICsgXCIsIHVuaW9uX2J5X25hbWU9dHJ1ZSlcIikuZGYo
-KVxuIiwKICAgICAgICAiICAgIHByaW50KHJlYWRlciwgXCJvYmplY3RzOlwiLCBsZW4oc2VsZWN0ZWRfa2V5cykpXG4iLAogICAgICAgICIgICAgcHJpbnQo
-XCJyb3dzOlwiLCBsZW4oZGYpLCBcImNvbHVtbnM6XCIsIGxpc3QoZGYuY29sdW1ucykpXG4iLAogICAgICAgICIgICAgZGlzcGxheShkZi5oZWFkKCkpIgog
-ICAgICBdCiAgICB9LAogICAgewogICAgICAiY2VsbF90eXBlIjogIm1hcmtkb3duIiwKICAgICAgIm1ldGFkYXRhIjoge30sCiAgICAgICJzb3VyY2UiOiBb
-CiAgICAgICAgIiMjIDMuIOynkeqzhOyZgCDssKjtirhcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAi66y47J6Q7Je0IOy7rOufvOydhCDquLDspIDsnLzr
-oZwg7Iir7J6QIOy7rOufvOydhCDtlanqs4Qg64OF64uI64ukLiBgR1JPVVBfQ09MYCAvIGBWQUxVRV9DT0xg66GcIOyngeygkSDsp4DsoJXtlaAg7IiYIOye
-iOyKteuLiOuLpC4iCiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJjZWxsX3R5cGUiOiAiY29kZSIsCiAgICAgICJleGVjdXRpb25fY291bnQiOiBudWxs
-LAogICAgICAibWV0YWRhdGEiOiB7fSwKICAgICAgIm91dHB1dHMiOiBbXSwKICAgICAgInNvdXJjZSI6IFsKICAgICAgICAiR1JPVVBfQ09MID0gTm9uZVxu
-IiwKICAgICAgICAiVkFMVUVfQ09MID0gTm9uZVxuIiwKICAgICAgICAic3VtbWFyeSA9IE5vbmVcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAiaWYgZGYg
-aXMgTm9uZSBvciBkZi5lbXB0eTpcbiIsCiAgICAgICAgIiAgICBwcmludChcIuuhnOuTnOuQnCDrjbDsnbTthLDqsIAg7JeG7Iq164uI64ukLlwiKVxuIiwK
-ICAgICAgICAiZWxzZTpcbiIsCiAgICAgICAgIiAgICB0ZXh0X2NvbHMgPSBbYyBmb3IgYyBpbiBkZi5jb2x1bW5zIGlmIGRmW2NdLmR0eXBlID09IG9iamVj
-dF1cbiIsCiAgICAgICAgIiAgICBudW1fY29scyA9IFtjIGZvciBjIGluIGRmLmNvbHVtbnMgaWYgZGZbY10uZHR5cGUua2luZCBpbiBcImlmdVwiXVxuIiwK
-ICAgICAgICAiICAgIGdyb3VwX2NvbCA9IEdST1VQX0NPTCBvciAoXCJyZWdpb25cIiBpZiBcInJlZ2lvblwiIGluIGRmLmNvbHVtbnMgZWxzZSAodGV4dF9j
-b2xzWzBdIGlmIHRleHRfY29scyBlbHNlIE5vbmUpKVxuIiwKICAgICAgICAiICAgIHZhbHVlX2NvbCA9IFZBTFVFX0NPTCBvciAobnVtX2NvbHNbMF0gaWYg
-bnVtX2NvbHMgZWxzZSBOb25lKVxuIiwKICAgICAgICAiICAgIGlmIGdyb3VwX2NvbCBpcyBOb25lIG9yIHZhbHVlX2NvbCBpcyBOb25lOlxuIiwKICAgICAg
-ICAiICAgICAgICBwcmludChcIuynkeqzhO2VoCDsu6zrn7zsnYQg7LC+7KeAIOuqu+2WiOyKteuLiOuLpC4gR1JPVVBfQ09M6rO8IFZBTFVFX0NPTOydhCDs
-p4HsoJEg7KeA7KCV7ZWY7IS47JqULlwiKVxuIiwKICAgICAgICAiICAgIGVsc2U6XG4iLAogICAgICAgICIgICAgICAgIGNvbi5yZWdpc3RlcihcImxvYWRl
-ZFwiLCBkZilcbiIsCiAgICAgICAgIiAgICAgICAgc3VtbWFyeSA9IGNvbi5leGVjdXRlKFxuIiwKICAgICAgICAiICAgICAgICAgICAgXCJTRUxFQ1QgXCIg
-KyBzcWxfaWRlbnRpZmllcihncm91cF9jb2wpICsgXCIgQVMgZ3JvdXBfa2V5LCBTVU0oXCIgKyBzcWxfaWRlbnRpZmllcih2YWx1ZV9jb2wpICsgXCIpIEFT
-IHRvdGFsIFwiXG4iLAogICAgICAgICIgICAgICAgICAgICBcIkZST00gbG9hZGVkIEdST1VQIEJZIDEgT1JERVIgQlkgMVwiXG4iLAogICAgICAgICIgICAg
-ICAgICkuZGYoKVxuIiwKICAgICAgICAiICAgICAgICBkaXNwbGF5KHN1bW1hcnkpXG4iLAogICAgICAgICIgICAgICAgIHN1bW1hcnkucGxvdC5iYXIoeD1c
-Imdyb3VwX2tleVwiLCB5PVwidG90YWxcIiwgbGVnZW5kPUZhbHNlLCB0aXRsZT12YWx1ZV9jb2wgKyBcIiBieSBcIiArIGdyb3VwX2NvbClcbiIsCiAgICAg
-ICAgIiAgICAgICAgcGx0LnRpZ2h0X2xheW91dCgpXG4iLAogICAgICAgICIgICAgICAgIHBsdC5zaG93KCkiCiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAg
-ICJjZWxsX3R5cGUiOiAibWFya2Rvd24iLAogICAgICAibWV0YWRhdGEiOiB7fSwKICAgICAgInNvdXJjZSI6IFsKICAgICAgICAiIyMgNC4g7IOIIO2MjOyd
-vCDstpTqsIAg7ZuEIOyerOyLpO2WiVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICLrsoTtgrfsl5Ag7YyM7J287J2EIOuNlCDsmKzrprAg65KkIDF+M+uy
-iCDshYDsnYQg64uk7IucIOyLpO2Wie2VmOuptCDrqqnroZ3qs7wg6rKw6rO8LCDssKjtirjqsIAg6rCx7Iug65Cp64uI64ukLiIKICAgICAgXQogICAgfSwK
-ICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjogWwogICAgICAgICIjIyA1
-LiDrtoTshJ0g6rKw6rO8IOyggOyepSAo7ISg7YOdKSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJjb2RlIiwKICAgICAgImV4
-ZWN1dGlvbl9jb3VudCI6IG51bGwsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAib3V0cHV0cyI6IFtdLAogICAgICAic291cmNlIjogWwogICAgICAg
-ICJpZiBzdW1tYXJ5IGlzIE5vbmU6XG4iLAogICAgICAgICIgICAgcHJpbnQoXCLsoIDsnqXtlaAg7KeR6rOEIOqysOqzvOqwgCDsl4bsirXri4jri6QuXCIp
-XG4iLAogICAgICAgICJlbGlmIG9zLmVudmlyb24uZ2V0KFwiV1JJVEVfUkVTVUxUX0VOQUJMRURcIiwgXCJ0cnVlXCIpLmxvd2VyKCkgIT0gXCJ0cnVlXCI6
-XG4iLAogICAgICAgICIgICAgcHJpbnQoXCJXUklURV9SRVNVTFRfRU5BQkxFROqwgCBmYWxzZeudvCDsoIDsnqXtlZjsp4Ag7JWK7Iq164uI64ukLlwiKVxu
-IiwKICAgICAgICAiZWxzZTpcbiIsCiAgICAgICAgIiAgICByZXN1bHRfcHJlZml4ID0gb3MuZW52aXJvbi5nZXQoXCJSRVNVTFRfUFJFRklYXCIsIFwicmVz
-dWx0c1wiKS5zdHJpcChcIi9cIilcbiIsCiAgICAgICAgIiAgICByZXN1bHRfa2V5ID0gcmVzdWx0X3ByZWZpeCArIFwiL3N1bW1hcnkucGFycXVldFwiXG4i
-LAogICAgICAgICIgICAgbG9jYWxfcmVzdWx0ID0gXCIvdG1wL29iamVjdC1zdG9yYWdlLWRhdGEtbGFiLXN1bW1hcnkucGFycXVldFwiXG4iLAogICAgICAg
-ICIgICAgY29uLnJlZ2lzdGVyKFwic3VtbWFyeV9kYXRhXCIsIHN1bW1hcnkpXG4iLAogICAgICAgICIgICAgY29uLmV4ZWN1dGUoXCJDT1BZIHN1bW1hcnlf
-ZGF0YSBUTyBcIiArIHNxbF9xdW90ZShsb2NhbF9yZXN1bHQpICsgXCIgKEZPUk1BVCBQQVJRVUVUKVwiKVxuIiwKICAgICAgICAiICAgIHVwbG9hZF9maWxl
-KHJlc3VsdF9rZXksIGxvY2FsX3Jlc3VsdClcbiIsCiAgICAgICAgIiAgICBwcmludChcIlNhdmVkOlwiLCByZXN1bHRfa2V5KVxuIiwKICAgICAgICAiICAg
-IGRpc3BsYXkoY29uLmV4ZWN1dGUoXCJTRUxFQ1QgKiBGUk9NIHJlYWRfcGFycXVldChcIiArIHNxbF9xdW90ZShvYmplY3RfdXJsKHJlc3VsdF9rZXkpKSAr
-IFwiKVwiKS5kZigpKSIKICAgICAgXQogICAgfQogIF0sCiAgIm1ldGFkYXRhIjogewogICAgImtlcm5lbHNwZWMiOiB7CiAgICAgICJkaXNwbGF5X25hbWUi
-OiAiUHl0aG9uIDMgKGlweWtlcm5lbCkiLAogICAgICAibGFuZ3VhZ2UiOiAicHl0aG9uIiwKICAgICAgIm5hbWUiOiAicHl0aG9uMyIKICAgIH0sCiAgICAi
-bGFuZ3VhZ2VfaW5mbyI6IHsKICAgICAgIm5hbWUiOiAicHl0aG9uIiwKICAgICAgInZlcnNpb24iOiAiMyIKICAgIH0KICB9LAogICJuYmZvcm1hdCI6IDQs
-CiAgIm5iZm9ybWF0X21pbm9yIjogNQp9
-                """.trim()
-                    writeFile file: "object-storage-data-lab.ipynb.b64", text: notebookBase64
-                    sh "base64 -d object-storage-data-lab.ipynb.b64 > object-storage-data-lab.ipynb"
-                }
-                writeNotebook()
-            }
-
-            script {
-                def sshHost = env.SSH_HOST ?: params.SSH_HOST
-                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
-                def writeInstallerSource = {
-                    def installerSource = """#!/usr/bin/env bash
+def writeInstallerSource() {
+    def installerSource = """#!/usr/bin/env bash
 set -euo pipefail
 
 APP_ROOT="/opt/object-storage-data-lab"
-CONFIG_DIR="\${APP_ROOT}/config"
-WORK_DIR="\${APP_ROOT}/work"
-BUILD_DIR="\${APP_ROOT}/build"
-ENV_FILE="\${CONFIG_DIR}/data-lab.env"
+CONFIG_DIR="\\${APP_ROOT}/config"
+WORK_DIR="\\${APP_ROOT}/work"
+BUILD_DIR="\\${APP_ROOT}/build"
+ENV_FILE="\\${CONFIG_DIR}/data-lab.env"
 INCOMING_ENV="/tmp/object-storage-data-lab.env"
 CONTAINER_NAME="object-storage-data-lab"
 
@@ -3487,7 +3296,7 @@ cleanup_incoming_files() {
 trap cleanup_incoming_files EXIT
 
 get_env_value() {
-  grep -m1 "^\${1}=" "\${INCOMING_ENV}" | cut -d= -f2-
+  grep -m1 "^\\${1}=" "\\${INCOMING_ENV}" | cut -d= -f2-
 }
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -3505,60 +3314,62 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 sudo systemctl enable --now docker
 
-sudo mkdir -p "\${CONFIG_DIR}" "\${WORK_DIR}" "\${BUILD_DIR}"
+sudo mkdir -p "\\${CONFIG_DIR}" "\\${WORK_DIR}" "\\${BUILD_DIR}"
 jupyter_token=""
-if sudo test -f "\${ENV_FILE}"; then
-  jupyter_token=\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\${ENV_FILE}" | cut -d= -f2- || true)
+if sudo test -f "\\${ENV_FILE}"; then
+  jupyter_token=\\$(sudo grep -m1 "^JUPYTER_TOKEN=" "\\${ENV_FILE}" | cut -d= -f2- || true)
 fi
-if [ -z "\${jupyter_token}" ]; then
-  jupyter_token=\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\n")
+if [ -z "\\${jupyter_token}" ]; then
+  jupyter_token=\\$(od -An -N24 -tx1 /dev/urandom | tr -d " \\\\n")
 fi
-sudo install -m 600 "\${INCOMING_ENV}" "\${ENV_FILE}"
-printf "JUPYTER_TOKEN=%s\\n" "\${jupyter_token}" | sudo tee -a "\${ENV_FILE}" >/dev/null
-sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\${WORK_DIR}/object-storage-data-lab.ipynb"
-sudo install -m 644 /tmp/object_storage_access.py "\${WORK_DIR}/object_storage_access.py"
-sudo install -m 644 /tmp/verify_object_storage.py "\${WORK_DIR}/verify_object_storage.py"
-sudo chown -R 1000:100 "\${WORK_DIR}"
+sudo install -m 600 "\\${INCOMING_ENV}" "\\${ENV_FILE}"
+printf "JUPYTER_TOKEN=%s\\\\n" "\\${jupyter_token}" | sudo tee -a "\\${ENV_FILE}" >/dev/null
+sudo install -m 644 /tmp/object-storage-data-lab.ipynb "\\${WORK_DIR}/object-storage-data-lab.ipynb"
+sudo install -m 644 /tmp/object_storage_access.py "\\${WORK_DIR}/object_storage_access.py"
+sudo install -m 644 /tmp/verify_object_storage.py "\\${WORK_DIR}/verify_object_storage.py"
+sudo chown -R 1000:100 "\\${WORK_DIR}"
 
-JUPYTER_IMAGE=\$(get_env_value JUPYTER_IMAGE)
-DUCKDB_VERSION=\$(get_env_value DUCKDB_VERSION)
-JUPYTER_BIND_HOST=\$(get_env_value JUPYTER_BIND_HOST)
-JUPYTER_PORT=\$(get_env_value JUPYTER_PORT)
-LOCAL_IMAGE="object-storage-data-lab:duckdb-\${DUCKDB_VERSION}"
+JUPYTER_IMAGE=\\$(get_env_value JUPYTER_IMAGE)
+DUCKDB_VERSION=\\$(get_env_value DUCKDB_VERSION)
+JUPYTER_BIND_HOST=\\$(get_env_value JUPYTER_BIND_HOST)
+JUPYTER_PORT=\\$(get_env_value JUPYTER_PORT)
+SSH_HOST=\\$(get_env_value SSH_HOST)
+SSH_USER=\\$(get_env_value SSH_USER)
+LOCAL_IMAGE="object-storage-data-lab:duckdb-\\${DUCKDB_VERSION}"
 
-sudo tee "\${BUILD_DIR}/Dockerfile" >/dev/null <<EOF
-FROM \${JUPYTER_IMAGE}
-RUN python -m pip install --no-cache-dir duckdb==\${DUCKDB_VERSION} requests
+sudo tee "\\${BUILD_DIR}/Dockerfile" >/dev/null <<EOF
+FROM \\${JUPYTER_IMAGE}
+RUN python -m pip install --no-cache-dir duckdb==\\${DUCKDB_VERSION} requests
 EOF
-sudo docker build --pull -t "\${LOCAL_IMAGE}" "\${BUILD_DIR}"
-sudo docker rm -f "\${CONTAINER_NAME}" object-storage-data-lab-broker >/dev/null 2>&1 || true
+sudo docker build --pull -t "\\${LOCAL_IMAGE}" "\\${BUILD_DIR}"
+sudo docker rm -f "\\${CONTAINER_NAME}" object-storage-data-lab-broker >/dev/null 2>&1 || true
 
-sudo docker run --rm \\
-  --env-file "\${ENV_FILE}" \\
-  --network host \\
-  -v "\${WORK_DIR}:/home/jovyan/work" \\
-  "\${LOCAL_IMAGE}" \\
+sudo docker run --rm \\\\
+  --env-file "\\${ENV_FILE}" \\\\
+  --network host \\\\
+  -v "\\${WORK_DIR}:/home/jovyan/work" \\\\
+  "\\${LOCAL_IMAGE}" \\\\
   python /home/jovyan/work/verify_object_storage.py
 
-sudo docker run -d \\
-  --name "\${CONTAINER_NAME}" \\
-  --restart unless-stopped \\
-  --network host \\
-  --env-file "\${ENV_FILE}" \\
-  -v "\${WORK_DIR}:/home/jovyan/work" \\
-  "\${LOCAL_IMAGE}" \\
-  start-notebook.py --ServerApp.ip="\${JUPYTER_BIND_HOST}" --ServerApp.port="\${JUPYTER_PORT}"
+sudo docker run -d \\\\
+  --name "\\${CONTAINER_NAME}" \\\\
+  --restart unless-stopped \\\\
+  --network host \\\\
+  --env-file "\\${ENV_FILE}" \\\\
+  -v "\\${WORK_DIR}:/home/jovyan/work" \\\\
+  "\\${LOCAL_IMAGE}" \\\\
+  start-notebook.py --ServerApp.ip="\\${JUPYTER_BIND_HOST}" --ServerApp.port="\\${JUPYTER_PORT}"
 
 healthy="false"
-for attempt in \$(seq 1 30); do
-  if curl -fsS "http://127.0.0.1:\${JUPYTER_PORT}/api?token=\${jupyter_token}" >/dev/null; then
+for attempt in \\$(seq 1 30); do
+  if curl -fsS "http://127.0.0.1:\\${JUPYTER_PORT}/api?token=\\${jupyter_token}" >/dev/null; then
     healthy="true"
     break
   fi
   sleep 5
 done
-if [ "\${healthy}" != "true" ]; then
-  sudo docker logs --tail 100 "\${CONTAINER_NAME}" | sed "s/\${jupyter_token}/****/g"
+if [ "\\${healthy}" != "true" ]; then
+  sudo docker logs --tail 100 "\\${CONTAINER_NAME}" | sed "s/\\${jupyter_token}/****/g"
   echo "JupyterLab health check failed"
   exit 1
 fi
@@ -3566,35 +3377,48 @@ fi
 echo ""
 echo ">>>>> Object Storage Data Lab is ready."
 echo "      access mode   : MCMP-hosted presigned URL broker"
-echo "      remote bind   : \${JUPYTER_BIND_HOST}:\${JUPYTER_PORT}"
-echo "      token file    : \${ENV_FILE} (on the VM)"
-echo "      jupyter token : \${jupyter_token}"
+echo "      remote bind   : \\${JUPYTER_BIND_HOST}:\\${JUPYTER_PORT}"
+echo "      token file    : \\${ENV_FILE} (on the VM)"
+echo "      jupyter token : \\${jupyter_token}"
 echo ""
-if [ "\${JUPYTER_BIND_HOST}" != "127.0.0.1" ] && [ "\${JUPYTER_BIND_HOST}" != "localhost" ] && [ "\${JUPYTER_BIND_HOST}" != "::1" ]; then
-  echo "      direct URL    : http://${sshHost}:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
+if [ "\\${JUPYTER_BIND_HOST}" != "127.0.0.1" ] && [ "\\${JUPYTER_BIND_HOST}" != "localhost" ] && [ "\\${JUPYTER_BIND_HOST}" != "::1" ]; then
+  echo "      direct URL    : http://\\${SSH_HOST}:\\${JUPYTER_PORT}/lab?token=\\${jupyter_token}"
   echo ""
 fi
 echo "      SSH tunnel alternative:"
-echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@${sshHost}"
+echo "         ssh -N -L \\${JUPYTER_PORT}:127.0.0.1:\\${JUPYTER_PORT} \\${SSH_USER}@\\${SSH_HOST}"
 echo "      then open:"
-echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
+echo "         http://127.0.0.1:\\${JUPYTER_PORT}/lab?token=\\${jupyter_token}"
 """
-                    writeFile file: "object-storage-data-lab-install.sh", text: installerSource
-                }
-                writeInstallerSource()
-            }
+    writeFile file: "object-storage-data-lab-install.sh", text: installerSource
+}
 
-            script {
+def downloadJupyterAssets() {
+    def assetBaseUrl = "http://mc-workflow-manager:18083/jenkins/jupyter"
+    def assets = [
+        [name: "object_storage_access.py", sha256: "814c3d0f7b1260d5fb3420c3fef520d4836c1f6daa32c978dcedf7a84df55458"],
+        [name: "verify_object_storage.py", sha256: "69d8dbf34f73d7520f67e94f37d300008d4c89ed0075d7cf16119cb130d1332e"],
+        [name: "object-storage-data-lab.ipynb", sha256: "f7248c79c31ba8d562f927b745e6d1c1c149ba1e58a9d2e1a8366851cc82c8aa"]
+    ]
+    assets.each { asset ->
+        sh """set -eu
+curl -fsS --retry 3 --connect-timeout 10 "${assetBaseUrl}/${asset.name}" -o "${asset.name}"
+echo "${asset.sha256}  ${asset.name}" | sha256sum -c -
+"""
+    }
+}
+
+def installAnalysis() {
                 def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
                 def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
                 def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\$", "")
+                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\\$", "")
                 def tumblebugUser = (params.USER ?: "").toString()
                 def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
                 def infraId = (params.INFRA_ID ?: "").toString().trim()
                 def brokerTunnelPort = "8889"
-                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
-                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
+                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\\$", "")
+                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
                 def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
                 def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
@@ -3604,7 +3428,7 @@ echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
                 def sshHost = env.SSH_HOST ?: params.SSH_HOST
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
                 def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
-                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                def keyOpt = sshKeyFile ? "-i \\"${sshKeyFile}\\"" : ""
                 def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
                 def legacyBrokerContainerName = "broker-${legacyBrokerId}"
                 def brokerContainerName = "mc-workflow-presigned-broker"
@@ -3621,7 +3445,7 @@ echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
                 writeFile file: "mc-workflow-presigned-broker-token", text: brokerToken
                 sh "chmod 600 mc-workflow-presigned-broker-token"
                 def brokerTokenHash = sh(
-                    script: "sha256sum mc-workflow-presigned-broker-token | cut -d\" \" -f1",
+                    script: "sha256sum mc-workflow-presigned-broker-token | cut -d\\" \\" -f1",
                     returnStdout: true
                 ).trim()
                 if (!(brokerTokenHash ==~ /[a-f0-9]{64}/)) {
@@ -3634,11 +3458,11 @@ command -v flock >/dev/null
 exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
 flock -x 9
 umask 077
-if [ ! -s "\${token_file}" ]; then
-  od -An -N32 -tx1 /dev/urandom | tr -d " \\n" > "\${token_file}"
+if [ ! -s "\\${token_file}" ]; then
+  od -An -N32 -tx1 /dev/urandom | tr -d " \\\\n" > "\\${token_file}"
 fi
-chmod 600 "\${token_file}"
-cat "\${token_file}"
+chmod 600 "\\${token_file}"
+cat "\\${token_file}"
 """,
                     returnStdout: true
                 ).trim()
@@ -3666,6 +3490,8 @@ JUPYTER_IMAGE=${jupyterImage}
 DUCKDB_VERSION=${duckdbVersion}
 JUPYTER_BIND_HOST=${jupyterBindHost}
 JUPYTER_PORT=${jupyterPort}
+SSH_HOST=${sshHost}
+SSH_USER=${sshUser}
 """
                 writeFile file: "mc-workflow-presigned-broker.env", text: """BROKER_ADMIN_TOKEN=${brokerAdminToken}
 BROKER_SESSION_STORE=/var/lib/mc-workflow-presigned-broker/sessions.json
@@ -3688,7 +3514,7 @@ chmod 700 object-storage-data-lab-install.sh
 """
 
                 def infraNetworks = sh(
-                    script: """docker inspect --format=''{{range \$networkName, \$networkConfig := .NetworkSettings.Networks}}{{println \$networkName}}{{end}}'' mc-workflow-manager-jenkins""",
+                    script: """docker inspect --format=''{{range \\$networkName, \\$networkConfig := .NetworkSettings.Networks}}{{println \\$networkName}}{{end}}'' mc-workflow-manager-jenkins""",
                     returnStdout: true
                 ).trim().readLines().collect { it.trim() }.findAll { it }
                 def infraNetwork = infraNetworks.find { it.endsWith("mc-infra-manager-network") }
@@ -3702,40 +3528,40 @@ exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
 flock -x 9
 
 docker volume create "${brokerVolumeName}" >/dev/null
-current_broker_hash=\$(docker inspect --format=''{{ index .Config.Labels "mc-workflow-presigned-broker.runtime-sha256" }}'' "${brokerContainerName}" 2>/dev/null || true)
-if [ "\${current_broker_hash}" != "${brokerRuntimeHash}" ]; then
+current_broker_hash=\\$(docker inspect --format=''{{ index .Config.Labels "mc-workflow-presigned-broker.runtime-sha256" }}'' "${brokerContainerName}" 2>/dev/null || true)
+if [ "\\${current_broker_hash}" != "${brokerRuntimeHash}" ]; then
   docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
-  docker create \\
-    --name "${brokerContainerName}" \\
-    --restart unless-stopped \\
-    --network "${infraNetwork}" \\
-    --label "mc-workflow-presigned-broker.runtime-sha256=${brokerRuntimeHash}" \\
-    --env-file mc-workflow-presigned-broker.env \\
-    -v "${brokerVolumeName}:/var/lib/mc-workflow-presigned-broker" \\
-    python:3.12-slim \\
+  docker create \\\\
+    --name "${brokerContainerName}" \\\\
+    --restart unless-stopped \\\\
+    --network "${infraNetwork}" \\\\
+    --label "mc-workflow-presigned-broker.runtime-sha256=${brokerRuntimeHash}" \\\\
+    --env-file mc-workflow-presigned-broker.env \\\\
+    -v "${brokerVolumeName}:/var/lib/mc-workflow-presigned-broker" \\\\
+    python:3.12-slim \\\\
     sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
   docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
   docker start "${brokerContainerName}" >/dev/null
-elif [ "\$(docker inspect --format=''{{.State.Running}}'' "${brokerContainerName}")" != "true" ]; then
+elif [ "\\$(docker inspect --format=''{{.State.Running}}'' "${brokerContainerName}")" != "true" ]; then
   docker start "${brokerContainerName}" >/dev/null
 fi
 
 broker_healthy="false"
-for attempt in \$(seq 1 30); do
-  if docker exec "${brokerContainerName}" python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null 2>&1; then
+for attempt in \\$(seq 1 30); do
+  if docker exec "${brokerContainerName}" python -c "import urllib.request; urllib.request.urlopen(\\\\\\"http://127.0.0.1:8765/health\\\\\\", timeout=3).read()" >/dev/null 2>&1; then
     broker_healthy="true"
     break
   fi
   sleep 2
 done
-if [ "\${broker_healthy}" != "true" ]; then
+if [ "\\${broker_healthy}" != "true" ]; then
   docker logs --tail 100 "${brokerContainerName}"
   echo "Object Storage presigned URL broker health check failed"
   exit 1
 fi
 
 docker cp mc-workflow-presigned-broker-session.json "${brokerContainerName}:/tmp/mc-workflow-presigned-broker-session.json"
-if ! docker exec "${brokerContainerName}" python -c "import os, urllib.request; data=open(\\\"/tmp/mc-workflow-presigned-broker-session.json\\\", \\\"rb\\\").read(); request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\", data=data, method=\\\"PUT\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"], \\\"Content-Type\\\": \\\"application/json\\\"}); urllib.request.urlopen(request, timeout=30).read()"; then
+if ! docker exec "${brokerContainerName}" python -c "import os, urllib.request; data=open(\\\\\\"/tmp/mc-workflow-presigned-broker-session.json\\\\\\", \\\\\\"rb\\\\\\").read(); request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", data=data, method=\\\\\\"PUT\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"], \\\\\\"Content-Type\\\\\\": \\\\\\"application/json\\\\\\"}); urllib.request.urlopen(request, timeout=30).read()"; then
   docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
   exit 1
 fi
@@ -3763,14 +3589,30 @@ rm -f "${tunnelControlPath}"
                         if (brokerSessionRegistered) {
                             sh """exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
 flock -x 9
-remaining_sessions=\$(docker exec "${brokerContainerName}" python -c "import json, os, urllib.request; request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\", method=\\\"DELETE\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\"remainingSessionCount\\\"])" 2>/dev/null || true)
-if [ "\${remaining_sessions}" = "0" ]; then
+remaining_sessions=\\$(docker exec "${brokerContainerName}" python -c "import json, os, urllib.request; request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", method=\\\\\\"DELETE\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\\\\"remainingSessionCount\\\\\\"])" 2>/dev/null || true)
+if [ "\\${remaining_sessions}" = "0" ]; then
   docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
 fi
 """
                         }
                     }
                     sh "rm -f object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json mc-workflow-presigned-broker-token object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
+                }
+}
+
+validateInputs()
+writeBrokerSource()
+writeInstallerSource()
+downloadJupyterAssets()
+installAnalysis()
+
+return this
+''''''
+                writeFile file: runnerName, text: runnerSource
+                try {
+                    load runnerName
+                } finally {
+                    sh "rm -f ${runnerName}"
                 }
             }
         }
