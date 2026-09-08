@@ -2737,19 +2737,15 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 }
                 def sshHost = env.SSH_HOST ?: params.SSH_HOST
                 def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
-                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
                 if (!sshHost || !sshUser) {
                     error "SSH_HOST and SSH_USER are required for jupyter-object-storage-analysis-install"
                 }
-                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
-                def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
-                def legacyBrokerContainerName = "broker-${legacyBrokerId}"
-                def brokerContainerName = "mc-workflow-presigned-broker"
-                def brokerVolumeName = "mc-workflow-presigned-broker-data"
-                def brokerSessionId = "${osNamespace}-${infraId}"
-                def tunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
+            }
 
-                def brokerSource = """import hashlib
+            script {
+                // Split generated artifacts into separate CPS closures to stay below the JVM method-size limit.
+                def writeBrokerSource = {
+                    def brokerSource = """import hashlib
 import hmac
 import json
 import os
@@ -3273,8 +3269,14 @@ class BrokerHandler(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     ThreadingHTTPServer(("0.0.0.0", 8765), BrokerHandler).serve_forever()
 """
+                    writeFile file: "presigned_broker.py", text: brokerSource
+                }
+                writeBrokerSource()
+            }
 
-                def helperSource = """import os
+            script {
+                def writeHelperSource = {
+                    def helperSource = """import os
 from urllib.parse import quote
 
 import duckdb
@@ -3336,8 +3338,14 @@ def upload_file(key, local_path):
     response.raise_for_status()
     return response.json()
 """
+                    writeFile file: "object_storage_access.py", text: helperSource
+                }
+                writeHelperSource()
+            }
 
-                def verifierSource = """import os
+            script {
+                def writeVerifierSource = {
+                    def verifierSource = """import os
 import requests
 
 from object_storage_access import broker_headers, list_objects, object_url
@@ -3365,9 +3373,14 @@ def verify():
 if __name__ == "__main__":
     verify()
 """
+                    writeFile file: "verify_object_storage.py", text: verifierSource
+                }
+                writeVerifierSource()
+            }
 
-                // Keep the generated Jenkinsfile below the JVM method-size limit.
-                def notebookBase64 = """
+            script {
+                def writeNotebook = {
+                    def notebookBase64 = """
 ewogICJjZWxscyI6IFsKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjog
 WwogICAgICAgICIjIE9iamVjdCBTdG9yYWdlIERhdGEgTGFiXG4iLAogICAgICAgICJcbiIsCiAgICAgICAgIk1DTVAg7ISc67KE7J2YIGJyb2tlcuqwgCDq
 uLDsobQgQ0ItVHVtYmxlYnVnIEFQSeuhnCDrsJzquIntlZwgcHJlc2lnbmVkIFVSTOydhCDsoJztlZzrkJwg7YSw64SQ7J2EIO2Gte2VtCDsoJzqs7Xtlanr
@@ -3447,7 +3460,17 @@ OiAiUHl0aG9uIDMgKGlweWtlcm5lbCkiLAogICAgICAibGFuZ3VhZ2UiOiAicHl0aG9uIiwKICAgICAg
 bGFuZ3VhZ2VfaW5mbyI6IHsKICAgICAgIm5hbWUiOiAicHl0aG9uIiwKICAgICAgInZlcnNpb24iOiAiMyIKICAgIH0KICB9LAogICJuYmZvcm1hdCI6IDQs
 CiAgIm5iZm9ybWF0X21pbm9yIjogNQp9
                 """.trim()
-                def installerSource = """#!/usr/bin/env bash
+                    writeFile file: "object-storage-data-lab.ipynb.b64", text: notebookBase64
+                    sh "base64 -d object-storage-data-lab.ipynb.b64 > object-storage-data-lab.ipynb"
+                }
+                writeNotebook()
+            }
+
+            script {
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
+                def writeInstallerSource = {
+                    def installerSource = """#!/usr/bin/env bash
 set -euo pipefail
 
 APP_ROOT="/opt/object-storage-data-lab"
@@ -3556,16 +3579,41 @@ echo "         ssh -N -L \${JUPYTER_PORT}:127.0.0.1:\${JUPYTER_PORT} ${sshUser}@
 echo "      then open:"
 echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
 """
+                    writeFile file: "object-storage-data-lab-install.sh", text: installerSource
+                }
+                writeInstallerSource()
+            }
 
+            script {
+                def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
+                def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
+                def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\$", "")
+                def tumblebugUser = (params.USER ?: "").toString()
+                def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
+                def infraId = (params.INFRA_ID ?: "").toString().trim()
+                def brokerTunnelPort = "8889"
+                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
+                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
+                def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
+                def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
+                def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
+                def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
+                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
+                def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
+                def sshHost = env.SSH_HOST ?: params.SSH_HOST
+                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
+                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+                def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\"" : ""
+                def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
+                def legacyBrokerContainerName = "broker-${legacyBrokerId}"
+                def brokerContainerName = "mc-workflow-presigned-broker"
+                def brokerVolumeName = "mc-workflow-presigned-broker-data"
+                def brokerSessionId = "${osNamespace}-${infraId}"
+                def tunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
                 def installComplete = false
                 def brokerSessionRegistered = false
                 try {
-                writeFile file: "presigned_broker.py", text: brokerSource
-                writeFile file: "object_storage_access.py", text: helperSource
-                writeFile file: "verify_object_storage.py", text: verifierSource
-                writeFile file: "object-storage-data-lab.ipynb.b64", text: notebookBase64
-                sh "base64 -d object-storage-data-lab.ipynb.b64 > object-storage-data-lab.ipynb"
-                writeFile file: "object-storage-data-lab-install.sh", text: installerSource
                 def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
                 if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
                     error "Failed to generate the Object Storage broker token"
@@ -4756,9 +4804,9 @@ SELECT 110, 'vm-object-storage-data-lab-cleanup', 'For Cleanup', 1,
     stages {
 '
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 63)
-|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60)
-|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59)
 || (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59)
+|| (SELECT workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60)
 || '
     }
 }
@@ -5245,11 +5293,11 @@ INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_id
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
 SELECT 110, 2, 63, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 63;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 110, 3, 60, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60;
+SELECT 110, 3, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
 SELECT 110, 4, 59, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 59;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage)
-SELECT 110, 5, 57, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 57;
+SELECT 110, 5, 60, workflow_stage_content FROM workflow_stage WHERE workflow_stage_idx = 60;
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (110, 6, null, '
     }
