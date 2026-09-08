@@ -502,7 +502,12 @@ const tumblebugSelectorManagedParamKeys = [
 const selectorRequiredStageNames = ['infra-create', 'k8s-cluster-create', 'multi-csp-vm-deploy', 'multi-csp-k8s-cluster-deploy']
 const selectorCandidateStageNames = [...selectorRequiredStageNames, ...tumblebugStageNames]
 const kubernetesImageStageNames = ['k8s-cluster-create', 'k8s-nodegroup-add', 'multi-csp-k8s-cluster-deploy']
-const objectStorageStageNames = ['object-storage-ensure', 'object-storage-delete', 'jupyter-object-storage-analysis-install']
+const objectStorageStageNames = [
+  'object-storage-ensure',
+  'object-storage-delete',
+  'jupyter-object-storage-analysis-install',
+  'jupyter-object-storage-analysis-remove',
+]
 const kubernetesImageEnabled = ref(false)
 const kubernetesImageModeChanged = ref(false)
 const noZoneOption = { label: 'No zone required', value: '', searchText: 'no zone optional blank' }
@@ -2096,6 +2101,11 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'JUPYTER_PORT', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '', eventListenerYn: 'N' },
     ],
+    'jupyter-object-storage-analysis-remove': [
+      { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
+      { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
+      { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
+    ],
     'jupyter-object-storage-analysis-install': [
       { paramKey: 'USER', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
@@ -2104,7 +2114,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'OBJECT_STORAGE_BUCKET', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_NAMESPACE', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'OBJECT_STORAGE_REGION', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'PRESIGNED_URL_EXPIRES', paramValue: '3600', eventListenerYn: 'N' },
+      { paramKey: 'PRESIGNED_URL_EXPIRES', paramValue: '600', eventListenerYn: 'N' },
       { paramKey: 'SSH_HOST', paramValue: '', eventListenerYn: 'N' },
       { paramKey: 'SSH_USER', paramValue: 'cb-user', eventListenerYn: 'N' },
       { paramKey: 'SSH_KEY_FILE', paramValue: '', eventListenerYn: 'N' },

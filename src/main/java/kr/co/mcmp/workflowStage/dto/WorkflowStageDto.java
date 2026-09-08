@@ -325,6 +325,10 @@ public class WorkflowStageDto {
                     param("INFRA_ID", ""),
                     param("JUPYTER_PORT", ""),
                     param("JUPYTER_ALLOWED_CIDR", ""));
+            case "jupyter-object-storage-analysis-remove" -> params(
+                    param("NAMESPACE", ""),
+                    param("INFRA_ID", ""),
+                    param("OBJECT_STORAGE_NAMESPACE", ""));
             case "jupyter-object-storage-analysis-install" -> params(
                     param("USER", "default"),
                     param("USERPASS", "default"),
@@ -333,7 +337,7 @@ public class WorkflowStageDto {
                     param("OBJECT_STORAGE_BUCKET", ""),
                     param("OBJECT_STORAGE_NAMESPACE", ""),
                     param("OBJECT_STORAGE_REGION", ""),
-                    param("PRESIGNED_URL_EXPIRES", "3600"),
+                    param("PRESIGNED_URL_EXPIRES", "600"),
                     param("SSH_HOST", ""),
                     param("SSH_USER", "cb-user"),
                     param("SSH_KEY_FILE", ""),
