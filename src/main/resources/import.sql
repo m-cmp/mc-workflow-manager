@@ -3101,128 +3101,87 @@ if __name__ == "__main__":
     verify()
 """
 
-                def notebook = [
-                    cells: [
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "# Object Storage Data Lab\n",
-                            "\n",
-                            "MCMP 서버의 broker가 기존 CB-Tumblebug API로 발급한 presigned URL을 제한된 터널을 통해 제공합니다.\n",
-                            "Jupyter 컨테이너에는 CSP Access Key / Secret Key와 CB-Tumblebug 자격증명이 없습니다.\n",
-                            "노트북은 고정된 broker URL을 사용하며, broker가 만료 전에 새 presigned URL로 자동 교체합니다.\n",
-                            "\n",
-                            "버킷에 파일을 올린 뒤 아래 셀을 위에서부터 실행하세요."
-                        ]],
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "## 1. 버킷 파일 목록"
-                        ]],
-                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
-                            "import os\n",
-                            "import matplotlib.pyplot as plt\n",
-                            "from object_storage_access import create_connection, list_objects, object_url, sql_identifier, sql_quote, upload_file\n",
-                            "\n",
-                            "con = create_connection()\n",
-                            "objects = list_objects()\n",
-                            "files = [str(item.get(\"key\", \"\")) for item in objects if item.get(\"key\")]\n",
-                            "print(\"storage:\", os.environ.get(\"OBJECT_STORAGE_ID\", \"\"))\n",
-                            "print(\"objects:\", len(files))\n",
-                            "for name in files[:30]:\n",
-                            "    print(\" -\", name)"
-                        ]],
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "## 2. 데이터 로드\n",
-                            "\n",
-                            "Parquet이 있으면 Parquet을, 없으면 CSV를 읽습니다. `TARGET_KEYS`에 분석할 객체 키 목록을 직접 지정할 수도 있습니다."
-                        ]],
-                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
-                            "TARGET_KEYS = None\n",
-                            "\n",
-                            "def pick_reader():\n",
-                            "    selected = list(TARGET_KEYS) if TARGET_KEYS else []\n",
-                            "    if selected:\n",
-                            "        reader = \"read_parquet\" if all(name.lower().endswith(\".parquet\") for name in selected) else \"read_csv_auto\"\n",
-                            "        return selected, reader\n",
-                            "    parquet_files = [name for name in files if name.lower().endswith(\".parquet\")]\n",
-                            "    if parquet_files:\n",
-                            "        return parquet_files, \"read_parquet\"\n",
-                            "    csv_files = [name for name in files if name.lower().endswith(\".csv\")]\n",
-                            "    if csv_files:\n",
-                            "        return csv_files, \"read_csv_auto\"\n",
-                            "    return [], None\n",
-                            "\n",
-                            "selected_keys, reader = pick_reader()\n",
-                            "if not selected_keys:\n",
-                            "    df = None\n",
-                            "    print(\"읽을 Parquet / CSV 파일이 없습니다. 버킷에 파일을 올린 뒤 1번 셀부터 다시 실행하세요.\")\n",
-                            "else:\n",
-                            "    urls = [object_url(name) for name in selected_keys]\n",
-                            "    url_list_sql = \"[\" + \", \".join(sql_quote(url) for url in urls) + \"]\"\n",
-                            "    df = con.execute(\"SELECT * FROM \" + reader + \"(\" + url_list_sql + \", union_by_name=true)\").df()\n",
-                            "    print(reader, \"objects:\", len(selected_keys))\n",
-                            "    print(\"rows:\", len(df), \"columns:\", list(df.columns))\n",
-                            "    display(df.head())"
-                        ]],
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "## 3. 집계와 차트\n",
-                            "\n",
-                            "문자열 컬럼을 기준으로 숫자 컬럼을 합계 냅니다. `GROUP_COL` / `VALUE_COL`로 직접 지정할 수 있습니다."
-                        ]],
-                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
-                            "GROUP_COL = None\n",
-                            "VALUE_COL = None\n",
-                            "summary = None\n",
-                            "\n",
-                            "if df is None or df.empty:\n",
-                            "    print(\"로드된 데이터가 없습니다.\")\n",
-                            "else:\n",
-                            "    text_cols = [c for c in df.columns if df[c].dtype == object]\n",
-                            "    num_cols = [c for c in df.columns if df[c].dtype.kind in \"ifu\"]\n",
-                            "    group_col = GROUP_COL or (\"region\" if \"region\" in df.columns else (text_cols[0] if text_cols else None))\n",
-                            "    value_col = VALUE_COL or (num_cols[0] if num_cols else None)\n",
-                            "    if group_col is None or value_col is None:\n",
-                            "        print(\"집계할 컬럼을 찾지 못했습니다. GROUP_COL과 VALUE_COL을 직접 지정하세요.\")\n",
-                            "    else:\n",
-                            "        con.register(\"loaded\", df)\n",
-                            "        summary = con.execute(\n",
-                            "            \"SELECT \" + sql_identifier(group_col) + \" AS group_key, SUM(\" + sql_identifier(value_col) + \") AS total \"\n",
-                            "            \"FROM loaded GROUP BY 1 ORDER BY 1\"\n",
-                            "        ).df()\n",
-                            "        display(summary)\n",
-                            "        summary.plot.bar(x=\"group_key\", y=\"total\", legend=False, title=value_col + \" by \" + group_col)\n",
-                            "        plt.tight_layout()\n",
-                            "        plt.show()"
-                        ]],
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "## 4. 새 파일 추가 후 재실행\n",
-                            "\n",
-                            "버킷에 파일을 더 올린 뒤 1~3번 셀을 다시 실행하면 목록과 결과, 차트가 갱신됩니다."
-                        ]],
-                        [cell_type: "markdown", metadata: [:], source: [
-                            "## 5. 분석 결과 저장 (선택)"
-                        ]],
-                        [cell_type: "code", execution_count: null, metadata: [:], outputs: [], source: [
-                            "if summary is None:\n",
-                            "    print(\"저장할 집계 결과가 없습니다.\")\n",
-                            "elif os.environ.get(\"WRITE_RESULT_ENABLED\", \"true\").lower() != \"true\":\n",
-                            "    print(\"WRITE_RESULT_ENABLED가 false라 저장하지 않습니다.\")\n",
-                            "else:\n",
-                            "    result_prefix = os.environ.get(\"RESULT_PREFIX\", \"results\").strip(\"/\")\n",
-                            "    result_key = result_prefix + \"/summary.parquet\"\n",
-                            "    local_result = \"/tmp/object-storage-data-lab-summary.parquet\"\n",
-                            "    con.register(\"summary_data\", summary)\n",
-                            "    con.execute(\"COPY summary_data TO \" + sql_quote(local_result) + \" (FORMAT PARQUET)\")\n",
-                            "    upload_file(result_key, local_result)\n",
-                            "    print(\"Saved:\", result_key)\n",
-                            "    display(con.execute(\"SELECT * FROM read_parquet(\" + sql_quote(object_url(result_key)) + \")\").df())"
-                        ]]
-                    ],
-                    metadata: [
-                        kernelspec: [display_name: "Python 3 (ipykernel)", language: "python", name: "python3"],
-                        language_info: [name: "python", version: "3"]
-                    ],
-                    nbformat: 4,
-                    nbformat_minor: 5
-                ]
-
+                // Keep the generated Jenkinsfile below the JVM method-size limit.
+                def notebookBase64 = """
+ewogICJjZWxscyI6IFsKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjog
+WwogICAgICAgICIjIE9iamVjdCBTdG9yYWdlIERhdGEgTGFiXG4iLAogICAgICAgICJcbiIsCiAgICAgICAgIk1DTVAg7ISc67KE7J2YIGJyb2tlcuqwgCDq
+uLDsobQgQ0ItVHVtYmxlYnVnIEFQSeuhnCDrsJzquIntlZwgcHJlc2lnbmVkIFVSTOydhCDsoJztlZzrkJwg7YSw64SQ7J2EIO2Gte2VtCDsoJzqs7Xtlanr
+i4jri6QuXG4iLAogICAgICAgICJKdXB5dGVyIOy7qO2FjOydtOuEiOyXkOuKlCBDU1AgQWNjZXNzIEtleSAvIFNlY3JldCBLZXnsmYAgQ0ItVHVtYmxlYnVn
+IOyekOqyqeymneuqheydtCDsl4bsirXri4jri6QuXG4iLAogICAgICAgICLrhbjtirjrtoHsnYAg6rOg7KCV65CcIGJyb2tlciBVUkzsnYQg7IKs7Jqp7ZWY
+66mwLCBicm9rZXLqsIAg66eM66OMIOyghOyXkCDsg4ggcHJlc2lnbmVkIFVSTOuhnCDsnpDrj5kg6rWQ7LK07ZWp64uI64ukLlxuIiwKICAgICAgICAiXG4i
+LAogICAgICAgICLrsoTtgrfsl5Ag7YyM7J287J2EIOyYrOumsCDrkqQg7JWE656YIOyFgOydhCDsnITsl5DshJzrtoDthLAg7Iuk7ZaJ7ZWY7IS47JqULiIK
+ICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjog
+WwogICAgICAgICIjIyAxLiDrsoTtgrcg7YyM7J28IOuqqeuhnSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJjb2RlIiwKICAg
+ICAgImV4ZWN1dGlvbl9jb3VudCI6IG51bGwsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAib3V0cHV0cyI6IFtdLAogICAgICAic291cmNlIjogWwog
+ICAgICAgICJpbXBvcnQgb3NcbiIsCiAgICAgICAgImltcG9ydCBtYXRwbG90bGliLnB5cGxvdCBhcyBwbHRcbiIsCiAgICAgICAgImZyb20gb2JqZWN0X3N0
+b3JhZ2VfYWNjZXNzIGltcG9ydCBjcmVhdGVfY29ubmVjdGlvbiwgbGlzdF9vYmplY3RzLCBvYmplY3RfdXJsLCBzcWxfaWRlbnRpZmllciwgc3FsX3F1b3Rl
+LCB1cGxvYWRfZmlsZVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICJjb24gPSBjcmVhdGVfY29ubmVjdGlvbigpXG4iLAogICAgICAgICJvYmplY3RzID0g
+bGlzdF9vYmplY3RzKClcbiIsCiAgICAgICAgImZpbGVzID0gW3N0cihpdGVtLmdldChcImtleVwiLCBcIlwiKSkgZm9yIGl0ZW0gaW4gb2JqZWN0cyBpZiBp
+dGVtLmdldChcImtleVwiKV1cbiIsCiAgICAgICAgInByaW50KFwic3RvcmFnZTpcIiwgb3MuZW52aXJvbi5nZXQoXCJPQkpFQ1RfU1RPUkFHRV9JRFwiLCBc
+IlwiKSlcbiIsCiAgICAgICAgInByaW50KFwib2JqZWN0czpcIiwgbGVuKGZpbGVzKSlcbiIsCiAgICAgICAgImZvciBuYW1lIGluIGZpbGVzWzozMF06XG4i
+LAogICAgICAgICIgICAgcHJpbnQoXCIgLVwiLCBuYW1lKSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAg
+ICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjogWwogICAgICAgICIjIyAyLiDrjbDsnbTthLAg66Gc65OcXG4iLAogICAgICAgICJcbiIsCiAg
+ICAgICAgIlBhcnF1ZXTsnbQg7J6I7Jy866m0IFBhcnF1ZXTsnYQsIOyXhuycvOuptCBDU1brpbwg7J297Iq164uI64ukLiBgVEFSR0VUX0tFWVNg7JeQIOu2
+hOyEne2VoCDqsJ3ssrQg7YKkIOuqqeuhneydhCDsp4HsoJEg7KeA7KCV7ZWgIOyImOuPhCDsnojsirXri4jri6QuIgogICAgICBdCiAgICB9LAogICAgewog
+ICAgICAiY2VsbF90eXBlIjogImNvZGUiLAogICAgICAiZXhlY3V0aW9uX2NvdW50IjogbnVsbCwKICAgICAgIm1ldGFkYXRhIjoge30sCiAgICAgICJvdXRw
+dXRzIjogW10sCiAgICAgICJzb3VyY2UiOiBbCiAgICAgICAgIlRBUkdFVF9LRVlTID0gTm9uZVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICJkZWYgcGlj
+a19yZWFkZXIoKTpcbiIsCiAgICAgICAgIiAgICBzZWxlY3RlZCA9IGxpc3QoVEFSR0VUX0tFWVMpIGlmIFRBUkdFVF9LRVlTIGVsc2UgW11cbiIsCiAgICAg
+ICAgIiAgICBpZiBzZWxlY3RlZDpcbiIsCiAgICAgICAgIiAgICAgICAgcmVhZGVyID0gXCJyZWFkX3BhcnF1ZXRcIiBpZiBhbGwobmFtZS5sb3dlcigpLmVu
+ZHN3aXRoKFwiLnBhcnF1ZXRcIikgZm9yIG5hbWUgaW4gc2VsZWN0ZWQpIGVsc2UgXCJyZWFkX2Nzdl9hdXRvXCJcbiIsCiAgICAgICAgIiAgICAgICAgcmV0
+dXJuIHNlbGVjdGVkLCByZWFkZXJcbiIsCiAgICAgICAgIiAgICBwYXJxdWV0X2ZpbGVzID0gW25hbWUgZm9yIG5hbWUgaW4gZmlsZXMgaWYgbmFtZS5sb3dl
+cigpLmVuZHN3aXRoKFwiLnBhcnF1ZXRcIildXG4iLAogICAgICAgICIgICAgaWYgcGFycXVldF9maWxlczpcbiIsCiAgICAgICAgIiAgICAgICAgcmV0dXJu
+IHBhcnF1ZXRfZmlsZXMsIFwicmVhZF9wYXJxdWV0XCJcbiIsCiAgICAgICAgIiAgICBjc3ZfZmlsZXMgPSBbbmFtZSBmb3IgbmFtZSBpbiBmaWxlcyBpZiBu
+YW1lLmxvd2VyKCkuZW5kc3dpdGgoXCIuY3N2XCIpXVxuIiwKICAgICAgICAiICAgIGlmIGNzdl9maWxlczpcbiIsCiAgICAgICAgIiAgICAgICAgcmV0dXJu
+IGNzdl9maWxlcywgXCJyZWFkX2Nzdl9hdXRvXCJcbiIsCiAgICAgICAgIiAgICByZXR1cm4gW10sIE5vbmVcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAi
+c2VsZWN0ZWRfa2V5cywgcmVhZGVyID0gcGlja19yZWFkZXIoKVxuIiwKICAgICAgICAiaWYgbm90IHNlbGVjdGVkX2tleXM6XG4iLAogICAgICAgICIgICAg
+ZGYgPSBOb25lXG4iLAogICAgICAgICIgICAgcHJpbnQoXCLsnb3snYQgUGFycXVldCAvIENTViDtjIzsnbzsnbQg7JeG7Iq164uI64ukLiDrsoTtgrfsl5Ag
+7YyM7J287J2EIOyYrOumsCDrkqQgMeuyiCDshYDrtoDthLAg64uk7IucIOyLpO2Wie2VmOyEuOyalC5cIilcbiIsCiAgICAgICAgImVsc2U6XG4iLAogICAg
+ICAgICIgICAgdXJscyA9IFtvYmplY3RfdXJsKG5hbWUpIGZvciBuYW1lIGluIHNlbGVjdGVkX2tleXNdXG4iLAogICAgICAgICIgICAgdXJsX2xpc3Rfc3Fs
+ID0gXCJbXCIgKyBcIiwgXCIuam9pbihzcWxfcXVvdGUodXJsKSBmb3IgdXJsIGluIHVybHMpICsgXCJdXCJcbiIsCiAgICAgICAgIiAgICBkZiA9IGNvbi5l
+eGVjdXRlKFwiU0VMRUNUICogRlJPTSBcIiArIHJlYWRlciArIFwiKFwiICsgdXJsX2xpc3Rfc3FsICsgXCIsIHVuaW9uX2J5X25hbWU9dHJ1ZSlcIikuZGYo
+KVxuIiwKICAgICAgICAiICAgIHByaW50KHJlYWRlciwgXCJvYmplY3RzOlwiLCBsZW4oc2VsZWN0ZWRfa2V5cykpXG4iLAogICAgICAgICIgICAgcHJpbnQo
+XCJyb3dzOlwiLCBsZW4oZGYpLCBcImNvbHVtbnM6XCIsIGxpc3QoZGYuY29sdW1ucykpXG4iLAogICAgICAgICIgICAgZGlzcGxheShkZi5oZWFkKCkpIgog
+ICAgICBdCiAgICB9LAogICAgewogICAgICAiY2VsbF90eXBlIjogIm1hcmtkb3duIiwKICAgICAgIm1ldGFkYXRhIjoge30sCiAgICAgICJzb3VyY2UiOiBb
+CiAgICAgICAgIiMjIDMuIOynkeqzhOyZgCDssKjtirhcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAi66y47J6Q7Je0IOy7rOufvOydhCDquLDspIDsnLzr
+oZwg7Iir7J6QIOy7rOufvOydhCDtlanqs4Qg64OF64uI64ukLiBgR1JPVVBfQ09MYCAvIGBWQUxVRV9DT0xg66GcIOyngeygkSDsp4DsoJXtlaAg7IiYIOye
+iOyKteuLiOuLpC4iCiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAgICJjZWxsX3R5cGUiOiAiY29kZSIsCiAgICAgICJleGVjdXRpb25fY291bnQiOiBudWxs
+LAogICAgICAibWV0YWRhdGEiOiB7fSwKICAgICAgIm91dHB1dHMiOiBbXSwKICAgICAgInNvdXJjZSI6IFsKICAgICAgICAiR1JPVVBfQ09MID0gTm9uZVxu
+IiwKICAgICAgICAiVkFMVUVfQ09MID0gTm9uZVxuIiwKICAgICAgICAic3VtbWFyeSA9IE5vbmVcbiIsCiAgICAgICAgIlxuIiwKICAgICAgICAiaWYgZGYg
+aXMgTm9uZSBvciBkZi5lbXB0eTpcbiIsCiAgICAgICAgIiAgICBwcmludChcIuuhnOuTnOuQnCDrjbDsnbTthLDqsIAg7JeG7Iq164uI64ukLlwiKVxuIiwK
+ICAgICAgICAiZWxzZTpcbiIsCiAgICAgICAgIiAgICB0ZXh0X2NvbHMgPSBbYyBmb3IgYyBpbiBkZi5jb2x1bW5zIGlmIGRmW2NdLmR0eXBlID09IG9iamVj
+dF1cbiIsCiAgICAgICAgIiAgICBudW1fY29scyA9IFtjIGZvciBjIGluIGRmLmNvbHVtbnMgaWYgZGZbY10uZHR5cGUua2luZCBpbiBcImlmdVwiXVxuIiwK
+ICAgICAgICAiICAgIGdyb3VwX2NvbCA9IEdST1VQX0NPTCBvciAoXCJyZWdpb25cIiBpZiBcInJlZ2lvblwiIGluIGRmLmNvbHVtbnMgZWxzZSAodGV4dF9j
+b2xzWzBdIGlmIHRleHRfY29scyBlbHNlIE5vbmUpKVxuIiwKICAgICAgICAiICAgIHZhbHVlX2NvbCA9IFZBTFVFX0NPTCBvciAobnVtX2NvbHNbMF0gaWYg
+bnVtX2NvbHMgZWxzZSBOb25lKVxuIiwKICAgICAgICAiICAgIGlmIGdyb3VwX2NvbCBpcyBOb25lIG9yIHZhbHVlX2NvbCBpcyBOb25lOlxuIiwKICAgICAg
+ICAiICAgICAgICBwcmludChcIuynkeqzhO2VoCDsu6zrn7zsnYQg7LC+7KeAIOuqu+2WiOyKteuLiOuLpC4gR1JPVVBfQ09M6rO8IFZBTFVFX0NPTOydhCDs
+p4HsoJEg7KeA7KCV7ZWY7IS47JqULlwiKVxuIiwKICAgICAgICAiICAgIGVsc2U6XG4iLAogICAgICAgICIgICAgICAgIGNvbi5yZWdpc3RlcihcImxvYWRl
+ZFwiLCBkZilcbiIsCiAgICAgICAgIiAgICAgICAgc3VtbWFyeSA9IGNvbi5leGVjdXRlKFxuIiwKICAgICAgICAiICAgICAgICAgICAgXCJTRUxFQ1QgXCIg
+KyBzcWxfaWRlbnRpZmllcihncm91cF9jb2wpICsgXCIgQVMgZ3JvdXBfa2V5LCBTVU0oXCIgKyBzcWxfaWRlbnRpZmllcih2YWx1ZV9jb2wpICsgXCIpIEFT
+IHRvdGFsIFwiXG4iLAogICAgICAgICIgICAgICAgICAgICBcIkZST00gbG9hZGVkIEdST1VQIEJZIDEgT1JERVIgQlkgMVwiXG4iLAogICAgICAgICIgICAg
+ICAgICkuZGYoKVxuIiwKICAgICAgICAiICAgICAgICBkaXNwbGF5KHN1bW1hcnkpXG4iLAogICAgICAgICIgICAgICAgIHN1bW1hcnkucGxvdC5iYXIoeD1c
+Imdyb3VwX2tleVwiLCB5PVwidG90YWxcIiwgbGVnZW5kPUZhbHNlLCB0aXRsZT12YWx1ZV9jb2wgKyBcIiBieSBcIiArIGdyb3VwX2NvbClcbiIsCiAgICAg
+ICAgIiAgICAgICAgcGx0LnRpZ2h0X2xheW91dCgpXG4iLAogICAgICAgICIgICAgICAgIHBsdC5zaG93KCkiCiAgICAgIF0KICAgIH0sCiAgICB7CiAgICAg
+ICJjZWxsX3R5cGUiOiAibWFya2Rvd24iLAogICAgICAibWV0YWRhdGEiOiB7fSwKICAgICAgInNvdXJjZSI6IFsKICAgICAgICAiIyMgNC4g7IOIIO2MjOyd
+vCDstpTqsIAg7ZuEIOyerOyLpO2WiVxuIiwKICAgICAgICAiXG4iLAogICAgICAgICLrsoTtgrfsl5Ag7YyM7J287J2EIOuNlCDsmKzrprAg65KkIDF+M+uy
+iCDshYDsnYQg64uk7IucIOyLpO2Wie2VmOuptCDrqqnroZ3qs7wg6rKw6rO8LCDssKjtirjqsIAg6rCx7Iug65Cp64uI64ukLiIKICAgICAgXQogICAgfSwK
+ICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJtYXJrZG93biIsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAic291cmNlIjogWwogICAgICAgICIjIyA1
+LiDrtoTshJ0g6rKw6rO8IOyggOyepSAo7ISg7YOdKSIKICAgICAgXQogICAgfSwKICAgIHsKICAgICAgImNlbGxfdHlwZSI6ICJjb2RlIiwKICAgICAgImV4
+ZWN1dGlvbl9jb3VudCI6IG51bGwsCiAgICAgICJtZXRhZGF0YSI6IHt9LAogICAgICAib3V0cHV0cyI6IFtdLAogICAgICAic291cmNlIjogWwogICAgICAg
+ICJpZiBzdW1tYXJ5IGlzIE5vbmU6XG4iLAogICAgICAgICIgICAgcHJpbnQoXCLsoIDsnqXtlaAg7KeR6rOEIOqysOqzvOqwgCDsl4bsirXri4jri6QuXCIp
+XG4iLAogICAgICAgICJlbGlmIG9zLmVudmlyb24uZ2V0KFwiV1JJVEVfUkVTVUxUX0VOQUJMRURcIiwgXCJ0cnVlXCIpLmxvd2VyKCkgIT0gXCJ0cnVlXCI6
+XG4iLAogICAgICAgICIgICAgcHJpbnQoXCJXUklURV9SRVNVTFRfRU5BQkxFROqwgCBmYWxzZeudvCDsoIDsnqXtlZjsp4Ag7JWK7Iq164uI64ukLlwiKVxu
+IiwKICAgICAgICAiZWxzZTpcbiIsCiAgICAgICAgIiAgICByZXN1bHRfcHJlZml4ID0gb3MuZW52aXJvbi5nZXQoXCJSRVNVTFRfUFJFRklYXCIsIFwicmVz
+dWx0c1wiKS5zdHJpcChcIi9cIilcbiIsCiAgICAgICAgIiAgICByZXN1bHRfa2V5ID0gcmVzdWx0X3ByZWZpeCArIFwiL3N1bW1hcnkucGFycXVldFwiXG4i
+LAogICAgICAgICIgICAgbG9jYWxfcmVzdWx0ID0gXCIvdG1wL29iamVjdC1zdG9yYWdlLWRhdGEtbGFiLXN1bW1hcnkucGFycXVldFwiXG4iLAogICAgICAg
+ICIgICAgY29uLnJlZ2lzdGVyKFwic3VtbWFyeV9kYXRhXCIsIHN1bW1hcnkpXG4iLAogICAgICAgICIgICAgY29uLmV4ZWN1dGUoXCJDT1BZIHN1bW1hcnlf
+ZGF0YSBUTyBcIiArIHNxbF9xdW90ZShsb2NhbF9yZXN1bHQpICsgXCIgKEZPUk1BVCBQQVJRVUVUKVwiKVxuIiwKICAgICAgICAiICAgIHVwbG9hZF9maWxl
+KHJlc3VsdF9rZXksIGxvY2FsX3Jlc3VsdClcbiIsCiAgICAgICAgIiAgICBwcmludChcIlNhdmVkOlwiLCByZXN1bHRfa2V5KVxuIiwKICAgICAgICAiICAg
+IGRpc3BsYXkoY29uLmV4ZWN1dGUoXCJTRUxFQ1QgKiBGUk9NIHJlYWRfcGFycXVldChcIiArIHNxbF9xdW90ZShvYmplY3RfdXJsKHJlc3VsdF9rZXkpKSAr
+IFwiKVwiKS5kZigpKSIKICAgICAgXQogICAgfQogIF0sCiAgIm1ldGFkYXRhIjogewogICAgImtlcm5lbHNwZWMiOiB7CiAgICAgICJkaXNwbGF5X25hbWUi
+OiAiUHl0aG9uIDMgKGlweWtlcm5lbCkiLAogICAgICAibGFuZ3VhZ2UiOiAicHl0aG9uIiwKICAgICAgIm5hbWUiOiAicHl0aG9uMyIKICAgIH0sCiAgICAi
+bGFuZ3VhZ2VfaW5mbyI6IHsKICAgICAgIm5hbWUiOiAicHl0aG9uIiwKICAgICAgInZlcnNpb24iOiAiMyIKICAgIH0KICB9LAogICJuYmZvcm1hdCI6IDQs
+CiAgIm5iZm9ybWF0X21pbm9yIjogNQp9
+                """.trim()
                 def installerSource = """#!/usr/bin/env bash
 set -euo pipefail
 
@@ -3338,7 +3297,8 @@ echo "         http://127.0.0.1:\${JUPYTER_PORT}/lab?token=\${jupyter_token}"
                 writeFile file: "presigned_broker.py", text: brokerSource
                 writeFile file: "object_storage_access.py", text: helperSource
                 writeFile file: "verify_object_storage.py", text: verifierSource
-                writeFile file: "object-storage-data-lab.ipynb", text: groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(notebook))
+                writeFile file: "object-storage-data-lab.ipynb.b64", text: notebookBase64
+                sh "base64 -d object-storage-data-lab.ipynb.b64 > object-storage-data-lab.ipynb"
                 writeFile file: "object-storage-data-lab-install.sh", text: installerSource
                 def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
                 if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
@@ -3424,7 +3384,7 @@ rm -f "${tunnelControlPath}"
 docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
 """
                     }
-                    sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
+                    sh "rm -f object-storage-data-lab.env object-storage-data-lab-broker.env object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
                 }
             }
         }
