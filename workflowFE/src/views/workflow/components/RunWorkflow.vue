@@ -240,9 +240,10 @@ const readCookie = (name: string) => {
 }
 
 const getIamRefreshToken = () => readCookie('RefreshToken')
+const getIamWorkspaceId = () => String(userInfo.workspaceInfo?.id ?? '').trim()
 
 const hasIamSessionTokens = () => {
-  return Boolean(userInfo.accessToken?.trim() && getIamRefreshToken())
+  return Boolean(userInfo.accessToken?.trim() && getIamRefreshToken() && getIamWorkspaceId())
 }
 
 const buildIamSessionParams = () => {
@@ -251,6 +252,7 @@ const buildIamSessionParams = () => {
   return [
     { paramKey: 'MC_IAM_ACCESS_TOKEN', paramValue: userInfo.accessToken.trim(), eventListenerYn: 'N' },
     { paramKey: 'MC_IAM_REFRESH_TOKEN', paramValue: getIamRefreshToken(), eventListenerYn: 'N' },
+    { paramKey: 'MC_IAM_WORKSPACE_ID', paramValue: getIamWorkspaceId(), eventListenerYn: 'N' },
   ]
 }
 
