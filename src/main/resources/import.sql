@@ -2628,6 +2628,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def iamUrl = "http://127.0.0.1:${iamTunnelPort}"
                 def iamAccessToken = (env.MC_IAM_ACCESS_TOKEN ?: "").trim()
                 def iamRefreshToken = (env.MC_IAM_REFRESH_TOKEN ?: "").trim()
+                def iamWorkspaceId = (env.MC_IAM_WORKSPACE_ID ?: "").trim()
                 def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\$", "")
                 def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\$", "")
                 def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
@@ -2640,11 +2641,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 if (!storageId || !osNamespace) {
                     error "OBJECT_STORAGE_BUCKET and OBJECT_STORAGE_NAMESPACE/NAMESPACE are required"
                 }
-                if (!iamAccessToken || !iamRefreshToken) {
+                if (!iamAccessToken || !iamRefreshToken || !iamWorkspaceId) {
                     error "An active MCMP login session is required by the presigned URL broker"
                 }
                 if (!(iamAccessToken ==~ /[A-Za-z0-9._~-]+/) || !(iamRefreshToken ==~ /[A-Za-z0-9._~-]+/)) {
                     error "Invalid MCMP login session token"
+                }
+                if (!(iamWorkspaceId ==~ /[0-9]+/)) {
+                    error "Invalid MCMP workspace ID"
                 }
                 if (!(writeResultEnabled in ["true", "false"])) {
                     error "WRITE_RESULT_ENABLED must be true or false"
@@ -2700,7 +2704,9 @@ import requests
 IAM_URL = os.environ["MC_IAM_MANAGER_URL"].rstrip("/")
 IAM_ACCESS_TOKEN = os.environ["MC_IAM_ACCESS_TOKEN"]
 IAM_REFRESH_TOKEN = os.environ["MC_IAM_REFRESH_TOKEN"]
+IAM_WORKSPACE_ID = os.environ["MC_IAM_WORKSPACE_ID"]
 IAM_TOKEN_STATE_FILE = os.environ.get("MC_IAM_TOKEN_STATE_FILE", "")
+IAM_RPT_TOKEN = ""
 NAMESPACE = os.environ["OBJECT_STORAGE_NAMESPACE"]
 STORAGE_ID = os.environ["OBJECT_STORAGE_ID"]
 DATA_PREFIX = os.environ.get("DATA_PREFIX", "").strip("/")
@@ -2713,6 +2719,7 @@ STORAGE_SESSION = requests.Session()
 SIGNED_URL_CACHE = {}
 CACHE_LOCK = threading.Lock()
 IAM_TOKEN_LOCK = threading.Lock()
+IAM_RPT_LOCK = threading.Lock()
 
 
 def load_iam_tokens():
@@ -2787,6 +2794,38 @@ def refresh_iam_tokens(stale_access_token):
         print("mcmp_session_token_refreshed", flush=True)
 
 
+def get_iam_rpt(force=False):
+    global IAM_RPT_TOKEN
+    with IAM_RPT_LOCK:
+        if IAM_RPT_TOKEN and not force:
+            return IAM_RPT_TOKEN
+
+        for attempt in range(2):
+            with IAM_TOKEN_LOCK:
+                access_token = IAM_ACCESS_TOKEN
+            response = CONTROL_SESSION.post(
+                IAM_URL + "/api/workspaces/workspace-ticket",
+                headers={"Authorization": "Bearer " + access_token},
+                json={"workspace_id": IAM_WORKSPACE_ID},
+                timeout=30,
+            )
+            if response.status_code == 401 and attempt == 0:
+                response.close()
+                refresh_iam_tokens(access_token)
+                continue
+            if response.status_code < 200 or response.status_code >= 300:
+                raise RuntimeError("MC-IAM RPT issuance failed with status %d" % response.status_code)
+
+            payload = response.json().get("rpt") or {}
+            rpt_token = payload.get("access_token", "") if isinstance(payload, dict) else str(payload)
+            if not rpt_token:
+                raise RuntimeError("MC-IAM RPT issuance returned an empty access token")
+            IAM_RPT_TOKEN = rpt_token
+            print("mcmp_rpt_issued", flush=True)
+            return IAM_RPT_TOKEN
+    raise RuntimeError("unreachable")
+
+
 def iam_action(action_name, path_params, query_params=None):
     request_body = {
         "serviceName": "mc-infra-manager",
@@ -2798,18 +2837,16 @@ def iam_action(action_name, path_params, query_params=None):
         },
     }
     for attempt in range(2):
-        with IAM_TOKEN_LOCK:
-            access_token = IAM_ACCESS_TOKEN
+        rpt_token = get_iam_rpt(force=attempt > 0)
         response = CONTROL_SESSION.post(
             IAM_URL + "/api/mcmp-apis/call",
-            headers={"Authorization": "Bearer " + access_token},
+            headers={"Authorization": "Bearer " + rpt_token},
             json=request_body,
             timeout=30,
         )
         if response.status_code != 401 or attempt == 1:
             return response
         response.close()
-        refresh_iam_tokens(access_token)
     raise RuntimeError("unreachable")
 
 
@@ -3448,6 +3485,7 @@ JUPYTER_PORT=${jupyterPort}
                 writeFile file: "object-storage-data-lab-broker.env", text: """MC_IAM_MANAGER_URL=${iamUrl}
 MC_IAM_ACCESS_TOKEN=${iamAccessToken}
 MC_IAM_REFRESH_TOKEN=${iamRefreshToken}
+MC_IAM_WORKSPACE_ID=${iamWorkspaceId}
 MC_IAM_TOKEN_STATE_FILE=/opt/mcmp-state/iam-token.json
 OBJECT_STORAGE_NAMESPACE=${osNamespace}
 OBJECT_STORAGE_ID=${storageId}
@@ -3485,7 +3523,8 @@ WHERE UPPER(param_key) IN (
     'MC_INFRA_MANAGER_RUNTIME_URL',
     'MC_IAM_MANAGER_PUBLIC_URL',
     'MC_IAM_ACCESS_TOKEN',
-    'MC_IAM_REFRESH_TOKEN'
+    'MC_IAM_REFRESH_TOKEN',
+    'MC_IAM_WORKSPACE_ID'
 )
   AND workflow_idx IN (
       SELECT workflow_idx FROM workflow_stage_mapping WHERE workflow_stage_idx = 62
