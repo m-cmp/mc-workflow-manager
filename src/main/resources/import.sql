@@ -2760,6 +2760,7 @@ import shutil
 import tempfile
 import threading
 import time
+import xml.etree.ElementTree as element_tree
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import quote, unquote, urlsplit
 
@@ -2853,6 +2854,7 @@ def validate_session(session_id, payload):
         "tumblebug_password",
         "namespace",
         "storage_id",
+        "provider",
         "data_prefix",
         "result_prefix",
     )
@@ -2872,6 +2874,9 @@ def validate_session(session_id, payload):
         raise ValueError("invalid Tumblebug credentials")
     if not payload["namespace"] or not payload["storage_id"]:
         raise ValueError("namespace and storage id are required")
+    provider = payload["provider"].strip().lower()
+    if not provider or not re.fullmatch("[a-z0-9._-]+", provider):
+        raise ValueError("invalid provider")
     if not isinstance(payload.get("write_enabled"), bool):
         raise ValueError("invalid write permission")
     url_ttl = payload.get("url_ttl")
@@ -2889,6 +2894,7 @@ def validate_session(session_id, payload):
         "tumblebug_password": payload["tumblebug_password"],
         "namespace": payload["namespace"],
         "storage_id": payload["storage_id"],
+        "provider": provider,
         "data_prefix": normalize_prefix(payload["data_prefix"]),
         "result_prefix": result_prefix,
         "write_enabled": payload["write_enabled"],
@@ -2991,6 +2997,58 @@ def audit_presign(session, operation, key, expires_at, reason):
     )
 
 
+def upstream_error_payload(session, operation, key, response):
+    body = b""
+    try:
+        body = next(response.iter_content(chunk_size=16384), b"")
+    except requests.RequestException:
+        pass
+
+    error_code = response.headers.get("x-amz-error-code", "")
+    if body:
+        try:
+            payload = json.loads(body.decode("utf-8", errors="replace"))
+            error_code = str(payload.get("code") or payload.get("Code") or error_code)
+        except (ValueError, TypeError, json.JSONDecodeError):
+            try:
+                root = element_tree.fromstring(body)
+                for element in root.iter():
+                    if element.tag.rsplit("}", 1)[-1] == "Code" and element.text:
+                        error_code = element.text
+                        break
+            except element_tree.ParseError:
+                pass
+
+    safe_code = re.sub("[^A-Za-z0-9._-]", "_", error_code)[:80]
+    request_id = (
+        response.headers.get("x-amz-request-id")
+        or response.headers.get("x-ncp-request-id")
+        or response.headers.get("x-request-id")
+        or ""
+    )
+    safe_request_id = re.sub("[^A-Za-z0-9._-]", "_", request_id)[:100]
+    print(
+        "object_storage_upstream_error session=%s provider=%s operation=%s key_sha256=%s status=%d code=%s request_id=%s"
+        % (
+            session["id"][:12],
+            session.get("provider", "unknown"),
+            operation,
+            key_fingerprint(key),
+            response.status_code,
+            safe_code or "unknown",
+            safe_request_id or "unknown",
+        ),
+        flush=True,
+    )
+    payload = {
+        "error": "Object Storage returned status %d" % response.status_code,
+        "upstreamStatus": response.status_code,
+    }
+    if safe_code:
+        payload["upstreamCode"] = safe_code
+    return payload
+
+
 def presign(session, key, operation, force=False, reason="request"):
     cache_key = (session["id"], operation, key)
     now = time.time()
@@ -3039,6 +3097,15 @@ def presign(session, key, operation, force=False, reason="request"):
     return entry
 
 
+def signed_request_headers(session, signed):
+    headers = dict(signed["headers"])
+    if session.get("provider") == "ncp" and not any(
+        name.lower() == "x-amz-content-sha256" for name in headers
+    ):
+        headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD"
+    return headers
+
+
 def storage_get(session, key, range_header=None):
     for attempt in range(2):
         signed = presign(
@@ -3048,7 +3115,7 @@ def storage_get(session, key, range_header=None):
             force=attempt > 0,
             reason="storage_auth_retry" if attempt > 0 else "request",
         )
-        headers = dict(signed["headers"])
+        headers = signed_request_headers(session, signed)
         headers["Accept-Encoding"] = "identity"
         if range_header:
             headers["Range"] = range_header
@@ -3121,7 +3188,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
             upstream = storage_get(session, key, "bytes=0-0")
             try:
                 if upstream.status_code not in (200, 206):
-                    self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
+                    self.send_json(502, upstream_error_payload(session, "download", key, upstream))
                     return
                 content_range = upstream.headers.get("Content-Range", "")
                 total_size = content_range.rsplit("/", 1)[-1] if "/" in content_range else upstream.headers.get("Content-Length", "")
@@ -3167,7 +3234,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
             upstream = storage_get(session, key, range_header)
             try:
                 if upstream.status_code not in (200, 206):
-                    self.send_json(502, {"error": "Object Storage returned status %d" % upstream.status_code})
+                    self.send_json(502, upstream_error_payload(session, "download", key, upstream))
                     return
                 self.send_response(upstream.status_code)
                 for header_name in ("Content-Length", "Content-Range", "Accept-Ranges", "Content-Type", "ETag", "Last-Modified"):
@@ -3231,7 +3298,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
                     force=True,
                     reason="storage_auth_retry" if attempt > 0 else "upload_request",
                 )
-                headers = dict(signed["headers"])
+                headers = signed_request_headers(session, signed)
                 headers["Content-Length"] = content_length
                 with open(temp_path, "rb") as upload_file:
                     upstream = STORAGE_SESSION.put(
@@ -3244,7 +3311,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
                 if upstream.status_code not in (401, 403) or attempt == 1:
                     break
             if upstream.status_code < 200 or upstream.status_code >= 300:
-                self.send_json(502, {"error": "Object Storage upload returned status %d" % upstream.status_code})
+                self.send_json(502, upstream_error_payload(session, "upload", key, upstream))
                 return
             self.send_json(200, {"key": key, "size": int(content_length)})
         except (ValueError, RuntimeError, requests.RequestException):
@@ -3397,7 +3464,7 @@ def downloadJupyterAssets() {
     def assetBaseUrl = "http://mc-workflow-manager:18083/jenkins/jupyter"
     def assets = [
         [name: "object_storage_access.py", sha256: "814c3d0f7b1260d5fb3420c3fef520d4836c1f6daa32c978dcedf7a84df55458"],
-        [name: "verify_object_storage.py", sha256: "69d8dbf34f73d7520f67e94f37d300008d4c89ed0075d7cf16119cb130d1332e"],
+        [name: "verify_object_storage.py", sha256: "0652832dab471b9280258eb169b9802999cf38fa42f06ef517ef00ec4bf9f7d8"],
         [name: "object-storage-data-lab.ipynb", sha256: "f7248c79c31ba8d562f927b745e6d1c1c149ba1e58a9d2e1a8366851cc82c8aa"]
     ]
     assets.each { asset ->
@@ -3504,6 +3571,7 @@ BROKER_SESSION_STORE=/var/lib/mc-workflow-presigned-broker/sessions.json
                     tumblebug_password: tumblebugPassword,
                     namespace: osNamespace,
                     storage_id: storageId,
+                    provider: provider,
                     data_prefix: dataPrefix,
                     result_prefix: resultPrefix,
                     write_enabled: writeResultEnabled == "true",
