@@ -2762,7 +2762,7 @@ import threading
 import time
 import xml.etree.ElementTree as element_tree
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 import requests
 
@@ -2988,11 +2988,45 @@ def key_fingerprint(key):
     return hashlib.sha256(key.encode("utf-8")).hexdigest()[:12]
 
 
-def audit_presign(session, operation, key, expires_at, reason):
+def presigned_url_metadata(signed_url):
+    parsed = urlsplit(signed_url)
+    query = {
+        name.lower(): values[-1]
+        for name, values in parse_qs(parsed.query, keep_blank_values=True).items()
+        if values
+    }
+    credential_parts = query.get("x-amz-credential", "").split("/")
+    signing_region = credential_parts[-3] if len(credential_parts) >= 5 else ""
+    return {
+        "host": re.sub("[^A-Za-z0-9.:-]", "_", parsed.hostname or "")[:255],
+        "signing_region": re.sub("[^A-Za-z0-9._-]", "_", signing_region)[:80],
+        "signed_headers": re.sub(
+            "[^A-Za-z0-9;._-]", "_", query.get("x-amz-signedheaders", "")
+        )[:255],
+    }
+
+
+def audit_presign(session, operation, key, expires_at, reason, signed):
     expires_text = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(expires_at))
+    metadata = presigned_url_metadata(signed["url"])
+    required_headers = ",".join(
+        sorted(re.sub("[^A-Za-z0-9-]", "_", name)[:80] for name in signed["headers"])
+    )
     print(
-        "presigned_url_issued session=%s operation=%s key_sha256=%s expires_at=%s reason=%s"
-        % (session["id"][:12], operation, key_fingerprint(key), expires_text, reason),
+        "presigned_url_issued session=%s provider=%s operation=%s key_sha256=%s "
+        "expires_at=%s reason=%s upstream_host=%s signing_region=%s signed_headers=%s required_headers=%s"
+        % (
+            session["id"],
+            session.get("provider", "unknown"),
+            operation,
+            key_fingerprint(key),
+            expires_text,
+            reason,
+            metadata["host"] or "unknown",
+            metadata["signing_region"] or "unknown",
+            metadata["signed_headers"] or "unknown",
+            required_headers or "none",
+        ),
         flush=True,
     )
 
@@ -3027,16 +3061,22 @@ def upstream_error_payload(session, operation, key, response):
         or ""
     )
     safe_request_id = re.sub("[^A-Za-z0-9._-]", "_", request_id)[:100]
+    request_url = getattr(getattr(response, "request", None), "url", "")
+    metadata = presigned_url_metadata(request_url)
     print(
-        "object_storage_upstream_error session=%s provider=%s operation=%s key_sha256=%s status=%d code=%s request_id=%s"
+        "object_storage_upstream_error session=%s provider=%s operation=%s key_sha256=%s "
+        "status=%d code=%s request_id=%s upstream_host=%s signing_region=%s signed_headers=%s"
         % (
-            session["id"][:12],
+            session["id"],
             session.get("provider", "unknown"),
             operation,
             key_fingerprint(key),
             response.status_code,
             safe_code or "unknown",
             safe_request_id or "unknown",
+            metadata["host"] or "unknown",
+            metadata["signing_region"] or "unknown",
+            metadata["signed_headers"] or "unknown",
         ),
         flush=True,
     )
@@ -3046,6 +3086,12 @@ def upstream_error_payload(session, operation, key, response):
     }
     if safe_code:
         payload["upstreamCode"] = safe_code
+    if metadata["host"]:
+        payload["upstreamHost"] = metadata["host"]
+    if metadata["signing_region"]:
+        payload["signingRegion"] = metadata["signing_region"]
+    if metadata["signed_headers"]:
+        payload["signedHeaders"] = metadata["signed_headers"]
     return payload
 
 
@@ -3093,17 +3139,12 @@ def presign(session, key, operation, force=False, reason="request"):
     if operation == "download":
         with CACHE_LOCK:
             SIGNED_URL_CACHE[cache_key] = entry
-    audit_presign(session, operation, key, expires_at, reason)
+    audit_presign(session, operation, key, expires_at, reason, entry)
     return entry
 
 
-def signed_request_headers(session, signed):
-    headers = dict(signed["headers"])
-    if session.get("provider") == "ncp" and not any(
-        name.lower() == "x-amz-content-sha256" for name in headers
-    ):
-        headers["x-amz-content-sha256"] = "UNSIGNED-PAYLOAD"
-    return headers
+def signed_request_headers(signed):
+    return dict(signed["headers"])
 
 
 def storage_get(session, key, range_header=None):
@@ -3115,7 +3156,7 @@ def storage_get(session, key, range_header=None):
             force=attempt > 0,
             reason="storage_auth_retry" if attempt > 0 else "request",
         )
-        headers = signed_request_headers(session, signed)
+        headers = signed_request_headers(signed)
         headers["Accept-Encoding"] = "identity"
         if range_header:
             headers["Range"] = range_header
@@ -3298,7 +3339,7 @@ class BrokerHandler(BaseHTTPRequestHandler):
                     force=True,
                     reason="storage_auth_retry" if attempt > 0 else "upload_request",
                 )
-                headers = signed_request_headers(session, signed)
+                headers = signed_request_headers(signed)
                 headers["Content-Length"] = content_length
                 with open(temp_path, "rb") as upload_file:
                     upstream = STORAGE_SESSION.put(
