@@ -2509,7 +2509,15 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def cleanupLegacyBrokerName = "broker-${cleanupLegacyBrokerId}"
                     def cleanupLegacyControlPath = "/var/jenkins_home/object-storage-data-lab-${cleanupLegacyBrokerId}.sock"
                     def cleanupSessionId = "${cleanupNamespace}-${cleanupInfraId}"
-                    def cleanupControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${cleanupSessionId}.sock"
+                    def cleanupControlId = sh(
+                        script: "printf ''%s'' ''${cleanupSessionId}'' | sha256sum | cut -c1-16",
+                        returnStdout: true
+                    ).trim()
+                    if (!(cleanupControlId ==~ /[a-f0-9]{16}/)) {
+                        error "Failed to calculate the Jupyter tunnel control ID"
+                    }
+                    def cleanupControlPath = "/var/jenkins_home/mc-wfpb-${cleanupControlId}.sock"
+                    def cleanupPreviousControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${cleanupSessionId}.sock"
                     sh """set -eu
 command -v flock >/dev/null
 exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
@@ -2545,9 +2553,10 @@ if docker inspect mc-workflow-presigned-broker >/dev/null 2>&1; then
 fi
 
 ssh -o StrictHostKeyChecking=no -S "${cleanupControlPath}" -O exit ignored >/dev/null 2>&1 || true
+ssh -o StrictHostKeyChecking=no -S "${cleanupPreviousControlPath}" -O exit ignored >/dev/null 2>&1 || true
 ssh -o StrictHostKeyChecking=no -S "${cleanupLegacyControlPath}" -O exit ignored >/dev/null 2>&1 || true
 docker rm -f "${cleanupLegacyBrokerName}" >/dev/null 2>&1 || true
-rm -f "${cleanupControlPath}" "${cleanupLegacyControlPath}"
+rm -f "${cleanupControlPath}" "${cleanupPreviousControlPath}" "${cleanupLegacyControlPath}"
 """
                 }
             }
@@ -3553,7 +3562,15 @@ def installAnalysis() {
                 def brokerContainerName = "mc-workflow-presigned-broker"
                 def brokerVolumeName = "mc-workflow-presigned-broker-data"
                 def brokerSessionId = "${osNamespace}-${infraId}"
-                def tunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
+                def tunnelControlId = sh(
+                    script: "printf ''%s'' ''${brokerSessionId}'' | sha256sum | cut -c1-16",
+                    returnStdout: true
+                ).trim()
+                if (!(tunnelControlId ==~ /[a-f0-9]{16}/)) {
+                    error "Failed to calculate the Jupyter tunnel control ID"
+                }
+                def tunnelControlPath = "/var/jenkins_home/mc-wfpb-${tunnelControlId}.sock"
+                def previousTunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
                 def installComplete = false
                 def brokerSessionRegistered = false
                 try {
@@ -3692,7 +3709,9 @@ docker rm -f "${legacyBrokerContainerName}" >/dev/null 2>&1 || true
                     sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb object_storage_access.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
 """
                     withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
-                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${previousTunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+rm -f "${previousTunnelControlPath}"
+ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
 rm -f "${tunnelControlPath}"
 ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${brokerTunnelPort}:${brokerContainerName}:8765 "${sshUser}@${sshHost}"
 """
