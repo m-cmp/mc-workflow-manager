@@ -2998,7 +2998,7 @@ def presigned_url_metadata(signed_url):
     credential_parts = query.get("x-amz-credential", "").split("/")
     signing_region = credential_parts[-3] if len(credential_parts) >= 5 else ""
     return {
-        "host": re.sub("[^A-Za-z0-9.:-]", "_", parsed.hostname or "")[:255],
+        "host": re.sub("[^A-Za-z0-9.:-]", "_", parsed.netloc or "")[:255],
         "signing_region": re.sub("[^A-Za-z0-9._-]", "_", signing_region)[:80],
         "signed_headers": re.sub(
             "[^A-Za-z0-9;._-]", "_", query.get("x-amz-signedheaders", "")
@@ -3061,8 +3061,12 @@ def upstream_error_payload(session, operation, key, response):
         or ""
     )
     safe_request_id = re.sub("[^A-Za-z0-9._-]", "_", request_id)[:100]
-    request_url = getattr(getattr(response, "request", None), "url", "")
+    upstream_request = getattr(response, "request", None)
+    request_url = getattr(upstream_request, "url", "")
     metadata = presigned_url_metadata(request_url)
+    request_host = getattr(upstream_request, "headers", {}).get("Host", "")
+    if request_host:
+        metadata["host"] = re.sub("[^A-Za-z0-9.:-]", "_", request_host)[:255]
     print(
         "object_storage_upstream_error session=%s provider=%s operation=%s key_sha256=%s "
         "status=%d code=%s request_id=%s upstream_host=%s signing_region=%s signed_headers=%s"
@@ -3144,7 +3148,14 @@ def presign(session, key, operation, force=False, reason="request"):
 
 
 def signed_request_headers(signed):
-    return dict(signed["headers"])
+    headers = dict(signed["headers"])
+    authority = urlsplit(signed["url"]).netloc
+    if not authority:
+        raise RuntimeError("presigned URL has no authority")
+    # requests/urllib3 lowercases URL hosts. Preserve the exact authority used by
+    # Spider when signing because NHN and NCP endpoints can contain uppercase regions.
+    headers["Host"] = authority
+    return headers
 
 
 def storage_get(session, key, range_header=None):
