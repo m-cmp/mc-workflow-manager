@@ -167,9 +167,30 @@ const setInit = async () => {
 }
 
 const workflowList = ref([] as Array<Workflow>)
+const WORKFLOW_DISPLAY_ORDER = [
+  'vm-mariadb-backup-import-data-init',
+  'vm-mariadb-data-init-cleanup',
+  'k8s-mariadb-backup-import-data-init',
+  'k8s-mariadb-data-init-cleanup',
+  'multi-csp-vm-deploy',
+  'multi-csp-vm-cleanup',
+  'multi-csp-k8s-cluster-deploy',
+  'multi-csp-k8s-cluster-cleanup',
+  'vm-object-storage-data-lab-init',
+  'vm-object-storage-data-lab-cleanup',
+]
+const workflowDisplayOrder = new Map(
+  WORKFLOW_DISPLAY_ORDER.map((workflowName, index) => [workflowName, index])
+)
+
 const _getWorkflowList = async () => {
   const { data } = await getWorkflowList("N")
-  workflowList.value = data;
+  workflowList.value = [...data].sort((left, right) => {
+    const leftOrder = workflowDisplayOrder.get(left.workflowInfo.workflowName) ?? WORKFLOW_DISPLAY_ORDER.length
+    const rightOrder = workflowDisplayOrder.get(right.workflowInfo.workflowName) ?? WORKFLOW_DISPLAY_ORDER.length
+
+    return leftOrder - rightOrder
+  })
 }
 const selectedWorkflow = computed(() => {
   return workflowList.value.find((workflow) => Number(workflow.workflowInfo.workflowIdx) === Number(eventListenerFormData.value.workflowIdx))
