@@ -133,7 +133,7 @@ public class WorkflowStageDto {
                     param("IMAGE_ID", ""),
                     param("SPEC", ""),
                     param("SPEC_ID", ""),
-                    param("K8S_VERSION", "1.33"),
+                    param("K8S_VERSION", "1.35"),
                     param("K8S_DESIRED_NODE_SIZE", "1"),
                     param("K8S_MIN_NODE_SIZE", "1"),
                     param("K8S_MAX_NODE_SIZE", "3"),
@@ -386,24 +386,25 @@ public class WorkflowStageDto {
                 param("INSTALL_MON_AGENT", "no"),
                 param("POLICY_ON_PARTIAL_FAILURE", "continue"));
 
-        addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
-                "alibaba+ap-northeast-2+ecs.e-c1m1.large", "ubuntu_22_04_x64_20G_alibase_20260615.vhd");
+        addCspVmParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1a",
+                "alibaba+ap-northeast-1+ecs.u1-c1m2.large", "ubuntu_24_04_x64_20G_alibase_20260810.vhd");
         addCspVmParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
-                "aws+ap-northeast-1+t3.small", "ami-091de58da07595152");
-        addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D2s_v3", "Canonical:ubuntu-22_04-lts:server:22.04.202603110");
+                "aws+ap-northeast-1+t3.medium", "ami-0dc2aed7540019237");
+        addCspVmParams(result, "AZURE", "koreasouth", "azure-koreasouth", "1",
+                "azure+koreasouth+Standard_D2s_v3", "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100");
         addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
                 "gcp+asia-northeast3+e2-medium",
-                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260623");
+                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817");
         addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
-                "ibm+jp-osa+bxf-2x8", "r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4");
-        addCspVmParams(result, "KT", "kr1", "kt-kr1", "", "", "");
+                "ibm+jp-osa+cx2-2x4", "r034-81a02369-9e59-4404-a922-30c110f1788d");
+        addCspVmParams(result, "KT", "kr1", "kt-kr1", "DX-M1",
+                "kt+kr1+2x4.itl", "e55c5985-b420-4a19-8c92-aa3461cda86e");
         addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
                 "ncp+kr+c2-g3a", "104630229");
         addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
-                "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2");
+                "nhn+kr1+m2.c2m4", "5c38715f-0375-4167-af4e-56f75ba8b252");
         addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
-                "tencent+ap-seoul+BF1.MEDIUM2", "img-487zeit5");
+                "tencent+ap-seoul+S5.MEDIUM4", "img-mmytdhbn");
         return result;
     }
 
@@ -422,7 +423,7 @@ public class WorkflowStageDto {
                 param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm"),
                 param("CLUSTER_PREFIX", "multi-csp-k8s"),
                 param("K8S_NODEGROUP_PREFIX", "ng"),
-                param("K8S_VERSION", "1.33"),
+                param("K8S_VERSION", "1.35"),
                 param("K8S_DESIRED_NODE_SIZE", "1"),
                 param("K8S_MIN_NODE_SIZE", "1"),
                 param("K8S_MAX_NODE_SIZE", "3"),
@@ -434,21 +435,21 @@ public class WorkflowStageDto {
                 param("K8S_READY_STATUS", "Active,Running"));
 
         addCspK8sParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
-                "aws+ap-northeast-1+t3.small", "AL2023_x86_64_STANDARD", "1.33");
-        addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D8ds_v5", "Canonical:ubuntu-22_04-lts:server:22.04.202603110", "1.33.12");
+                "aws+ap-northeast-1+t3.medium", "AL2023_x86_64_STANDARD", "1.35");
+        addCspK8sParams(result, "AZURE", "koreasouth", "azure-koreasouth", "1",
+                "azure+koreasouth+Standard_D2s_v3", "", "1.35.7");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.33.12-gke.1000000");
+                "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.34.9-gke.1655001");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c2-g3a", "23214590", "1.33.4-nks.1");
+                "ncp+kr+c2-g3a", "", "1.34.3-nks.1");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
-                "nhn+kr1+m2.c1m2", "0f07c795-2a46-44fc-a61b-fa0d96763ce2", "v1.33.4");
-        addCspK8sParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1b",
-                "alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge", "Ubuntu", "1.34.3-aliyun.1");
-        addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "Ap-seoul-2",
-                "tencent+ap-seoul+BF1.MEDIUM2", "ubuntu22.04x86_64", "1.32.2");
+                "nhn+kr1+m2.c2m4", "0f07c795-2a46-44fc-a61b-fa0d96763ce2", "v1.34.3");
+        addCspK8sParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1a",
+                "alibaba+ap-northeast-1+ecs.u1-c1m2.xlarge", "AliyunLinux3ContainerOptimized", "1.35.7-aliyun.1");
+        addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
+                "tencent+ap-seoul+S5.MEDIUM4", "ubuntu22.04x86_64", "1.34.1");
         addCspK8sParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
-                "ibm+jp-osa+bx2-2x8", "r034-ed053bf7-43c9-4b64-844b-77918ac3d597", "1.33.6");
+                "ibm+jp-osa+cx2-2x4", "", "1.35.7");
         return result;
     }
 
