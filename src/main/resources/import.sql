@@ -1110,7 +1110,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             echo ">>>>> STAGE: k8s-cluster-create"
             script {
                 def payload = params.K8S_CREATE_PAYLOAD?.trim()
-                def k8sVersion = params.K8S_VERSION?.trim() ?: "1.33"
+                def k8sVersion = params.K8S_VERSION?.trim() ?: "1.35"
                 def nodeGroupName = params.K8S_NODEGROUP_NAME ?: "ng1"
                 def desiredNodeSize = (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger()
                 def minNodeSize = (params.K8S_MIN_NODE_SIZE ?: "1").toInteger()
@@ -1655,20 +1655,24 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
                     def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
-                    def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
+                    def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
+                    def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.35"
                     def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
                     if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                         rootDiskType = "cloud_essd"
                     }
-                    if (!specId || !imageId) {
-                        error "SPEC_ID and IMAGE_ID are required for ${csp}"
+                    def usesProviderManagedK8sImage = csp?.equalsIgnoreCase("azure") || csp?.equalsIgnoreCase("ibm") || csp?.equalsIgnoreCase("ncp") || csp?.equalsIgnoreCase("tencent")
+                    if (!specId) {
+                        error "SPEC_ID is required for ${csp}"
+                    }
+                    if (!imageId && !usesProviderManagedK8sImage) {
+                        error "IMAGE_ID is required for ${csp}"
                     }
 
                     def payloadMap = [
                         name: clusterId,
                         nodeGroupName: nodeGroupName,
                         specId: specId,
-                        imageId: imageId,
                         label: [
                             csp: csp,
                             region: region
@@ -1681,8 +1685,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
                     ]
+                    if (imageId) {
+                        payloadMap.imageId = imageId
+                    }
                     if (connectionName) {
                         payloadMap.connectionName = connectionName
+                    }
+                    if (zone) {
+                        payloadMap.zone = zone
                     }
 
                     def payload = groovy.json.JsonOutput.toJson(payloadMap)
@@ -2143,9 +2153,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     kubectlVersionSpec = ""
                 }
                 if (!kubectlVersionSpec) {
-                    def normalizedK8sVersion = (params.K8S_VERSION?.trim() ?: "1.33").replaceFirst("^v", "")
+                    def normalizedK8sVersion = (params.K8S_VERSION?.trim() ?: "1.35").replaceFirst("^v", "")
                     def k8sVersionParts = normalizedK8sVersion.tokenize(".")
-                    kubectlVersionSpec = k8sVersionParts.size() >= 2 ? "stable-${k8sVersionParts[0]}.${k8sVersionParts[1]}" : "stable-1.33"
+                    kubectlVersionSpec = k8sVersionParts.size() >= 2 ? "stable-${k8sVersionParts[0]}.${k8sVersionParts[1]}" : "stable-1.35"
                 }
                 sh """#!/bin/sh
 set -e
@@ -4627,7 +4637,7 @@ pipeline {
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
                         def connectionName = params["${key}_CONNECTION_NAME"] ?: params.CONNECTION_NAME ?: (region ? "${csp}-${region}" : "")
                         def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
-                        def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.33"
+                        def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.35"
                         def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
                         if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                             rootDiskType = "cloud_essd"
@@ -4803,10 +4813,10 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (101, 'REGION', 'ap-northeast-1', 'N'),
 (101, 'CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
 (101, 'ZONE', 'ap-northeast-1a', 'N'),
-(101, 'IMAGE', 'ami-091de58da07595152', 'N'),
-(101, 'IMAGE_ID', 'ami-091de58da07595152', 'N'),
-(101, 'SPEC', 'aws+ap-northeast-1+t3.small', 'N'),
-(101, 'SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
+(101, 'IMAGE', 'ami-0dc2aed7540019237', 'N'),
+(101, 'IMAGE_ID', 'ami-0dc2aed7540019237', 'N'),
+(101, 'SPEC', 'aws+ap-northeast-1+t3.medium', 'N'),
+(101, 'SPEC_ID', 'aws+ap-northeast-1+t3.medium', 'N'),
 (101, 'SSH_HOST', '', 'N'),
 (101, 'SSH_USER', 'cb-user', 'N'),
 (101, 'SSH_KEY_FILE', '', 'N'),
@@ -4833,36 +4843,36 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'INFRA_NODEGROUP_SIZE', '1', 'N'),
 (102, 'ROOT_DISK_TYPE', 'default', 'N'),
 (102, 'ROOT_DISK_SIZE', '50', 'N'),
-(102, 'ALIBABA_REGION', 'ap-northeast-2', 'N'),
-(102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
-(102, 'ALIBABA_ZONE', 'ap-northeast-2a', 'N'),
-(102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-2+ecs.e-c1m1.large', 'N'),
-(102, 'ALIBABA_IMAGE_ID', 'ubuntu_22_04_x64_20G_alibase_20260615.vhd', 'N'),
+(102, 'ALIBABA_REGION', 'ap-northeast-1', 'N'),
+(102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-1', 'N'),
+(102, 'ALIBABA_ZONE', 'ap-northeast-1a', 'N'),
+(102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-1+ecs.u1-c1m2.large', 'N'),
+(102, 'ALIBABA_IMAGE_ID', 'ubuntu_24_04_x64_20G_alibase_20260810.vhd', 'N'),
 (102, 'AWS_REGION', 'ap-northeast-1', 'N'),
 (102, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
 (102, 'AWS_ZONE', 'ap-northeast-1a', 'N'),
-(102, 'AWS_SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
-(102, 'AWS_IMAGE_ID', 'ami-091de58da07595152', 'N'),
-(102, 'AZURE_REGION', 'koreacentral', 'N'),
-(102, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
+(102, 'AWS_SPEC_ID', 'aws+ap-northeast-1+t3.medium', 'N'),
+(102, 'AWS_IMAGE_ID', 'ami-0dc2aed7540019237', 'N'),
+(102, 'AZURE_REGION', 'koreasouth', 'N'),
+(102, 'AZURE_CONNECTION_NAME', 'azure-koreasouth', 'N'),
 (102, 'AZURE_ZONE', '1', 'N'),
-(102, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D2s_v3', 'N'),
-(102, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-22_04-lts:server:22.04.202603110', 'N'),
+(102, 'AZURE_SPEC_ID', 'azure+koreasouth+Standard_D2s_v3', 'N'),
+(102, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-24_04-lts:minimal:24.04.202608100', 'N'),
 (102, 'GCP_REGION', 'asia-northeast3', 'N'),
 (102, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (102, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+e2-medium', 'N'),
-(102, 'GCP_IMAGE_ID', 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260623', 'N'),
+(102, 'GCP_IMAGE_ID', 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817', 'N'),
 (102, 'IBM_REGION', 'jp-osa', 'N'),
 (102, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
 (102, 'IBM_ZONE', 'jp-osa-1', 'N'),
-(102, 'IBM_SPEC_ID', 'ibm+jp-osa+bxf-2x8', 'N'),
-(102, 'IBM_IMAGE_ID', 'r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4', 'N'),
+(102, 'IBM_SPEC_ID', 'ibm+jp-osa+cx2-2x4', 'N'),
+(102, 'IBM_IMAGE_ID', 'r034-81a02369-9e59-4404-a922-30c110f1788d', 'N'),
 (102, 'KT_REGION', 'kr1', 'N'),
 (102, 'KT_CONNECTION_NAME', 'kt-kr1', 'N'),
-(102, 'KT_ZONE', '', 'N'),
-(102, 'KT_SPEC_ID', '', 'N'),
-(102, 'KT_IMAGE_ID', '', 'N'),
+(102, 'KT_ZONE', 'DX-M1', 'N'),
+(102, 'KT_SPEC_ID', 'kt+kr1+2x4.itl', 'N'),
+(102, 'KT_IMAGE_ID', 'e55c5985-b420-4a19-8c92-aa3461cda86e', 'N'),
 (102, 'NCP_REGION', 'kr', 'N'),
 (102, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
 (102, 'NCP_ZONE', 'KR-1', 'N'),
@@ -4871,13 +4881,13 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'NHN_REGION', 'kr1', 'N'),
 (102, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
 (102, 'NHN_ZONE', 'kr-pub-a', 'N'),
-(102, 'NHN_SPEC_ID', 'nhn+kr1+m2.c1m2', 'N'),
-(102, 'NHN_IMAGE_ID', '0f07c795-2a46-44fc-a61b-fa0d96763ce2', 'N'),
+(102, 'NHN_SPEC_ID', 'nhn+kr1+m2.c2m4', 'N'),
+(102, 'NHN_IMAGE_ID', '5c38715f-0375-4167-af4e-56f75ba8b252', 'N'),
 (102, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (102, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
 (102, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
-(102, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+BF1.MEDIUM2', 'N'),
-(102, 'TENCENT_IMAGE_ID', 'img-487zeit5', 'N');
+(102, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S5.MEDIUM4', 'N'),
+(102, 'TENCENT_IMAGE_ID', 'img-mmytdhbn', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (103, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -4893,10 +4903,10 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'K8S_CLUSTER_ID', 'k8s-mariadb-data-init', 'N'),
 (103, 'K8S_NODEGROUP_NAME', 'ng1', 'N'),
 (103, 'IMAGE', 'AL2023_x86_64_STANDARD', 'N'),
-(103, 'SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
-(103, 'SPEC', 'aws+ap-northeast-1+t3.small', 'N'),
+(103, 'SPEC_ID', 'aws+ap-northeast-1+t3.medium', 'N'),
+(103, 'SPEC', 'aws+ap-northeast-1+t3.medium', 'N'),
 (103, 'IMAGE_ID', 'AL2023_x86_64_STANDARD', 'N'),
-(103, 'K8S_VERSION', '1.33', 'N'),
+(103, 'K8S_VERSION', '1.35', 'N'),
 (103, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MAX_NODE_SIZE', '3', 'N'),
@@ -4941,7 +4951,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'CSP_LIST', 'aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm', 'N'),
 (104, 'CLUSTER_PREFIX', 'multi-csp-k8s', 'N'),
 (104, 'K8S_NODEGROUP_PREFIX', 'ng', 'N'),
-(104, 'K8S_VERSION', '1.33', 'N'),
+(104, 'K8S_VERSION', '1.35', 'N'),
 (104, 'K8S_DESIRED_NODE_SIZE', '1', 'N'),
 (104, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (104, 'K8S_MAX_NODE_SIZE', '3', 'N'),
@@ -4954,51 +4964,51 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'AWS_REGION', 'ap-northeast-1', 'N'),
 (104, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
 (104, 'AWS_ZONE', 'ap-northeast-1a', 'N'),
-(104, 'AWS_SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
+(104, 'AWS_SPEC_ID', 'aws+ap-northeast-1+t3.medium', 'N'),
 (104, 'AWS_IMAGE_ID', 'AL2023_x86_64_STANDARD', 'N'),
-(104, 'AWS_K8S_VERSION', '1.33', 'N'),
-(104, 'AZURE_REGION', 'koreacentral', 'N'),
-(104, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
+(104, 'AWS_K8S_VERSION', '1.35', 'N'),
+(104, 'AZURE_REGION', 'koreasouth', 'N'),
+(104, 'AZURE_CONNECTION_NAME', 'azure-koreasouth', 'N'),
 (104, 'AZURE_ZONE', '1', 'N'),
-(104, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D8ds_v5', 'N'),
-(104, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-22_04-lts:server:22.04.202603110', 'N'),
-(104, 'AZURE_K8S_VERSION', '1.33.12', 'N'),
+(104, 'AZURE_SPEC_ID', 'azure+koreasouth+Standard_D2s_v3', 'N'),
+(104, 'AZURE_IMAGE_ID', '', 'N'),
+(104, 'AZURE_K8S_VERSION', '1.35.7', 'N'),
 (104, 'GCP_REGION', 'asia-northeast3', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+e2-medium', 'N'),
 (104, 'GCP_IMAGE_ID', 'UBUNTU_CONTAINERD', 'N'),
-(104, 'GCP_K8S_VERSION', '1.33.12-gke.1000000', 'N'),
+(104, 'GCP_K8S_VERSION', '1.34.9-gke.1655001', 'N'),
 (104, 'NCP_REGION', 'kr', 'N'),
 (104, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
 (104, 'NCP_ZONE', 'KR-1', 'N'),
 (104, 'NCP_SPEC_ID', 'ncp+kr+c2-g3a', 'N'),
-(104, 'NCP_IMAGE_ID', '23214590', 'N'),
-(104, 'NCP_K8S_VERSION', '1.33.4-nks.1', 'N'),
+(104, 'NCP_IMAGE_ID', '', 'N'),
+(104, 'NCP_K8S_VERSION', '1.34.3-nks.1', 'N'),
 (104, 'NHN_REGION', 'kr1', 'N'),
 (104, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
 (104, 'NHN_ZONE', 'kr-pub-a', 'N'),
-(104, 'NHN_SPEC_ID', 'nhn+kr1+m2.c1m2', 'N'),
+(104, 'NHN_SPEC_ID', 'nhn+kr1+m2.c2m4', 'N'),
 (104, 'NHN_IMAGE_ID', '0f07c795-2a46-44fc-a61b-fa0d96763ce2', 'N'),
-(104, 'NHN_K8S_VERSION', 'v1.33.4', 'N'),
+(104, 'NHN_K8S_VERSION', 'v1.34.3', 'N'),
 (104, 'ALIBABA_REGION', 'ap-northeast-1', 'N'),
 (104, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-1', 'N'),
-(104, 'ALIBABA_ZONE', 'ap-northeast-1b', 'N'),
-(104, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge', 'N'),
-(104, 'ALIBABA_IMAGE_ID', 'Ubuntu', 'N'),
-(104, 'ALIBABA_K8S_VERSION', '1.34.3-aliyun.1', 'N'),
+(104, 'ALIBABA_ZONE', 'ap-northeast-1a', 'N'),
+(104, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-1+ecs.u1-c1m2.xlarge', 'N'),
+(104, 'ALIBABA_IMAGE_ID', 'AliyunLinux3ContainerOptimized', 'N'),
+(104, 'ALIBABA_K8S_VERSION', '1.35.7-aliyun.1', 'N'),
 (104, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
-(104, 'TENCENT_ZONE', 'Ap-seoul-2', 'N'),
-(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+BF1.MEDIUM2', 'N'),
+(104, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
+(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S5.MEDIUM4', 'N'),
 (104, 'TENCENT_IMAGE_ID', 'ubuntu22.04x86_64', 'N'),
-(104, 'TENCENT_K8S_VERSION', '1.32.2', 'N'),
+(104, 'TENCENT_K8S_VERSION', '1.34.1', 'N'),
 (104, 'IBM_REGION', 'jp-osa', 'N'),
 (104, 'IBM_CONNECTION_NAME', 'ibm-jp-osa', 'N'),
 (104, 'IBM_ZONE', 'jp-osa-1', 'N'),
-(104, 'IBM_SPEC_ID', 'ibm+jp-osa+bx2-2x8', 'N'),
-(104, 'IBM_IMAGE_ID', 'r034-ed053bf7-43c9-4b64-844b-77918ac3d597', 'N'),
-(104, 'IBM_K8S_VERSION', '1.33.6', 'N');
+(104, 'IBM_SPEC_ID', 'ibm+jp-osa+cx2-2x4', 'N'),
+(104, 'IBM_IMAGE_ID', '', 'N'),
+(104, 'IBM_K8S_VERSION', '1.35.7', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
 (105, 'TUMBLEBUG', 'http://mc-infra-manager:1323', 'N'),
@@ -5064,10 +5074,10 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'REGION', 'ap-northeast-1', 'N'),
 (109, 'CONNECTION_NAME', 'aws-ap-northeast-1', 'N'),
 (109, 'ZONE', 'ap-northeast-1a', 'N'),
-(109, 'IMAGE', 'ami-091de58da07595152', 'N'),
-(109, 'IMAGE_ID', 'ami-091de58da07595152', 'N'),
-(109, 'SPEC', 'aws+ap-northeast-1+t3.small', 'N'),
-(109, 'SPEC_ID', 'aws+ap-northeast-1+t3.small', 'N'),
+(109, 'IMAGE', 'ami-0dc2aed7540019237', 'N'),
+(109, 'IMAGE_ID', 'ami-0dc2aed7540019237', 'N'),
+(109, 'SPEC', 'aws+ap-northeast-1+t3.medium', 'N'),
+(109, 'SPEC_ID', 'aws+ap-northeast-1+t3.medium', 'N'),
 (109, 'SSH_HOST', '', 'N'),
 (109, 'SSH_USER', 'cb-user', 'N'),
 (109, 'SSH_KEY_FILE', '', 'N'),
