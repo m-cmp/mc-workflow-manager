@@ -908,16 +908,35 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     addCandidate("root")
                     def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\" -o IdentitiesOnly=yes" : ""
                     def connectedUser = ""
-                    for (candidate in candidates) {
-                        echo "SSH check try. user=${candidate}, host=${sshHost}"
-                        def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" """, returnStatus: true)
+                    def attemptedUsers = []
+                    def lastError = ""
+                    def attempt = 0
+                    def candidateIndex = 0
+                    while (attempt < 10 && candidateIndex < candidates.size()) {
+                        def candidate = candidates[candidateIndex]
+                        attempt++
+                        if (!attemptedUsers.contains(candidate)) {
+                            attemptedUsers << candidate
+                        }
+                        echo "SSH check try ${attempt}/10. user=${candidate}, host=${sshHost}"
+                        def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" > ssh-connect-check.log 2>&1""", returnStatus: true)
+                        def output = readFile(file: "ssh-connect-check.log").trim()
+                        if (output) {
+                            echo output
+                        }
                         if (status == 0) {
                             connectedUser = candidate
                             break
                         }
+                        lastError = output ?: "ssh exited with status ${status}"
+                        if (output.contains("Connection refused") && attempt < 10) {
+                            sleep time: 10, unit: "SECONDS"
+                        } else {
+                            candidateIndex++
+                        }
                     }
                     if (!connectedUser) {
-                        error "SSH connect check failed for host ${sshHost}. tried users: ${candidates.join(", ")}"
+                        error "SSH connect check failed for host ${sshHost} after ${attempt} attempt(s). tried users: ${attemptedUsers.join(", ")}. last SSH error: ${lastError}"
                     }
                     sshUser = connectedUser
                     env.SSH_HOST = sshHost
