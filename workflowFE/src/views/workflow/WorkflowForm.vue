@@ -995,22 +995,31 @@ const onClickRefreshInfraOptions = async () => {
 }
 
 const loadInfraOptions = async () => {
-  await loadMcInfraProviders()
-  await loadMcInfraNamespaces()
-  applyVmSelectionDefault()
-  await loadMcInfraRegions()
-  ensureSelectedRegionOption()
-  await loadMcInfraConnConfigs()
-  await loadMcInfraK8sVersions()
-  await Promise.all([
-    loadMcInfraSpecs(),
-    loadMcInfraInfras(),
-  ])
-  await loadMcInfraImages()
-  await loadMcInfraAvailableZones()
-  await loadMcInfraObjectStorages()
-  if (selectedInfra.value) {
-    await loadMcInfraAccessHosts()
+  const wasInitializing = isInitializingSelection.value
+  isInitializingSelection.value = true
+  try {
+    await loadMcInfraProviders()
+    await loadMcInfraNamespaces()
+    applyVmSelectionDefault()
+    await loadMcInfraRegions()
+    ensureSelectedRegionOption()
+    await loadMcInfraConnConfigs()
+    await loadMcInfraK8sVersions()
+    await Promise.all([
+      loadMcInfraSpecs(),
+      loadMcInfraInfras(),
+    ])
+    await loadMcInfraImages()
+    await loadMcInfraAvailableZones()
+    await loadMcInfraObjectStorages()
+    if (selectedInfra.value) {
+      await loadMcInfraAccessHosts()
+    }
+  } finally {
+    // Flush watchers while loading is still guarded, then publish the final selection.
+    await nextTick()
+    isInitializingSelection.value = wasInitializing
+    applyInfraSelectionParams()
   }
 }
 
@@ -1082,23 +1091,27 @@ const ensureSelectedRegionOption = () => {
   selectedRegion.value = regionOptions.value[0]?.value || selectedRegion.value
 }
 
-const ensureSelectedConnectionOption = () => {
+const ensureSelectedConnectionOption = (usedRegionFallback = false) => {
   if (connectionOptions.value.length === 0) {
     selectedConnectionName.value = ''
     return
   }
 
-  if (selectedConnectionName.value && isSelectedValueInOptions(selectedConnectionName.value, connectionOptions.value)) {
+  if (!usedRegionFallback && selectedConnectionName.value && isSelectedValueInOptions(selectedConnectionName.value, connectionOptions.value)) {
     return
   }
 
   const derivedConnectionName = deriveConnectionName()
   const derivedOption = connectionOptions.value.find((option) => option.value === derivedConnectionName)
+  if (usedRegionFallback && !derivedOption) {
+    selectedConnectionName.value = derivedConnectionName
+    return
+  }
   const selectedOption = derivedOption || connectionOptions.value[0]
   selectedConnectionName.value = selectedOption?.value || ''
 
   const inferredRegion = inferRegionFromConnectionName(selectedConnectionName.value)
-  if (inferredRegion && inferredRegion !== selectedRegion.value) {
+  if (!selectedRegion.value && inferredRegion) {
     selectedRegion.value = inferredRegion
   }
 }
@@ -1167,6 +1180,7 @@ const loadMcInfraConnConfigs = async () => {
     const { data } = await getMcInfraConnConfigs(query)
     if (loadSeq !== connectionLoadSeq) return
     let options = normalizeInfraOptions(data)
+    let usedRegionFallback = false
     if (options.length === 0 && selectedRegion.value) {
       const fallback = await getMcInfraConnConfigs({
         providerName: infraProvider.value,
@@ -1174,9 +1188,10 @@ const loadMcInfraConnConfigs = async () => {
       })
       if (loadSeq !== connectionLoadSeq) return
       options = normalizeInfraOptions(fallback.data)
+      usedRegionFallback = true
     }
     connectionOptions.value = options
-    ensureSelectedConnectionOption()
+    ensureSelectedConnectionOption(usedRegionFallback)
   } catch (error) {
     if (loadSeq !== connectionLoadSeq) return
     connectionOptions.value = []
