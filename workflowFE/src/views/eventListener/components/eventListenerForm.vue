@@ -47,7 +47,8 @@
             </div>
             <!-- Params -->
             <TumblebugParamSelector
-              v-if="setParamFlag && eventListenerFormData.workflowParams"
+              v-if="setParamFlag && selectorReady && eventListenerFormData.workflowIdx && eventListenerFormData.workflowParams"
+              :key="`${eventListenerFormData.workflowIdx}-${selectorRevision}`"
               :workflow-name="selectedWorkflowName"
               :workflow-param-data="eventListenerFormData.workflowParams"
               :workflow-stage-mappings="selectedWorkflow?.workflowStageMappings || []"
@@ -141,14 +142,22 @@ const onShowModal = async () => {
 /* Comment translated to English. */
 const eventListenerFormData = ref({} as EventListener)
 const setParamFlag = ref(false as Boolean)
+const selectorReady = ref(false)
+const selectorRevision = ref(0)
 
 /* Comment translated to English. */
 const setInit = async () => {
+  selectorReady.value = false
   if (props.mode === 'new') {
-    eventListenerFormData.value.eventListenerName = ''
-    eventListenerFormData.value.eventListenerDesc = ''
-    eventListenerFormData.value.workflowIdx = 0
-    eventListenerFormData.value.workflowParams = []
+    eventListenerFormData.value = {
+      eventListenerIdx: 0,
+      eventListenerName: '',
+      eventListenerDesc: '',
+      eventListenerUrl: '',
+      eventListenerCallUrl: '',
+      workflowIdx: 0,
+      workflowParams: [],
+    }
 
     duplicatedEventListener.value = false
     checkedEventListenerName.value = ''
@@ -163,7 +172,9 @@ const setInit = async () => {
     checkedEventListenerName.value = normalizeEventListenerName(data.eventListenerName)
     originalEventListenerName.value = normalizeEventListenerName(data.eventListenerName)
     setParamFlag.value = true
+    selectorReady.value = Boolean(eventListenerFormData.value.workflowIdx)
   }
+  selectorRevision.value += 1
 }
 
 const workflowList = ref([] as Array<Workflow>)
@@ -321,11 +332,19 @@ const _updateEventListener = async (): Promise<boolean> => {
   }
 }
 const onSelectWorkflow = (selectedWorkflowIdx:number) => {
-  workflowList.value.forEach((workflow) => {
-    if (workflow.workflowInfo.workflowIdx === selectedWorkflowIdx) {
-      eventListenerFormData.value.workflowParams = cloneWorkflowParams(workflow.workflowParams)
-    }
+  selectorReady.value = false
+  const workflow = workflowList.value.find((item) => {
+    return Number(item.workflowInfo.workflowIdx) === Number(selectedWorkflowIdx)
   })
+
+  if (!workflow) {
+    eventListenerFormData.value.workflowParams = []
+    return
+  }
+
+  eventListenerFormData.value.workflowParams = cloneWorkflowParams(workflow.workflowParams)
+  selectorRevision.value += 1
+  selectorReady.value = true
 }
 
 const cloneWorkflowParams = (params: Array<WorkflowParams> = []) => {

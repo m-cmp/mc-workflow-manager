@@ -46,7 +46,6 @@ public class RequestEventListenerDto {
     // Comment translated to English.
     public static EventListener toEntity(RequestEventListenerDto eventListenerDto, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return EventListener.builder()
-                .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
                 .eventListenerUrl(null)
