@@ -18,6 +18,8 @@ public class RequestEventListenerDto {
     private String eventListenerName;
     private String eventListenerDesc;
     private String eventListenerUrl;
+    private String workspaceId;
+    private String projectId;
     private Long workflowIdx;
     private List<WorkflowParamDto> workflowParams;
 
@@ -28,6 +30,8 @@ public class RequestEventListenerDto {
                 .eventListenerName(eventListener.getEventListenerName())
                 .eventListenerDesc(eventListener.getEventListenerDesc())
                 .eventListenerUrl(null)
+                .workspaceId(eventListener.getWorkspaceId())
+                .projectId(eventListener.getProjectId())
                 .workflowIdx(eventListener.getWorkflow().getWorkflowIdx())
                 .build();
     }
@@ -39,6 +43,8 @@ public class RequestEventListenerDto {
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
                 .eventListenerUrl(null)
+                .workspaceId(eventListenerDto.getWorkspaceId())
+                .projectId(eventListenerDto.getProjectId())
                 .workflowIdx(eventListenerDto.getWorkflowIdx())
                 .build();
     }
@@ -46,10 +52,11 @@ public class RequestEventListenerDto {
     // Comment translated to English.
     public static EventListener toEntity(RequestEventListenerDto eventListenerDto, WorkflowDto workflowDto, OssDto ossDto, OssTypeDto ossTypeDto) {
         return EventListener.builder()
-                .eventListenerIdx(eventListenerDto.getEventListenerIdx())
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
                 .eventListenerUrl(null)
+                .workspaceId(eventListenerDto.getWorkspaceId())
+                .projectId(eventListenerDto.getProjectId())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .build();
     }
@@ -61,6 +68,8 @@ public class RequestEventListenerDto {
                 .eventListenerName(eventListenerDto.getEventListenerName())
                 .eventListenerDesc(eventListenerDto.getEventListenerDesc())
                 .eventListenerUrl(null)
+                .workspaceId(eventListenerDto.getWorkspaceId())
+                .projectId(eventListenerDto.getProjectId())
                 .workflow(WorkflowDto.toEntity(workflowDto, ossDto, ossTypeDto))
                 .build();
     }
