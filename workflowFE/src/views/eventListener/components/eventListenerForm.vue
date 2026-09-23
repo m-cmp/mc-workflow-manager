@@ -47,7 +47,8 @@
             </div>
             <!-- Params -->
             <TumblebugParamSelector
-              v-if="setParamFlag && eventListenerFormData.workflowParams"
+              v-if="setParamFlag && eventListenerFormData.workflowIdx && eventListenerFormData.workflowParams"
+              :key="`${eventListenerFormData.workflowIdx}-${selectorRevision}`"
               :workflow-name="selectedWorkflowName"
               :workflow-param-data="eventListenerFormData.workflowParams"
               :workflow-stage-mappings="selectedWorkflow?.workflowStageMappings || []"
@@ -141,14 +142,20 @@ const onShowModal = async () => {
 /* Comment translated to English. */
 const eventListenerFormData = ref({} as EventListener)
 const setParamFlag = ref(false as Boolean)
+const selectorRevision = ref(0)
 
 /* Comment translated to English. */
 const setInit = async () => {
   if (props.mode === 'new') {
-    eventListenerFormData.value.eventListenerName = ''
-    eventListenerFormData.value.eventListenerDesc = ''
-    eventListenerFormData.value.workflowIdx = 0
-    eventListenerFormData.value.workflowParams = []
+    eventListenerFormData.value = {
+      eventListenerIdx: 0,
+      eventListenerName: '',
+      eventListenerDesc: '',
+      eventListenerUrl: '',
+      eventListenerCallUrl: '',
+      workflowIdx: 0,
+      workflowParams: [],
+    }
 
     duplicatedEventListener.value = false
     checkedEventListenerName.value = ''
@@ -164,6 +171,7 @@ const setInit = async () => {
     originalEventListenerName.value = normalizeEventListenerName(data.eventListenerName)
     setParamFlag.value = true
   }
+  selectorRevision.value += 1
 }
 
 const workflowList = ref([] as Array<Workflow>)
@@ -237,6 +245,11 @@ const onClickDuplicatEventListenerName = async () => {
 /* Comment translated to English. */
 const onClickSubmit = async () => {
   // =========================== Validation ===========================
+  if (!userInfo.workspaceInfo.id || !userInfo.projectInfo.id) {
+    toast.error('Please select a Workspace and Project.');
+    return;
+  }
+
   if (!eventListenerFormData.value.eventListenerName) {
     toast.error('Please enter Event Listener name.');
     return;
