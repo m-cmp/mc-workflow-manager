@@ -27,14 +27,10 @@ public class EventListenerController {
 
     private final EventListenerService eventListenerService;
 
-    @Operation(summary = "List event listeners", description = "List event listeners in the selected workspace and project" )
+    @Operation(summary = "List event listeners", description = "List all event listeners" )
     @GetMapping("/list")
-    public ResponseWrapper<List<ResponseEventListenerDto>> getEventListenerList(
-            @RequestParam String workspaceId,
-            @RequestParam String projectId,
-            @RequestParam(required = false) String workspaceName,
-            @RequestParam(required = false) String projectName) {
-        return new ResponseWrapper<>(eventListenerService.getEventListenerList(workspaceId, projectId, workspaceName, projectName));
+    public ResponseWrapper<List<ResponseEventListenerDto>> getEventListenerList() {
+        return new ResponseWrapper<>(eventListenerService.getEventListenerList());
     }
 
     @Operation(summary="Register event listener")
@@ -68,18 +64,14 @@ public class EventListenerController {
 
     @Operation(summary = "Delete event listener", description = "Delete event listener")
     @DeleteMapping("/{eventListenerIdx}")
-    public ResponseWrapper<Boolean> deleteEventListner(@PathVariable Long eventListenerIdx,
-                                                        @RequestParam String workspaceId,
-                                                        @RequestParam String projectId) {
-        return new ResponseWrapper<>(eventListenerService.deleteEventListener(eventListenerIdx, workspaceId, projectId));
+    public ResponseWrapper<Boolean> deleteEventListner(@PathVariable Long eventListenerIdx) {
+        return new ResponseWrapper<>(eventListenerService.deleteEventListener(eventListenerIdx));
     }
 
     @Operation(summary = "Get event listener detail", description = "Get event listener detail" )
     @GetMapping("/{eventListenerIdx}")
-    public ResponseWrapper<ResponseEventListenerDto> detailEventListener(@PathVariable Long eventListenerIdx,
-                                                                          @RequestParam String workspaceId,
-                                                                          @RequestParam String projectId) {
-        return new ResponseWrapper<>(eventListenerService.detailEventListener(eventListenerIdx, workspaceId, projectId));
+    public ResponseWrapper<ResponseEventListenerDto> detailEventListener(@PathVariable Long eventListenerIdx) {
+        return new ResponseWrapper<>(eventListenerService.detailEventListener(eventListenerIdx));
     }
 
     @Operation(summary = "Run event listener", description = "Run event listener")
@@ -126,9 +118,6 @@ public class EventListenerController {
         }
         if (StringUtils.isBlank(requestEventListenerDto.getEventListenerDesc())) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "EventListenerDesc");
-        }
-        if (StringUtils.isBlank(requestEventListenerDto.getWorkspaceId()) || StringUtils.isBlank(requestEventListenerDto.getProjectId())) {
-            return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "WorkspaceId/ProjectId");
         }
         if (requestEventListenerDto.getWorkflowIdx() == null || requestEventListenerDto.getWorkflowIdx() == 0) {
             return new ResponseWrapper<>(ResponseCode.BAD_REQUEST, "WorkflowIdx");

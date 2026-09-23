@@ -30,12 +30,6 @@ public class EventListener {
     @Column(name = "event_listener_url", length = 200)
     private String eventListenerUrl;
 
-    @Column(name = "workspace_id", length = 64)
-    private String workspaceId;
-
-    @Column(name = "project_id", length = 64)
-    private String projectId;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "workflow_idx", nullable = false)
     private Workflow workflow;

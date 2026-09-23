@@ -340,6 +340,8 @@ const toast = useToast()
 const route = useRoute();
 const router = useRouter();
 const userInfo = useUserStore()
+const workflowFormInitialized = ref(false)
+let projectNamespaceRefreshPending = false
 const DEFAULT_SCHEMA_SQL_CONTENT = 'CREATE TABLE IF NOT EXISTS sample_data (id INT PRIMARY KEY, name VARCHAR(100));'
 const DEFAULT_INSERT_SQL = "INSERT INTO sample_data (id, name) VALUES (1, 'sample row');"
 
@@ -352,6 +354,11 @@ onMounted(async () => {
   applyObjectStorageLocationParams()
   await loadInfraOptions()
   applyObjectStorageLocationParams()
+  workflowFormInitialized.value = true
+  if (projectNamespaceRefreshPending) {
+    projectNamespaceRefreshPending = false
+    await onChangeNamespace()
+  }
 })
 
 // ================================================================================= Set mode
@@ -381,6 +388,28 @@ const defaultWorkflowParamsFormData = [
     }
   ]
 
+const getSelectedProjectNamespace = () => (
+  userInfo.projectInfo.ns_id || userInfo.projectInfo.name || ''
+).trim()
+
+const scopeWorkflowParamsToSelectedProject = (params: Array<WorkflowParams>) => {
+  const projectNamespace = getSelectedProjectNamespace()
+  const storedNamespace = params.find(
+    (param) => param.paramKey?.trim().toUpperCase() === 'NAMESPACE',
+  )?.paramValue?.trim() || ''
+  const effectiveNamespace = projectNamespace || storedNamespace
+  if (!effectiveNamespace) return [ ...params ]
+
+  return params.map((param) => {
+    const paramKey = param.paramKey?.trim().toUpperCase()
+    const followsSelectedNamespace = paramKey === 'NAMESPACE' || paramKey === 'OBJECT_STORAGE_NAMESPACE'
+    return {
+      ...param,
+      paramValue: followsSelectedNamespace ? effectiveNamespace : param.paramValue,
+    }
+  })
+}
+
 const setWorkflowFormData = async () => {
   if (mode.value === 'new') {
     workflowInfoFormData = { ...defaultWorkflowInfoFormData }
@@ -395,13 +424,7 @@ const setWorkflowFormData = async () => {
       ...data.workflowInfo,
       workflowPurpose: normalizeWorkflowPurposeValue(data.workflowInfo.workflowPurpose),
     }
-    const projectNamespace = (userInfo.projectInfo.ns_id || userInfo.projectInfo.name || '').trim()
-    workflowParamsFormData.value = data.workflowParams.map((param: WorkflowParams) => ({
-      ...param,
-      paramValue: projectNamespace && param.paramKey?.trim().toUpperCase() === 'NAMESPACE'
-        ? projectNamespace
-        : param.paramValue,
-    }))
+    workflowParamsFormData.value = scopeWorkflowParamsToSelectedProject(data.workflowParams)
     workflowStageMappingsFormData.value = [ ...data.workflowStageMappings ]
 
     workflowInfoFormData = { ...workflowInfoFormData, workflowIdx: route.params.workflowIdx }
@@ -926,6 +949,25 @@ const onChangeNamespace = async () => {
     await loadMcInfraAccessHosts()
   }
 }
+
+watch(
+  () => [userInfo.projectInfo.ns_id, userInfo.projectInfo.name],
+  async () => {
+    if (mode.value !== 'detail' || workflowParamsFormData.value.length === 0) return
+
+    const projectNamespace = getSelectedProjectNamespace()
+    workflowParamsFormData.value = scopeWorkflowParamsToSelectedProject(workflowParamsFormData.value)
+    if (!projectNamespace || selectedNamespace.value === projectNamespace) return
+
+    const previousNamespace = selectedNamespace.value
+    selectedNamespace.value = projectNamespace
+    if (!workflowFormInitialized.value) {
+      projectNamespaceRefreshPending = Boolean(previousNamespace)
+      return
+    }
+    await onChangeNamespace()
+  },
+)
 
 const onChangeInfraProvider = async () => {
   selectedRegion.value = ''
@@ -1839,12 +1881,12 @@ const getResourceCatalogNamespace = () => {
 // NAMESPACE/CSP/REGION when these are empty, but an empty box next to a filled Infra one reads as
 // "not applied" and hides which namespace the bucket lookup actually queried.
 const applyObjectStorageLocationParams = () => {
-  if (!isObjectStorageWorkflow.value) return
-
   const objectStorageNamespace = selectedNamespace.value || getNamespaceParamValue()
   if (objectStorageNamespace && hasWorkflowParam('OBJECT_STORAGE_NAMESPACE')) {
     upsertWorkflowParam('OBJECT_STORAGE_NAMESPACE', objectStorageNamespace)
   }
+
+  if (!isObjectStorageWorkflow.value) return
 
   if (infraProvider.value && hasWorkflowParam('OBJECT_STORAGE_PROVIDER')) {
     upsertWorkflowParam('OBJECT_STORAGE_PROVIDER', infraProvider.value)

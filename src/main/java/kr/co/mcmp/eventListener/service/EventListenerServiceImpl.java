@@ -68,14 +68,8 @@ public class EventListenerServiceImpl implements EventListenerService {
     private final JenkinsService jenkinsService;
 
     @Override
-    @Transactional
-    public List<ResponseEventListenerDto> getEventListenerList(String workspaceId, String projectId, String workspaceName, String projectName) {
-        // Listeners 1 and 2 predate project ownership and were created in ws01/default.
-        if (StringUtils.hasText(workspaceId) && StringUtils.hasText(projectId)
-                && "ws01".equals(workspaceName) && "default".equals(projectName)) {
-            eventListenerRepository.assignLegacyListeners(workspaceId, projectId);
-        }
-        return eventListenerRepository.findAllByWorkspaceIdAndProjectId(workspaceId, projectId)
+    public List<ResponseEventListenerDto> getEventListenerList() {
+        return eventListenerRepository.findAll()
                 .stream()
                 .map(eventListener -> ResponseEventListenerDto.from(
                         eventListener,
@@ -122,8 +116,7 @@ public class EventListenerServiceImpl implements EventListenerService {
     public Boolean updateEventListener(RequestEventListenerDto requestEventListenerDto) {
         Boolean result = false;
         try {
-            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdxAndWorkspaceIdAndProjectId(
-                    requestEventListenerDto.getEventListenerIdx(), requestEventListenerDto.getWorkspaceId(), requestEventListenerDto.getProjectId());
+            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(requestEventListenerDto.getEventListenerIdx());
             if (eventListenerEntity == null) {
                 return false;
             }
@@ -159,10 +152,10 @@ public class EventListenerServiceImpl implements EventListenerService {
 
     @Override
     @Transactional
-    public Boolean deleteEventListener(Long eventListenerIdx, String workspaceId, String projectId) {
+    public Boolean deleteEventListener(Long eventListenerIdx) {
         Boolean result = false;
         try {
-            if (eventListenerRepository.findByEventListenerIdxAndWorkspaceIdAndProjectId(eventListenerIdx, workspaceId, projectId) == null) {
+            if (!eventListenerRepository.existsById(eventListenerIdx)) {
                 return false;
             }
             eventListenerParamRepository.deleteByEventListener_EventListenerIdx(eventListenerIdx);
@@ -175,10 +168,9 @@ public class EventListenerServiceImpl implements EventListenerService {
     }
 
     @Override
-    public ResponseEventListenerDto detailEventListener(Long eventListenerIdx, String workspaceId, String projectId) {
+    public ResponseEventListenerDto detailEventListener(Long eventListenerIdx) {
         try {
-            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdxAndWorkspaceIdAndProjectId(
-                    eventListenerIdx, workspaceId, projectId);
+            EventListener eventListenerEntity = eventListenerRepository.findByEventListenerIdx(eventListenerIdx);
             if (eventListenerEntity == null) {
                 return null;
             }
