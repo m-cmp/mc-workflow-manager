@@ -42,7 +42,7 @@ import TableHeader from '../../components/Table/TableHeader.vue'
 import Tabulator from '@/components/Table/Tabulator.vue'
 // @ts-ignore
 import { getEventListenerList } from '@/api/eventListener'
-import { nextTick, onMounted, watch } from 'vue';
+import { nextTick, onMounted } from 'vue';
 import { ref } from 'vue';
 // @ts-ignore
 import { type EventListener } from '@/views/type/type'
@@ -53,31 +53,22 @@ import EventListenerForm from './components/eventListenerForm.vue';
 // @ts-ignore
 import DeleteEventListener from './components/deleteEventListener.vue';
 import { Modal } from 'bootstrap'
-import { useUserStore } from '@/stores/user'
 
 const toast = useToast()
-const userInfo = useUserStore()
 /* Comment translated to English. */
 const eventListenerList = ref([] as Array<EventListener>)
 const columns = ref([] as Array<ColumnDefinition>)
 
 /* Comment translated to English. */
-onMounted(() => {
+onMounted(async () => {
   setColumns()
+  await _getEventListenerList()
 })
 
 /* Comment translated to English. */
 const _getEventListenerList = async () => {
-  if (!userInfo.workspaceInfo.id || !userInfo.projectInfo.id) {
-    eventListenerList.value = []
-    return
-  }
-  const workspaceId = userInfo.workspaceInfo.id
-  const projectId = userInfo.projectInfo.id
-  eventListenerList.value = []
   try {
     const { data } = await getEventListenerList()    
-    if (workspaceId !== userInfo.workspaceInfo.id || projectId !== userInfo.projectInfo.id) return
     eventListenerList.value = data
 
     eventListenerList.value.forEach((eventListenerInfo) => {
@@ -89,17 +80,10 @@ const _getEventListenerList = async () => {
     toast.error('Failed to load data.')
   }
 }
-
 const setEventListenerUrl = (eventListenerCallUrl:string) => {
   const baseUrl = window.location.origin
   return baseUrl+eventListenerCallUrl;
 }
-
-watch(
-  () => [userInfo.workspaceInfo.id, userInfo.projectInfo.id],
-  () => { void _getEventListenerList() },
-  { immediate: true }
-)
 
 
 /* Comment translated to English. */

@@ -395,13 +395,7 @@ const setWorkflowFormData = async () => {
       ...data.workflowInfo,
       workflowPurpose: normalizeWorkflowPurposeValue(data.workflowInfo.workflowPurpose),
     }
-    const projectNamespace = (userInfo.projectInfo.ns_id || userInfo.projectInfo.name || '').trim()
-    workflowParamsFormData.value = data.workflowParams.map((param: WorkflowParams) => ({
-      ...param,
-      paramValue: projectNamespace && param.paramKey?.trim().toUpperCase() === 'NAMESPACE'
-        ? projectNamespace
-        : param.paramValue,
-    }))
+    workflowParamsFormData.value = [ ...data.workflowParams ]
     workflowStageMappingsFormData.value = [ ...data.workflowStageMappings ]
 
     workflowInfoFormData = { ...workflowInfoFormData, workflowIdx: route.params.workflowIdx }

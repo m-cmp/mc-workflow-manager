@@ -11,11 +11,11 @@ import java.util.Map;
 
 @Service
 public interface EventListenerService {
-    List<ResponseEventListenerDto> getEventListenerList(String workspaceId, String projectId, String workspaceName, String projectName);
+    List<ResponseEventListenerDto> getEventListenerList();
     Long registEventListner(RequestEventListenerDto requestEventListenerDto);
     Boolean updateEventListener(RequestEventListenerDto requestEventListenerDto);
-    Boolean deleteEventListener(Long eventListenerIdx, String workspaceId, String projectId);
-    ResponseEventListenerDto detailEventListener(Long eventListenerIdx, String workspaceId, String projectId);
+    Boolean deleteEventListener(Long eventListenerIdx);
+    ResponseEventListenerDto detailEventListener(Long eventListenerIdx);
     List<WorkflowListResDto> getWorkflowList(String eventListenerYn);
     WorkflowDetailResDto getWorkflowDetail(Long workflowIdx, String eventListenerYn);
     Boolean isEventListenerDuplicated(String eventlistenerName);

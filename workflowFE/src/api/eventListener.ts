@@ -1,30 +1,15 @@
 import request from "@/common/request";
 import type { EventListener } from "@/views/type/type";
-import { useUserStore } from "@/stores/user";
 
-const selectedScope = () => {
-  const user = useUserStore()
-  return {
-    workspaceId: String(user.workspaceInfo.id || ''),
-    projectId: String(user.projectInfo.id || ''),
-  }
-}
 
 // Comment translated to English.
 export const getEventListenerList = () => {
-  const user = useUserStore()
-  return request.get('/eventlistener/list', {
-    params: {
-      ...selectedScope(),
-      workspaceName: user.workspaceInfo.name,
-      projectName: user.projectInfo.name,
-    }
-  })
+  return request.get('/eventlistener/list')
 }
 
 // Comment translated to English.
 export function getEventListenerDetailInfo(eventlistenerIdx:number) {
-  return request.get("/eventlistener/" + eventlistenerIdx, { params: selectedScope() });
+  return request.get("/eventlistener/" + eventlistenerIdx);
 }
 
 // Comment translated to English.
@@ -34,18 +19,19 @@ export function duplicateCheck(eventListenerName:string) {
 
 // Comment translated to English.
 export function registEventListener(param: EventListener) {
-  return request.post(`/eventlistener`, { ...param, ...selectedScope() })
+  return request.post(`/eventlistener`, param)
 }
 
 // Comment translated to English.
 export function updateEventListener(param: EventListener) {
-  return request.patch(`/eventlistener/${param.eventListenerIdx}`, { ...param, ...selectedScope() })
+  return request.patch(`/eventlistener/${param.eventListenerIdx}`, param)
 }
 
 // Comment translated to English.
 export function deleteEventListener(eventlistenerIdx: number) {
-  return request.delete(`/eventlistener/${eventlistenerIdx}`, { params: selectedScope() })
+  return request.delete(`/eventlistener/${eventlistenerIdx}`)
 }
+
 
 
 
