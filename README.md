@@ -129,13 +129,13 @@ Tumblebug namespace can be created before infra or cluster creation.
 Seeded multi-CSP VM workflows include:
 
 ```text
-aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt
+alibaba,aws,azure,gcp,ibm,kt,ncp,nhn,tencent
 ```
 
 Seeded multi-CSP K8s workflows include:
 
 ```text
-aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm
+alibaba,aws,azure,gcp,ibm,ncp,nhn,tencent
 ```
 
 OpenStack is not included in the seeded multi-CSP scenario lists.
@@ -234,22 +234,30 @@ Status legend:
 
 ### VM Workflow Test Values
 
+The values below match the VM defaults in `WorkflowForm.vue`, `TumblebugParamSelector.vue`, `WorkflowStageDto.java`, and `import.sql`. Scenario status rows retain the previously recorded results; these updated defaults have not been revalidated against live CSPs.
+
 | Item | Alibaba | AWS | Azure | GCP | IBM | KT | NCP                                              | NHN | OpenStack | Tencent |
 | --- | --- | --- | --- | --- | --- | --- |--------------------------------------------------| --- | --- | --- |
 | VM | O | O | O | O | O | Not yet | O                                                | O | Not Support | O |
-| VM Spec | `alibaba+ap-northeast-2+ecs.e-c1m1.large` / `ecs.e-c1m1.large` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_D2s_v3` / `Standard_D2s_v3` | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bxf-2x8` / `bxf-2x8` | Not yet | `ncp+kr+c2-g3a` / `c2-g3`                        | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2` |
-| VM Image | `ubuntu_22_04_x64_20G_alibase_20260615.vhd` / Ubuntu 22.04 64 bit | `ami-091de58da07595152` / ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20260610 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | `https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-v20260623` / Canonical, Ubuntu, 22.04 LTS, amd64 jammy image built on 2026-06-23 | `r034-3cb1bb72-002d-45fe-8ac1-6e36906963c4` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Not yet | `104630229` / ubuntu-24.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `img-487zeit5` / Ubuntu Server 22.04 LTS 64bit |
-| VM Zone | `ap-northeast-2a` | `ap-northeast-1a` | `1` | `asia-northeast3-a` | `jp-osa-1` | Not yet | `KR-1`                                           | `kr-pub-a` | Not Support | `ap-seoul-1` |
+| VM Region | `ap-northeast-2` | `ap-northeast-2` | `koreacentral` | `asia-northeast3` | `jp-tok` | `kr1` | `kr` | `kr1` | Not Support | `ap-seoul` |
+| VM Connection | `alibaba-ap-northeast-2` | `aws-ap-northeast-2` | `azure-koreacentral` | `gcp-asia-northeast3` | `ibm-jp-tok` | `kt-kr1` | `ncp-kr` | `nhn-kr1` | Not Support | `tencent-ap-seoul` |
+| VM Spec | `alibaba+ap-northeast-2+ecs.g9i.large` / `ecs.g9i.large` | `aws+ap-northeast-2+m8i.large` / `m8i.large` | `azure+koreacentral+Standard_D2s_v6` / `Standard_D2s_v6` | `gcp+asia-northeast3+n4-standard-2` / `n4-standard-2` | `ibm+jp-tok+bx2-2x8` / `bx2-2x8` | `kt+kr1+2x8.itl` / `2x8.itl` | `ncp+kr+s2-g3` / `s2-g3` | `nhn+kr1+r2.c2m8` / `r2.c2m8` | Not Support | `tencent+ap-seoul+S5.MEDIUM8` / `S5.MEDIUM8` |
+| VM Image | `ubuntu_24_04_x64_20G_alibase_20260810.vhd` | `ami-01ed18897a4aadead` | `Canonical:ubuntu-24_04-lts:minimal:24.04.202608100` | `https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817` | `r022-9130f04e-631a-4e91-ae4c-b85d54621c24` | `e55c5985-b420-4a19-8c92-aa3461cda86e` | `104630229` | `5c38715f-0375-4167-af4e-56f75ba8b252` | Not Support | `img-mmytdhbn` |
+| VM Zone | `ap-northeast-2a` | `ap-northeast-2a` | `1` | `asia-northeast3-a` | `jp-tok-1` | `DX-M1` | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
 
 ### K8s Workflow Test Values
+
+K8s defaults are separate from VM defaults. An empty image ID (`""`) for Azure, IBM, or NCP uses the provider-managed image.
 
 | Item | Alibaba | AWS | Azure                                                            | GCP | IBM | KT | NCP                                             | NHN | OpenStack | Tencent                                               |
 | --- | --- | --- |------------------------------------------------------------------| --- | --- | --- |-------------------------------------------------| --- | --- |-------------------------------------------------------|
 | K8s | O | O | O                                                                | O | X | Not yet | △ (app install issue)                           | O | Not Support | X                                                     |
-| K8s Spec | `alibaba+ap-northeast-1+ecs.u1-c1m4.xlarge` / `ecs.u1-c1m4.xlarge` | `aws+ap-northeast-1+t3.small` / `t3.small` | `azure+koreacentral+Standard_D8ds_v5` / `Standard_D8ds_v5`       | `gcp+asia-northeast3+e2-medium` / `e2-medium` | `ibm+jp-osa+bx2-2x8` / `bx2-2x8` | Not yet | `ncp+kr+c2-g3a` / `c2-g3`                       | `nhn+kr1+m2.c1m2` / `m2.c1m2` | Not Support | `tencent+ap-seoul+BF1.MEDIUM2` / `BF1.MEDIUM2`        |
-| K8s Image | `Ubuntu` / ACK Node - Ubuntu latest (ACK image_type alias, resolves dynamically), cgroup v2, x86_64 | `AL2023_x86_64_STANDARD` / EKS Node - AL2023, containerd, x86_64 | `Canonical:ubuntu-22_04-lts:server:22.04.202603110` / Server LTS | `UBUNTU_CONTAINERD` / GKE Node - Ubuntu 22.04, containerd, x86_64/ARM64 | `r034-ed053bf7-43c9-4b64-844b-77918ac3d597` / Ubuntu Linux 22.04 LTS Jammy Jellyfish Minimal Install (amd64) | Not yet | `23214590` / ubuntu-22.04-base (Hypervisor:KVM) | `0f07c795-2a46-44fc-a61b-fa0d96763ce2` / Ubuntu Server 22.04.5 LTS (2026.03.10) | Not Support | `ubuntu22.04x86_64` / TKE Node - Ubuntu 22.04, x86_64 |
-| K8s Zone | `ap-northeast-1b` | `ap-northeast-1a` | `1`                                                              | `asia-northeast3-a` | `jp-osa-1` | Not yet | `KR-1`                                          | `kr-pub-a` | Not Support | `Ap-seoul-2`                                          |
-| K8s Version | `1.34.3-aliyun.1` / `1.34` | `1.33` | `1.33.12` / `1.33`                                               | `1.33.12-gke.1000000` / `1.33` | `1.33.6` / `1.33` | Not yet | `1.33.4-nks.1` / `1.33`                         | `v1.33.4` / `1.33` | Not Support | `1.32.2` / `1.32`                                     |
+| K8s Region | `ap-northeast-2` | `ap-northeast-2` | `koreacentral` | `asia-northeast3` | `jp-tok` | Not yet | `kr` | `kr1` | Not Support | `ap-seoul` |
+| K8s Connection | `alibaba-ap-northeast-2` | `aws-ap-northeast-2` | `azure-koreacentral` | `gcp-asia-northeast3` | `ibm-jp-tok` | Not yet | `ncp-kr` | `nhn-kr1` | Not Support | `tencent-ap-seoul` |
+| K8s Spec | `alibaba+ap-northeast-2+ecs.c9i.xlarge` / `ecs.c9i.xlarge` | `aws+ap-northeast-2+c8i.xlarge` / `c8i.xlarge` | `azure+koreacentral+Standard_D4ls_v6` / `Standard_D4ls_v6` | `gcp+asia-northeast3+n4-highcpu-4` / `n4-highcpu-4` | `ibm+jp-tok+cx2-4x8` / `cx2-4x8` | Not yet | `ncp+kr+c4-g3` / `c4-g3` | `nhn+kr1+m2.c4m8` / `m2.c4m8` | Not Support | `tencent+ap-seoul+S5.LARGE8` / `S5.LARGE8` |
+| K8s Image | `Ubuntu` | `AL2023_x86_64_STANDARD` | `""` (provider-managed) | `UBUNTU_CONTAINERD` | `""` (provider-managed) | Not yet | `""` (provider-managed) | `107cc02d-02d8-44fd-84d6-6c316045b817` | Not Support | `ubuntu22.04x86_64` |
+| K8s Zone | `ap-northeast-2a` | `ap-northeast-2a` | `1` | `asia-northeast3-a` | `jp-tok-1` | Not yet | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
+| K8s Version | `1.35.7-aliyun.1` | `1.35` | `1.35.7` | `1.34.10-gke.1236000` | `1.35.7` | Not yet | `1.34.3-nks.1` | `v1.34.3` | Not Support | `1.34.1` |
 
 ## Requirements
 
