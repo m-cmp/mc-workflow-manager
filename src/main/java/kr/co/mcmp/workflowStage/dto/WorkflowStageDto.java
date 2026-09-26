@@ -376,7 +376,7 @@ public class WorkflowStageDto {
     private static List<WorkflowParamDto> multiCspVmParams() {
         List<WorkflowParamDto> result = tumblebugParams(
                 param("NAMESPACE", ""),
-                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm,kt"),
+                param("CSP_LIST", "alibaba,aws,azure,gcp,ibm,kt,ncp,nhn,tencent"),
                 param("INFRA_ID", "multi-csp-vm"),
                 param("INFRA_PREFIX", "multi-csp-vm"),
                 param("INFRA_NODEGROUP_PREFIX", "ng"),
@@ -386,25 +386,25 @@ public class WorkflowStageDto {
                 param("INSTALL_MON_AGENT", "no"),
                 param("POLICY_ON_PARTIAL_FAILURE", "continue"));
 
-        addCspVmParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1a",
-                "alibaba+ap-northeast-1+ecs.u1-c1m2.large", "ubuntu_24_04_x64_20G_alibase_20260810.vhd");
-        addCspVmParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
-                "aws+ap-northeast-1+t3.medium", "ami-0dc2aed7540019237");
-        addCspVmParams(result, "AZURE", "koreasouth", "azure-koreasouth", "1",
-                "azure+koreasouth+Standard_D2s_v3", "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100");
+        addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
+                "alibaba+ap-northeast-2+ecs.g9i.large", "ubuntu_24_04_x64_20G_alibase_20260810.vhd");
+        addCspVmParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2", "ap-northeast-2a",
+                "aws+ap-northeast-2+m8i.large", "ami-01ed18897a4aadead");
+        addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
+                "azure+koreacentral+Standard_D2s_v6", "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100");
         addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+e2-medium",
+                "gcp+asia-northeast3+n4-standard-2",
                 "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817");
-        addCspVmParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
-                "ibm+jp-osa+cx2-2x4", "r034-81a02369-9e59-4404-a922-30c110f1788d");
+        addCspVmParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
+                "ibm+jp-tok+bx2-2x8", "r022-9130f04e-631a-4e91-ae4c-b85d54621c24");
         addCspVmParams(result, "KT", "kr1", "kt-kr1", "DX-M1",
-                "kt+kr1+2x4.itl", "e55c5985-b420-4a19-8c92-aa3461cda86e");
+                "kt+kr1+2x8.itl", "e55c5985-b420-4a19-8c92-aa3461cda86e");
         addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c2-g3a", "104630229");
+                "ncp+kr+s2-g3", "104630229");
         addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
-                "nhn+kr1+m2.c2m4", "5c38715f-0375-4167-af4e-56f75ba8b252");
+                "nhn+kr1+r2.c2m8", "5c38715f-0375-4167-af4e-56f75ba8b252");
         addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
-                "tencent+ap-seoul+S5.MEDIUM4", "img-mmytdhbn");
+                "tencent+ap-seoul+S5.MEDIUM8", "img-mmytdhbn");
         return result;
     }
 
@@ -420,7 +420,7 @@ public class WorkflowStageDto {
     private static List<WorkflowParamDto> multiCspK8sParams() {
         List<WorkflowParamDto> result = tumblebugParams(
                 param("NAMESPACE", ""),
-                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm"),
+                param("CSP_LIST", "alibaba,aws,azure,gcp,ibm,ncp,nhn,tencent"),
                 param("CLUSTER_PREFIX", "multi-csp-k8s"),
                 param("K8S_NODEGROUP_PREFIX", "ng"),
                 param("K8S_VERSION", "1.35"),
@@ -434,29 +434,29 @@ public class WorkflowStageDto {
                 param("K8S_STATUS_INTERVAL_SECONDS", "10"),
                 param("K8S_READY_STATUS", "Active,Running"));
 
-        addCspK8sParams(result, "AWS", "ap-northeast-1", "aws-ap-northeast-1", "ap-northeast-1a",
-                "aws+ap-northeast-1+t3.medium", "AL2023_x86_64_STANDARD", "1.35");
-        addCspK8sParams(result, "AZURE", "koreasouth", "azure-koreasouth", "1",
-                "azure+koreasouth+Standard_D2s_v3", "", "1.35.7");
+        addCspK8sParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
+                "alibaba+ap-northeast-2+ecs.c9i.xlarge", "Ubuntu", "1.35.7-aliyun.1");
+        addCspK8sParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2", "ap-northeast-2a",
+                "aws+ap-northeast-2+c8i.xlarge", "AL2023_x86_64_STANDARD", "1.35");
+        addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
+                "azure+koreacentral+Standard_D4ls_v6", "", "1.35.7");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+e2-medium", "UBUNTU_CONTAINERD", "1.34.9-gke.1655001");
+                "gcp+asia-northeast3+n4-highcpu-4", "UBUNTU_CONTAINERD", "1.34.10-gke.1236000");
+        addCspK8sParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
+                "ibm+jp-tok+cx2-4x8", "", "1.35.7");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c2-g3a", "", "1.34.3-nks.1");
+                "ncp+kr+c4-g3", "", "1.34.3-nks.1");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
-                "nhn+kr1+m2.c2m4", "0f07c795-2a46-44fc-a61b-fa0d96763ce2", "v1.34.3");
-        addCspK8sParams(result, "ALIBABA", "ap-northeast-1", "alibaba-ap-northeast-1", "ap-northeast-1a",
-                "alibaba+ap-northeast-1+ecs.u1-c1m2.xlarge", "AliyunLinux3ContainerOptimized", "1.35.7-aliyun.1");
+                "nhn+kr1+m2.c4m8", "107cc02d-02d8-44fd-84d6-6c316045b817", "v1.34.3");
         addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
-                "tencent+ap-seoul+S5.MEDIUM4", "ubuntu22.04x86_64", "1.34.1");
-        addCspK8sParams(result, "IBM", "jp-osa", "ibm-jp-osa", "jp-osa-1",
-                "ibm+jp-osa+cx2-2x4", "", "1.35.7");
+                "tencent+ap-seoul+S5.LARGE8", "ubuntu22.04x86_64", "1.34.1");
         return result;
     }
 
     private static List<WorkflowParamDto> multiCspK8sDeleteParams() {
         return tumblebugParams(
                 param("NAMESPACE", ""),
-                param("CSP_LIST", "aws,azure,gcp,ncp,nhn,alibaba,tencent,ibm"),
+                param("CSP_LIST", "alibaba,aws,azure,gcp,ibm,ncp,nhn,tencent"),
                 param("CLUSTER_PREFIX", "multi-csp-k8s"),
                 param("K8S_CLUSTER_ID_LIST", ""),
                 param("K8S_NODEGROUP_PREFIX", "ng"),

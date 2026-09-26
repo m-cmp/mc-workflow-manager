@@ -325,7 +325,7 @@ const sectionDefinitions = [
   {
     key: 'multi',
     title: 'Multi CSP',
-    prefixes: ['AWS_', 'AZURE_', 'GCP_', 'NCP_', 'NHN_', 'ALIBABA_', 'TENCENT_', 'IBM_', 'KT_'],
+    prefixes: ['ALIBABA_', 'AWS_', 'AZURE_', 'GCP_', 'IBM_', 'KT_', 'NCP_', 'NHN_', 'TENCENT_'],
     keys: ['CSP_LIST'],
   },
   {
@@ -468,11 +468,20 @@ const filteredRows = computed(() => {
 
 const visibleSections = computed(() => {
   return sectionDefinitions
-    .map((section) => ({
-      key: section.key,
-      title: section.title,
-      rows: filteredRows.value.filter((row) => row.sectionKey === section.key),
-    }))
+    .map((section) => {
+      const rows = filteredRows.value.filter((row) => row.sectionKey === section.key)
+      const prefixes = section.prefixes
+
+      if (prefixes) {
+        rows.sort((a, b) => {
+          const aOrder = prefixes.findIndex((prefix) => a.normalizedKey.startsWith(prefix))
+          const bOrder = prefixes.findIndex((prefix) => b.normalizedKey.startsWith(prefix))
+          return aOrder - bOrder || a.index - b.index
+        })
+      }
+
+      return { key: section.key, title: section.title, rows }
+    })
     .filter((section) => section.rows.length > 0)
 })
 
