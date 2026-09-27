@@ -2168,8 +2168,8 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'USERPASS', paramValue: 'default', eventListenerYn: 'N' },
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
       { paramKey: 'INFRA_ID', paramValue: defaultInfraId, eventListenerYn: 'N' },
-      { paramKey: 'JUPYTER_PORT', paramValue: '', eventListenerYn: 'N' },
-      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_PORT', paramValue: '8888', eventListenerYn: 'N' },
+      { paramKey: 'JUPYTER_ALLOWED_CIDR', paramValue: '0.0.0.0/0', eventListenerYn: 'N' },
     ],
     'jupyter-object-storage-analysis-remove': [
       { paramKey: 'NAMESPACE', paramValue: getNamespaceParamValue(), eventListenerYn: 'N' },
@@ -2327,6 +2327,7 @@ const workflowPurposeValueMap: Record<string, string> = {
   run: 'For Execution',
   test: 'For Testing',
   webhook: 'For Webhook',
+  clean: 'For Cleanup',
 }
 const normalizeWorkflowPurposeValue = (workflowPurpose?: string) => {
   return workflowPurposeValueMap[workflowPurpose || ''] || workflowPurpose || ''
@@ -2345,9 +2346,13 @@ const setWorkflowPurposeList = () => {
       name: "For Testing",
       value: "For Testing"
     },
-      {
+    {
       name: "For Webhook",
       value: "For Webhook"
+    },
+    {
+      name: "For Cleanup",
+      value: "For Cleanup"
     },
   ]
 }

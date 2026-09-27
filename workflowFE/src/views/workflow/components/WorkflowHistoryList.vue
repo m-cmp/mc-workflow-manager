@@ -154,27 +154,27 @@ const setColumns = () => {
     {
       title: "Name",
       field: "name",
-      width: '20%'
+      minWidth: 120
     },
     {
       title: "Status",
       field: "status",
-      width: '20%',
+      minWidth: 120,
       formatter: statusFormatter
     },
     {
       title: "User",
       field: "user",
-      width: '20%'
+      minWidth: 100
     },
     {
       title: "Run time",
       field: "startTimeMillis",
-      width: '20%'
+      minWidth: 170
     },
     {
       title: "Action",
-      width: "20%",
+      minWidth: 110,
       formatter: detailButtonFormatter,
       cellClick: function (e, cell) {
         const rowData = cell.getRow().getData()
