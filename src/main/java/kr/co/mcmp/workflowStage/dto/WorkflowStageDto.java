@@ -323,8 +323,8 @@ public class WorkflowStageDto {
             case "jupyter-inbound-rule-remove" -> tumblebugParams(
                     param("NAMESPACE", ""),
                     param("INFRA_ID", ""),
-                    param("JUPYTER_PORT", ""),
-                    param("JUPYTER_ALLOWED_CIDR", ""));
+                    param("JUPYTER_PORT", "8888"),
+                    param("JUPYTER_ALLOWED_CIDR", "0.0.0.0/0"));
             case "jupyter-object-storage-analysis-remove" -> params(
                     param("NAMESPACE", ""),
                     param("INFRA_ID", ""),

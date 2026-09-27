@@ -5131,8 +5131,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (110, 'OBJECT_STORAGE_NAMESPACE', '', 'N'),
 (110, 'OBJECT_STORAGE_PROVIDER', '', 'N'),
 (110, 'OBJECT_STORAGE_REGION', '', 'N'),
-(110, 'JUPYTER_PORT', '', 'N'),
-(110, 'JUPYTER_ALLOWED_CIDR', '', 'N');
+(110, 'JUPYTER_PORT', '8888', 'N'),
+(110, 'JUPYTER_ALLOWED_CIDR', '0.0.0.0/0', 'N');
 
 INSERT INTO workflow_stage_mapping (workflow_idx, stage_order, workflow_stage_idx, stage) VALUES
 (101, 1, null, 'import groovy.json.JsonOutput
