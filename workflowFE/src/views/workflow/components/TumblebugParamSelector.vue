@@ -300,7 +300,7 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'asia-northeast3',
     connectionName: 'gcp-asia-northeast3',
     zone: 'asia-northeast3-a',
-    specId: 'gcp+asia-northeast3+n4-standard-2',
+    specId: 'gcp+asia-northeast3+n2-standard-2',
     imageId: 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817',
   },
   ibm: {
@@ -369,7 +369,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'asia-northeast3',
     connectionName: 'gcp-asia-northeast3',
     zone: 'asia-northeast3-a',
-    specId: 'gcp+asia-northeast3+n4-highcpu-4',
+    specId: 'gcp+asia-northeast3+c3-highcpu-4',
     imageId: 'UBUNTU_CONTAINERD',
     k8sVersion: '1.34.10-gke.1236000',
   },
