@@ -148,7 +148,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 } else if (CSP == "gcp") {
                     sgName = "g3"
                     imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817"
-                    specId = "gcp+asia-northeast3+n4-standard-2"
+                    specId = "gcp+asia-northeast3+n2-standard-2"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "ncp") {
@@ -275,7 +275,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     } else if (CPS == "gcp") {
                         call_tumblebug_create_cluster_payload = """{ \
                             "imageId": "UBUNTU_CONTAINERD", \
-                            "specId": "gcp+asia-northeast3+n4-highcpu-4", \
+                            "specId": "gcp+asia-northeast3+c3-highcpu-4", \
                             "connectionName": "gcp-asia-northeast3", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
@@ -4880,7 +4880,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'GCP_REGION', 'asia-northeast3', 'N'),
 (102, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (102, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
-(102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+n4-standard-2', 'N'),
+(102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+n2-standard-2', 'N'),
 (102, 'GCP_IMAGE_ID', 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817', 'N'),
 (102, 'IBM_REGION', 'jp-tok', 'N'),
 (102, 'IBM_CONNECTION_NAME', 'ibm-jp-tok', 'N'),
@@ -5001,7 +5001,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'GCP_REGION', 'asia-northeast3', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
-(104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+n4-highcpu-4', 'N'),
+(104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+c3-highcpu-4', 'N'),
 (104, 'GCP_IMAGE_ID', 'UBUNTU_CONTAINERD', 'N'),
 (104, 'GCP_K8S_VERSION', '1.34.10-gke.1236000', 'N'),
 (104, 'IBM_REGION', 'jp-tok', 'N'),

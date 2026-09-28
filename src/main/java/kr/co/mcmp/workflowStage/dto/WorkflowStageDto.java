@@ -393,7 +393,7 @@ public class WorkflowStageDto {
         addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
                 "azure+koreacentral+Standard_D2s_v6", "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100");
         addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+n4-standard-2",
+                "gcp+asia-northeast3+n2-standard-2",
                 "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817");
         addCspVmParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
                 "ibm+jp-tok+bx2-2x8", "r022-9130f04e-631a-4e91-ae4c-b85d54621c24");
@@ -441,7 +441,7 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
                 "azure+koreacentral+Standard_D4ls_v6", "", "1.35.7");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+n4-highcpu-4", "UBUNTU_CONTAINERD", "1.34.10-gke.1236000");
+                "gcp+asia-northeast3+c3-highcpu-4", "UBUNTU_CONTAINERD", "1.34.10-gke.1236000");
         addCspK8sParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
                 "ibm+jp-tok+cx2-4x8", "", "1.35.7");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
