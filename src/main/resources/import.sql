@@ -704,6 +704,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 collectAccessInfo = null
 
                 env.SSH_HOST = resolvedSshHost
+                env.NEW_INFRA_SSH_HOST = resolvedSshHost
                 env.DB_HOST = env.SSH_HOST
                 env.SSH_USER = resolvedSshUser
                 if (resolvedPrivateKey) {
@@ -907,6 +908,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     addCandidate("admin")
                     addCandidate("root")
                     def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\" -o IdentitiesOnly=yes" : ""
+                    sh """set -eu
+umask 077
+mkdir -p ~/.ssh
+touch ~/.ssh/known_hosts
+chmod 600 ~/.ssh/known_hosts
+"""
+                    if (env.NEW_INFRA_SSH_HOST == sshHost) {
+                        sh "ssh-keygen -R \"${sshHost}\" -f ~/.ssh/known_hosts >/dev/null"
+                        env.NEW_INFRA_SSH_HOST = ""
+                    }
                     def connectedUser = ""
                     def attemptedUsers = []
                     def lastError = ""
@@ -919,7 +930,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             attemptedUsers << candidate
                         }
                         echo "SSH check try ${attempt}/10. user=${candidate}, host=${sshHost}"
-                        def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" > ssh-connect-check.log 2>&1""", returnStatus: true)
+                        def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" > ssh-connect-check.log 2>&1""", returnStatus: true)
                         def output = readFile(file: "ssh-connect-check.log").trim()
                         if (output) {
                             echo output
@@ -1110,6 +1121,27 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                 def option = params.INFRA_DELETE_OPTION ?: "terminate"
                 def auth = (params.USER && params.USERPASS) ? "--user \"${params.USER}:${params.USERPASS}\"" : ""
+                def accessInfoUrl = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=accessinfo"
+                def accessInfoResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${accessInfoUrl}" ${auth} || true""", returnStdout: true).trim()
+                def sshHosts = []
+                if (accessInfoResponse.contains("Http_Status_code:2")) {
+                    try {
+                        def accessInfoBody = accessInfoResponse.replaceAll("- Http_Status_code:[0-9]{3}", "").trim()
+                        def accessInfo = new groovy.json.JsonSlurper().parseText(accessInfoBody)
+                        def nodeGroups = accessInfo.InfraNodeGroupAccessInfo ?: accessInfo.infraNodeGroupAccessInfo ?: []
+                        nodeGroups.each { group ->
+                            def nodes = group.NodeAccessInfo ?: group.nodeAccessInfo ?: []
+                            nodes.each { node ->
+                                def host = node.publicIP ?: node.publicIp ?: node.privateIP ?: node.privateIp ?: node.host
+                                if (host && !sshHosts.contains(host.toString())) {
+                                    sshHosts << host.toString()
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {
+                        echo "Could not parse infra accessInfo for SSH known_hosts cleanup. Continue infra cleanup."
+                    }
+                }
                 def url = "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/infra/${params.INFRA_ID}?option=${option}"
                 def response = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X DELETE "${url}" ${auth}""", returnStdout: true).trim()
                 echo response
@@ -1119,6 +1151,24 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     error "infra-cleanup failed: ${response}"
                 } else {
                     echo "Infra ${params.INFRA_ID} cleanup requested."
+                }
+                if (sshHosts) {
+                    sh """set -eu
+umask 077
+mkdir -p ~/.ssh
+touch ~/.ssh/known_hosts
+chmod 600 ~/.ssh/known_hosts
+"""
+                    sshHosts.each { host ->
+                        if ((host ==~ /[A-Za-z0-9._:-]+/) && !host.contains("..")) {
+                            def status = sh(script: "ssh-keygen -R \"${host}\" -f ~/.ssh/known_hosts >/dev/null", returnStatus: true)
+                            if (status != 0) {
+                                echo "Failed to remove SSH host key for ${host}; continue cleanup."
+                            }
+                        } else {
+                            echo "Skip invalid SSH host returned by accessInfo."
+                        }
+                    }
                 }
             }
         }
