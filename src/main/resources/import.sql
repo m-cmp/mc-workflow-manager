@@ -121,7 +121,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
                     echo groovy.json.JsonOutput.prettyPrint(response)
-                  } else {
+                } else {
                     error "GET API call failed with status code: ${response}"
                 }
             }
@@ -200,10 +200,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
 
                 def tb_vm_url = "${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infraDynamic"
                 def call = """curl -X POST ''${tb_vm_url}'' \
-                  -H ''accept: application/json'' \
-                  -H ''Content-Type: application/json'' \
-                  -d ''${payload}'' \
-                  --user ''${USER}:${USERPASS}''"""
+                    -H ''accept: application/json'' \
+                    -H ''Content-Type: application/json'' \
+                    -d ''${payload}'' \
+                    --user ''${USER}:${USERPASS}''"""
                 def response = sh(script: call, returnStdout: true).trim()
 
                 echo groovy.json.JsonOutput.prettyPrint(response)
@@ -212,15 +212,15 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (5, 5, 1, 'Infrastructure MCI Delete', 'Infrastructure MCI Delete', '
     stage(''Infrastructure MCI Delete'') {
-      steps {
-        echo ''>>>>> STAGE: Infrastructure MCI Delete''
-        script {
-          echo "MCI Terminate Start."
-          def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=terminate"""
-          sh(script: """curl -X DELETE --user ${USER}:${USERPASS} "${tb_vm_url}" -H ''accept: application/json'' """, returnStdout: true)
-          echo "MCI Terminate successful."
+        steps {
+            echo ''>>>>> STAGE: Infrastructure MCI Delete''
+            script {
+                echo "MCI Terminate Start."
+                def tb_vm_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/infra/${MCI}?option=terminate"""
+                sh(script: """curl -X DELETE --user ${USER}:${USERPASS} "${tb_vm_url}" -H ''accept: application/json'' """, returnStdout: true)
+                echo "MCI Terminate successful."
+            }
         }
-      }
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (6, 6, 1, 'Infrastructure MCI Running Status', 'Infrastructure Running Status', '
     stage(''Infrastructure MCI Running Status'') {
@@ -234,7 +234,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     echo "GET API call successful."
                     response = response.replace(''- Http_Status_code:200'', '''')
                     echo groovy.json.JsonOutput.prettyPrint(response)
-                  } else {
+                } else {
                     error "GET API call failed with status code: ${response}"
                 }
             }
@@ -324,7 +324,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         def responseCode = tumblebug_create_cluster_response.indexOf(''Http_Status_code:200'') > 0 ? ''- Http_Status_code:200'' : ''- Http_Status_code:201''
                         tumblebug_create_cluster_response = tumblebug_create_cluster_response.replace(responseCode, '''')
                         echo groovy.json.JsonOutput.prettyPrint(tumblebug_create_cluster_response)
-                        
+
                         // Wait for cluster to be Active before creating node group
                         echo "Waiting for cluster to be Active..."
                         def isActive = false
@@ -333,7 +333,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             def status_response = sh(script: """curl -w ''- Http_Status_code:%{http_code}'' ''${tb_vm_status_url}'' --user ''${USER}:${USERPASS}'' -H ''accept: application/json''""", returnStdout: true).trim()
                             if (status_response.indexOf(''Http_Status_code:200'') > 0 ) {
                                 status_response = status_response.replace(''- Http_Status_code:200'', '''')
-                                
+
                                 if(status_response.contains(''Active'')) {
                                     echo "Cluster is Active!"
                                     isActive = true
@@ -347,7 +347,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                                 sh ''sleep 60''
                             }
                         }
-                        
+
                         // Additional: When CPS is aws, create extra node group via k8sNodeGroupDynamic
                         if (CPS == "aws") {
                             def call_tumblebug_create_nodegroup_url = """${TUMBLEBUG}/tumblebug/ns/${NAMESPACE}/k8sCluster/${CLUSTER}/k8sNodeGroupDynamic"""
@@ -397,7 +397,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                                 echo "k8sNodeGroupDynamic call response: ${tumblebug_create_nodegroup_response}"
                             }
                         }
-                        
+
                     } else {
                         error """GET API call failed with status code: ${tumblebug_create_cluster_response}"""
                     }
@@ -535,8 +535,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
     }');
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (16, 16, 1, 'K8S ACCESS AND SH(K8S Cluster)', 'K8S ACCESS AND SH(K8S Cluster)', '
     stage(''K8S ACCESS AND SH(K8S Cluster)'') {
-            steps {
-                sh ''''''
+        steps {
+            sh ''''''
 
 cat > config << EOF
 '''''' + kubeconfig + ''''''
@@ -545,9 +545,9 @@ EOF
 export isRun=$(docker ps --format "table {{.Status}} | {{.Names}}" | grep k8s-tools)
 if [ ! -z "$isRun" ];then
     echo "The k8s-tools is already running. Terminate k8s-tools"
-	docker stop k8s-tools && docker rm -f k8s-tools
+    docker stop k8s-tools && docker rm -f k8s-tools
 else
-	echo "k8s-tools is not running."
+    echo "k8s-tools is not running."
 fi
 
 docker run -d --rm --name k8s-tools alpine/k8s:1.28.13 sleep 1m
@@ -592,7 +592,7 @@ docker stop k8s-tools
 
 ''''''
 
-            }
+        }
     }');
 
 -- ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -908,12 +908,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     addCandidate("admin")
                     addCandidate("root")
                     def keyOpt = sshKeyFile ? "-i \"${sshKeyFile}\" -o IdentitiesOnly=yes" : ""
-                    sh """set -eu
-umask 077
-mkdir -p ~/.ssh
-touch ~/.ssh/known_hosts
-chmod 600 ~/.ssh/known_hosts
-"""
+                    sh """
+                        set -eu
+                        umask 077
+                        mkdir -p ~/.ssh
+                        touch ~/.ssh/known_hosts
+                        chmod 600 ~/.ssh/known_hosts
+                    """
                     if (env.NEW_INFRA_SSH_HOST == sshHost) {
                         sh "ssh-keygen -R \"${sshHost}\" -f ~/.ssh/known_hosts >/dev/null"
                         env.NEW_INFRA_SSH_HOST = ""
@@ -1153,12 +1154,13 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     echo "Infra ${params.INFRA_ID} cleanup requested."
                 }
                 if (sshHosts) {
-                    sh """set -eu
-umask 077
-mkdir -p ~/.ssh
-touch ~/.ssh/known_hosts
-chmod 600 ~/.ssh/known_hosts
-"""
+                    sh """
+                        set -eu
+                        umask 077
+                        mkdir -p ~/.ssh
+                        touch ~/.ssh/known_hosts
+                        chmod 600 ~/.ssh/known_hosts
+                    """
                     sshHosts.each { host ->
                         if ((host ==~ /[A-Za-z0-9._:-]+/) && !host.contains("..")) {
                             def status = sh(script: "ssh-keygen -R \"${host}\" -f ~/.ssh/known_hosts >/dev/null", returnStatus: true)
@@ -2227,67 +2229,67 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     kubectlVersionSpec = k8sVersionParts.size() >= 2 ? "stable-${k8sVersionParts[0]}.${k8sVersionParts[1]}" : "stable-1.35"
                 }
                 sh """#!/bin/sh
-set -e
-mkdir -p "${toolsBin}"
-os=\$(uname -s | tr "[:upper:]" "[:lower:]")
-arch=\$(uname -m)
-case "\${arch}" in
-  x86_64|amd64) arch="amd64" ;;
-  aarch64|arm64) arch="arm64" ;;
-  *) echo "Unsupported CPU architecture for Kubernetes tools: \${arch}"; exit 1 ;;
-esac
+                    set -e
+                    mkdir -p "${toolsBin}"
+                    os=\$(uname -s | tr "[:upper:]" "[:lower:]")
+                    arch=\$(uname -m)
+                    case "\${arch}" in
+                      x86_64|amd64) arch="amd64" ;;
+                      aarch64|arm64) arch="arm64" ;;
+                      *) echo "Unsupported CPU architecture for Kubernetes tools: \${arch}"; exit 1 ;;
+                    esac
 
-installed_helm_version=""
-if command -v helm >/dev/null 2>&1; then
-  installed_helm_version=\$(helm version --short 2>/dev/null | sed "s/+.*//; s/ .*//")
-fi
-if [ "\${installed_helm_version}" != "${helmVersion}" ]; then
-  echo "Installing helm ${helmVersion} into ${toolsBin} (current: \${installed_helm_version:-not found})"
-  curl -fsSL "https://get.helm.sh/helm-${helmVersion}-\${os}-\${arch}.tar.gz" -o ".workflow-tools/helm.tar.gz"
-  tar -xzf ".workflow-tools/helm.tar.gz" -C ".workflow-tools"
-  cp ".workflow-tools/\${os}-\${arch}/helm" "${toolsBin}/helm"
-  chmod +x "${toolsBin}/helm"
-fi
+                    installed_helm_version=""
+                    if command -v helm >/dev/null 2>&1; then
+                      installed_helm_version=\$(helm version --short 2>/dev/null | sed "s/+.*//; s/ .*//")
+                    fi
+                    if [ "\${installed_helm_version}" != "${helmVersion}" ]; then
+                      echo "Installing helm ${helmVersion} into ${toolsBin} (current: \${installed_helm_version:-not found})"
+                      curl -fsSL "https://get.helm.sh/helm-${helmVersion}-\${os}-\${arch}.tar.gz" -o ".workflow-tools/helm.tar.gz"
+                      tar -xzf ".workflow-tools/helm.tar.gz" -C ".workflow-tools"
+                      cp ".workflow-tools/\${os}-\${arch}/helm" "${toolsBin}/helm"
+                      chmod +x "${toolsBin}/helm"
+                    fi
 
-kubectl_version="${kubectlVersionSpec}"
-case "\${kubectl_version}" in
-  stable-*) kubectl_version=\$(curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}.txt") ;;
-esac
-installed_kubectl_version=""
-if command -v kubectl >/dev/null 2>&1; then
-  installed_kubectl_version=\$(kubectl version --client=true 2>/dev/null | sed -n "s/^Client Version: \\(v[0-9.]*\\).*/\\1/p" | head -1)
-fi
-if [ "\${installed_kubectl_version}" != "\${kubectl_version}" ]; then
-  echo "Installing kubectl \${kubectl_version} into ${toolsBin} (current: \${installed_kubectl_version:-not found})"
-  curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}/bin/\${os}/\${arch}/kubectl" -o "${toolsBin}/kubectl"
-  chmod +x "${toolsBin}/kubectl"
-fi
+                    kubectl_version="${kubectlVersionSpec}"
+                    case "\${kubectl_version}" in
+                      stable-*) kubectl_version=\$(curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}.txt") ;;
+                    esac
+                    installed_kubectl_version=""
+                    if command -v kubectl >/dev/null 2>&1; then
+                      installed_kubectl_version=\$(kubectl version --client=true 2>/dev/null | sed -n "s/^Client Version: \\(v[0-9.]*\\).*/\\1/p" | head -1)
+                    fi
+                    if [ "\${installed_kubectl_version}" != "\${kubectl_version}" ]; then
+                      echo "Installing kubectl \${kubectl_version} into ${toolsBin} (current: \${installed_kubectl_version:-not found})"
+                      curl -fsSL "https://dl.k8s.io/release/\${kubectl_version}/bin/\${os}/\${arch}/kubectl" -o "${toolsBin}/kubectl"
+                      chmod +x "${toolsBin}/kubectl"
+                    fi
 
-helm version --short
-kubectl version --client=true
-"""
+                    helm version --short
+                    kubectl version --client=true
+                """
                 if (readFile(kubeconfigFile).contains("aws-iam-authenticator")) {
                     def authVersion = params.AWS_IAM_AUTHENTICATOR_VERSION ?: "0.6.31"
                     sh """#!/bin/sh
-set -e
-os=\$(uname -s | tr "[:upper:]" "[:lower:]")
-arch=\$(uname -m)
-case "\${arch}" in
-  x86_64|amd64) arch="amd64" ;;
-  aarch64|arm64) arch="arm64" ;;
-  *) echo "Unsupported CPU architecture for aws-iam-authenticator: \${arch}"; exit 1 ;;
-esac
-current_auth_version=""
-if [ -x "${toolsBin}/aws-iam-authenticator" ]; then
-  current_auth_version=\$("${toolsBin}/aws-iam-authenticator" version 2>/dev/null || true)
-fi
-if ! printf "%s" "\${current_auth_version}" | grep -q "${authVersion}"; then
-  echo "Installing aws-iam-authenticator v${authVersion} into ${toolsBin}"
-  curl -fsSL "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v${authVersion}/aws-iam-authenticator_${authVersion}_\${os}_\${arch}" -o "${toolsBin}/aws-iam-authenticator"
-  chmod +x "${toolsBin}/aws-iam-authenticator"
-fi
-"${toolsBin}/aws-iam-authenticator" version
-"""
+                        set -e
+                        os=\$(uname -s | tr "[:upper:]" "[:lower:]")
+                        arch=\$(uname -m)
+                        case "\${arch}" in
+                          x86_64|amd64) arch="amd64" ;;
+                          aarch64|arm64) arch="arm64" ;;
+                          *) echo "Unsupported CPU architecture for aws-iam-authenticator: \${arch}"; exit 1 ;;
+                        esac
+                        current_auth_version=""
+                        if [ -x "${toolsBin}/aws-iam-authenticator" ]; then
+                          current_auth_version=\$("${toolsBin}/aws-iam-authenticator" version 2>/dev/null || true)
+                        fi
+                        if ! printf "%s" "\${current_auth_version}" | grep -q "${authVersion}"; then
+                          echo "Installing aws-iam-authenticator v${authVersion} into ${toolsBin}"
+                          curl -fsSL "https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v${authVersion}/aws-iam-authenticator_${authVersion}_\${os}_\${arch}" -o "${toolsBin}/aws-iam-authenticator"
+                          chmod +x "${toolsBin}/aws-iam-authenticator"
+                        fi
+                        "${toolsBin}/aws-iam-authenticator" version
+                    """
                 }
                 def apiReadyAttempts = (params.K8S_API_READY_MAX_ATTEMPTS ?: "360").toInteger()
                 def apiReadyIntervalSeconds = (params.K8S_API_READY_INTERVAL_SECONDS ?: "10").toInteger()
@@ -2295,34 +2297,34 @@ fi
                 def apiReady = false
                 for (int attempt = 1; attempt <= apiReadyAttempts; attempt++) {
                     def readyResult = sh(script: """#!/bin/sh
-set +e
-api_server=\$(sed -n "s/^[[:space:]]*server:[[:space:]]*//p" "${kubeconfigFile}" | head -1)
-echo "Checking Kubernetes nodes from \${api_server}"
-if [ -z "\${api_server}" ]; then
-  echo "kubeconfig server is empty. Check k8s-kubeconfig-get response decoding."
-  exit 87
-fi
-kubectl --kubeconfig "${kubeconfigFile}" get nodes -o wide --no-headers > k8s-nodes.log 2>&1
-rc=\$?
-cat k8s-nodes.log
-if grep -q "invalid character ''<''" k8s-nodes.log; then
-  echo "Kubernetes API/auth response was HTML, not JSON. Check Jenkins network/proxy, EKS endpoint access, and aws-iam-authenticator credentials."
-  exit 88
-fi
-if [ "\${rc}" -ne 0 ]; then
-  exit "\${rc}"
-fi
-if grep -q "No resources found" k8s-nodes.log; then
-  echo "Kubernetes API is reachable, but no worker nodes are registered yet."
-  exit 89
-fi
-ready_count=\$(grep -E "[[:space:]]Ready[[:space:],]" k8s-nodes.log | grep -v "NotReady" | wc -l | tr -d " ")
-if [ "\${ready_count:-0}" -lt "${minReadyNodes}" ]; then
-  echo "Ready worker nodes are not enough. ready=\${ready_count:-0}, required=${minReadyNodes}"
-  exit 89
-fi
-exit "\${rc}"
-""", returnStatus: true)
+                        set +e
+                        api_server=\$(sed -n "s/^[[:space:]]*server:[[:space:]]*//p" "${kubeconfigFile}" | head -1)
+                        echo "Checking Kubernetes nodes from \${api_server}"
+                        if [ -z "\${api_server}" ]; then
+                          echo "kubeconfig server is empty. Check k8s-kubeconfig-get response decoding."
+                          exit 87
+                        fi
+                        kubectl --kubeconfig "${kubeconfigFile}" get nodes -o wide --no-headers > k8s-nodes.log 2>&1
+                        rc=\$?
+                        cat k8s-nodes.log
+                        if grep -q "invalid character ''<''" k8s-nodes.log; then
+                          echo "Kubernetes API/auth response was HTML, not JSON. Check Jenkins network/proxy, EKS endpoint access, and aws-iam-authenticator credentials."
+                          exit 88
+                        fi
+                        if [ "\${rc}" -ne 0 ]; then
+                          exit "\${rc}"
+                        fi
+                        if grep -q "No resources found" k8s-nodes.log; then
+                          echo "Kubernetes API is reachable, but no worker nodes are registered yet."
+                          exit 89
+                        fi
+                        ready_count=\$(grep -E "[[:space:]]Ready[[:space:],]" k8s-nodes.log | grep -v "NotReady" | wc -l | tr -d " ")
+                        if [ "\${ready_count:-0}" -lt "${minReadyNodes}" ]; then
+                          echo "Ready worker nodes are not enough. ready=\${ready_count:-0}, required=${minReadyNodes}"
+                          exit 89
+                        fi
+                        exit "\${rc}"
+                    """, returnStatus: true)
                     if (readyResult == 0) {
                         apiReady = true
                         break
@@ -2351,9 +2353,10 @@ exit "\${rc}"
                         repoName = "workflow-chart"
                     }
                     sh """#!/bin/sh
-set -e
-helm repo add "${repoName}" "${repoUrl}" --force-update
-helm repo update"""
+                        set -e
+                        helm repo add "${repoName}" "${repoUrl}" --force-update
+                        helm repo update
+                    """
                 }
                 def chartVersion = params.HELM_CHART_VERSION?.trim()
                 def versionArg = chartVersion ? "--version \"${chartVersion}\"" : ""
@@ -2361,26 +2364,26 @@ helm repo update"""
                 def releaseName = params.RELEASE_NAME ?: "mariadb"
                 def helmInstallCommand = """helm upgrade --install "${releaseName}" "${chartRef}" ${versionArg} --namespace "${namespace}" --create-namespace --kubeconfig "${kubeconfigFile}" ${valuesArgs}"""
                 def helmStatus = sh(script: """#!/bin/sh
-set +e
-${helmInstallCommand} > helm-upgrade.log 2>&1
-rc=\$?
-cat helm-upgrade.log
-exit \${rc}
-""", returnStatus: true)
+                    set +e
+                    ${helmInstallCommand} > helm-upgrade.log 2>&1
+                    rc=\$?
+                    cat helm-upgrade.log
+                    exit \${rc}
+                """, returnStatus: true)
                 if (helmStatus != 0) {
                     def helmOutput = readFile("helm-upgrade.log")
                     def recreateOnImmutableError = !(params.HELM_RECREATE_ON_IMMUTABLE_ERROR?.trim()?.equalsIgnoreCase("false"))
                     if (recreateOnImmutableError && helmOutput.contains("Forbidden: updates to statefulset spec")) {
                         echo "Helm upgrade hit immutable StatefulSet fields. Recreating release ${releaseName}."
                         sh """#!/bin/sh
-set -e
-helm uninstall "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" || true
-kubectl delete statefulset "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
-kubectl delete service "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
-kubectl delete secret "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
-kubectl delete configmap "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
-${helmInstallCommand}
-"""
+                            set -e
+                            helm uninstall "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" || true
+                            kubectl delete statefulset "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+                            kubectl delete service "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+                            kubectl delete secret "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+                            kubectl delete configmap "${releaseName}" --namespace "${namespace}" --kubeconfig "${kubeconfigFile}" --ignore-not-found=true
+                            ${helmInstallCommand}
+                        """
                     } else {
                         error "app-deploy-helm failed: ${helmOutput}"
                     }
@@ -2597,46 +2600,47 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                     def cleanupControlPath = "/var/jenkins_home/mc-wfpb-${cleanupControlId}.sock"
                     def cleanupPreviousControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${cleanupSessionId}.sock"
-                    sh """set -eu
-command -v flock >/dev/null
-exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
-flock -x 9
+                    sh """
+                        set -eu
+                        command -v flock >/dev/null
+                        exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+                        flock -x 9
 
-if docker inspect mc-workflow-presigned-broker >/dev/null 2>&1; then
-  if [ "\$(docker inspect --format=''{{.State.Running}}'' mc-workflow-presigned-broker)" != "true" ]; then
-    docker start mc-workflow-presigned-broker >/dev/null
-  fi
-  broker_healthy="false"
-  for attempt in \$(seq 1 30); do
-    if docker exec mc-workflow-presigned-broker python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null 2>&1; then
-      broker_healthy="true"
-      break
-    fi
-    sleep 2
-  done
-  if [ "\${broker_healthy}" != "true" ]; then
-    docker logs --tail 100 mc-workflow-presigned-broker
-    echo "Workflow presigned broker health check failed during session cleanup"
-    exit 1
-  fi
-  remaining_sessions=\$(docker exec mc-workflow-presigned-broker python -c "import json, os, urllib.request; request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${cleanupSessionId}\\\", method=\\\"DELETE\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\"remainingSessionCount\\\"])")
-  case "\${remaining_sessions}" in
-    ""|*[!0-9]*)
-      echo "Invalid remaining session count from workflow presigned broker"
-      exit 1
-      ;;
-  esac
-  if [ "\${remaining_sessions}" = "0" ]; then
-    docker rm -f mc-workflow-presigned-broker >/dev/null
-  fi
-fi
+                        if docker inspect mc-workflow-presigned-broker >/dev/null 2>&1; then
+                          if [ "\$(docker inspect --format=''{{.State.Running}}'' mc-workflow-presigned-broker)" != "true" ]; then
+                            docker start mc-workflow-presigned-broker >/dev/null
+                          fi
+                          broker_healthy="false"
+                          for attempt in \$(seq 1 30); do
+                            if docker exec mc-workflow-presigned-broker python -c "import urllib.request; urllib.request.urlopen(\\\"http://127.0.0.1:8765/health\\\", timeout=3).read()" >/dev/null 2>&1; then
+                              broker_healthy="true"
+                              break
+                            fi
+                            sleep 2
+                          done
+                          if [ "\${broker_healthy}" != "true" ]; then
+                            docker logs --tail 100 mc-workflow-presigned-broker
+                            echo "Workflow presigned broker health check failed during session cleanup"
+                            exit 1
+                          fi
+                          remaining_sessions=\$(docker exec mc-workflow-presigned-broker python -c "import json, os, urllib.request; request=urllib.request.Request(\\\"http://127.0.0.1:8765/admin/sessions/${cleanupSessionId}\\\", method=\\\"DELETE\\\", headers={\\\"Authorization\\\": \\\"Bearer \\\" + os.environ[\\\"BROKER_ADMIN_TOKEN\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\"remainingSessionCount\\\"])")
+                          case "\${remaining_sessions}" in
+                            ""|*[!0-9]*)
+                              echo "Invalid remaining session count from workflow presigned broker"
+                              exit 1
+                              ;;
+                          esac
+                          if [ "\${remaining_sessions}" = "0" ]; then
+                            docker rm -f mc-workflow-presigned-broker >/dev/null
+                          fi
+                        fi
 
-ssh -o StrictHostKeyChecking=no -S "${cleanupControlPath}" -O exit ignored >/dev/null 2>&1 || true
-ssh -o StrictHostKeyChecking=no -S "${cleanupPreviousControlPath}" -O exit ignored >/dev/null 2>&1 || true
-ssh -o StrictHostKeyChecking=no -S "${cleanupLegacyControlPath}" -O exit ignored >/dev/null 2>&1 || true
-docker rm -f "${cleanupLegacyBrokerName}" >/dev/null 2>&1 || true
-rm -f "${cleanupControlPath}" "${cleanupPreviousControlPath}" "${cleanupLegacyControlPath}"
-"""
+                        ssh -o StrictHostKeyChecking=no -S "${cleanupControlPath}" -O exit ignored >/dev/null 2>&1 || true
+                        ssh -o StrictHostKeyChecking=no -S "${cleanupPreviousControlPath}" -O exit ignored >/dev/null 2>&1 || true
+                        ssh -o StrictHostKeyChecking=no -S "${cleanupLegacyControlPath}" -O exit ignored >/dev/null 2>&1 || true
+                        docker rm -f "${cleanupLegacyBrokerName}" >/dev/null 2>&1 || true
+                        rm -f "${cleanupControlPath}" "${cleanupPreviousControlPath}" "${cleanupLegacyControlPath}"
+                    """
                 }
             }
         }
@@ -3608,92 +3612,95 @@ def downloadJupyterAssets() {
         [name: "object-storage-data-lab.ipynb", sha256: "f7248c79c31ba8d562f927b745e6d1c1c149ba1e58a9d2e1a8366851cc82c8aa"]
     ]
     assets.each { asset ->
-        sh """set -eu
-curl -fsS --retry 3 --connect-timeout 10 "${assetBaseUrl}/${asset.name}" -o "${asset.name}"
-echo "${asset.sha256}  ${asset.name}" | sha256sum -c -
-"""
+        sh """
+            set -eu
+            curl -fsS --retry 3 --connect-timeout 10 "${assetBaseUrl}/${asset.name}" -o "${asset.name}"
+            echo "${asset.sha256}  ${asset.name}" | sha256sum -c -
+        """
     }
 }
 
 def installAnalysis() {
-                def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
-                def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
-                def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
-                def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\\$", "")
-                def tumblebugUser = (params.USER ?: "").toString()
-                def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
-                def infraId = (params.INFRA_ID ?: "").toString().trim()
-                def brokerTunnelPort = "8889"
-                def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\\$", "")
-                def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\\$", "")
-                def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
-                def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
-                def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
-                def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
-                def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
-                def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
-                def sshHost = env.SSH_HOST ?: params.SSH_HOST
-                def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
-                def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
-                def keyOpt = sshKeyFile ? "-i \\"${sshKeyFile}\\"" : ""
-                def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
-                def legacyBrokerContainerName = "broker-${legacyBrokerId}"
-                def brokerContainerName = "mc-workflow-presigned-broker"
-                def brokerVolumeName = "mc-workflow-presigned-broker-data"
-                def brokerSessionId = "${osNamespace}-${infraId}"
-                def tunnelControlId = sh(
-                    script: "printf ''%s'' ''${brokerSessionId}'' | sha256sum | cut -c1-16",
-                    returnStdout: true
-                ).trim()
-                if (!(tunnelControlId ==~ /[a-f0-9]{16}/)) {
-                    error "Failed to calculate the Jupyter tunnel control ID"
-                }
-                def tunnelControlPath = "/var/jenkins_home/mc-wfpb-${tunnelControlId}.sock"
-                def previousTunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
-                def installComplete = false
-                def brokerSessionRegistered = false
-                try {
-                def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
-                if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
-                    error "Failed to generate the Object Storage broker token"
-                }
-                writeFile file: "mc-workflow-presigned-broker-token", text: brokerToken
-                sh "chmod 600 mc-workflow-presigned-broker-token"
-                def brokerTokenHash = sh(
-                    script: "sha256sum mc-workflow-presigned-broker-token | cut -d\\" \\" -f1",
-                    returnStdout: true
-                ).trim()
-                if (!(brokerTokenHash ==~ /[a-f0-9]{64}/)) {
-                    error "Failed to hash the Object Storage broker token"
-                }
-                def brokerAdminToken = sh(
-                    script: """set +x
-token_file="/var/jenkins_home/mc-workflow-presigned-broker-admin-token"
-command -v flock >/dev/null
-exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
-flock -x 9
-umask 077
-if [ ! -s "\\${token_file}" ]; then
-  od -An -N32 -tx1 /dev/urandom | tr -d " \\\\n" > "\\${token_file}"
-fi
-chmod 600 "\\${token_file}"
-cat "\\${token_file}"
-""",
-                    returnStdout: true
-                ).trim()
-                if (!(brokerAdminToken ==~ /[a-f0-9]{64}/)) {
-                    error "Failed to load the workflow presigned broker admin token"
-                }
-                def brokerRuntimeHash = sh(
-                    script: """set +x
-sha256sum presigned_broker.py /var/jenkins_home/mc-workflow-presigned-broker-admin-token | sha256sum | cut -d" " -f1
-""",
-                    returnStdout: true
-                ).trim()
-                if (!(brokerRuntimeHash ==~ /[a-f0-9]{64}/)) {
-                    error "Failed to calculate the workflow presigned broker runtime hash"
-                }
-                writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
+    def provider = (params.OBJECT_STORAGE_PROVIDER ?: params.CSP ?: params.PROVIDER ?: "").trim().toLowerCase()
+    def storageId = (params.OBJECT_STORAGE_BUCKET ?: "").trim()
+    def osNamespace = (params.OBJECT_STORAGE_NAMESPACE ?: params.NAMESPACE ?: "").trim()
+    def tumblebug = (params.TUMBLEBUG ?: "").toString().trim().replaceAll("/+\\$", "")
+    def tumblebugUser = (params.USER ?: "").toString()
+    def tumblebugPassword = params.USERPASS == null ? "" : params.USERPASS.toString()
+    def infraId = (params.INFRA_ID ?: "").toString().trim()
+    def brokerTunnelPort = "8889"
+    def dataPrefix = (params.DATA_PREFIX ?: "").trim().replaceAll("^/+|/+\\$", "")
+    def resultPrefix = (params.RESULT_PREFIX ?: "results").trim().replaceAll("^/+|/+\\$", "")
+    def writeResultEnabled = (params.WRITE_RESULT_ENABLED ?: "true").trim().toLowerCase()
+    def presignedExpires = (params.PRESIGNED_URL_EXPIRES ?: "600").trim()
+    def jupyterImage = (params.JUPYTER_IMAGE ?: "quay.io/jupyter/scipy-notebook:2025-03-14").trim()
+    def duckdbVersion = (params.DUCKDB_VERSION ?: "1.3.2").trim()
+    def jupyterBindHost = (params.JUPYTER_BIND_HOST ?: "0.0.0.0").trim()
+    def jupyterPort = (params.JUPYTER_PORT ?: "8888").trim()
+    def sshHost = env.SSH_HOST ?: params.SSH_HOST
+    def sshUser = env.SSH_USER ?: params.SSH_USER ?: "cb-user"
+    def sshKeyFile = env.SSH_KEY_FILE ?: params.SSH_KEY_FILE
+    def keyOpt = sshKeyFile ? "-i \\"${sshKeyFile}\\"" : ""
+    def legacyBrokerId = "${osNamespace}-${infraId}".toLowerCase().replaceAll(/[^a-z0-9-]/, "-").take(50)
+    def legacyBrokerContainerName = "broker-${legacyBrokerId}"
+    def brokerContainerName = "mc-workflow-presigned-broker"
+    def brokerVolumeName = "mc-workflow-presigned-broker-data"
+    def brokerSessionId = "${osNamespace}-${infraId}"
+    def tunnelControlId = sh(
+        script: "printf ''%s'' ''${brokerSessionId}'' | sha256sum | cut -c1-16",
+        returnStdout: true
+    ).trim()
+    if (!(tunnelControlId ==~ /[a-f0-9]{16}/)) {
+        error "Failed to calculate the Jupyter tunnel control ID"
+    }
+    def tunnelControlPath = "/var/jenkins_home/mc-wfpb-${tunnelControlId}.sock"
+    def previousTunnelControlPath = "/var/jenkins_home/mc-workflow-presigned-broker-${brokerSessionId}.sock"
+    def installComplete = false
+    def brokerSessionRegistered = false
+    try {
+        def brokerToken = java.util.UUID.randomUUID().toString().replace("-", "") + java.util.UUID.randomUUID().toString().replace("-", "")
+        if (!(brokerToken ==~ /[a-f0-9]{64}/)) {
+            error "Failed to generate the Object Storage broker token"
+        }
+        writeFile file: "mc-workflow-presigned-broker-token", text: brokerToken
+        sh "chmod 600 mc-workflow-presigned-broker-token"
+        def brokerTokenHash = sh(
+            script: "sha256sum mc-workflow-presigned-broker-token | cut -d\\" \\" -f1",
+            returnStdout: true
+        ).trim()
+        if (!(brokerTokenHash ==~ /[a-f0-9]{64}/)) {
+            error "Failed to hash the Object Storage broker token"
+        }
+        def brokerAdminToken = sh(
+            script: """
+                set +x
+                token_file="/var/jenkins_home/mc-workflow-presigned-broker-admin-token"
+                command -v flock >/dev/null
+                exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+                flock -x 9
+                umask 077
+                if [ ! -s "\\${token_file}" ]; then
+                  od -An -N32 -tx1 /dev/urandom | tr -d " \\\\n" > "\\${token_file}"
+                fi
+                chmod 600 "\\${token_file}"
+                cat "\\${token_file}"
+            """,
+            returnStdout: true
+        ).trim()
+        if (!(brokerAdminToken ==~ /[a-f0-9]{64}/)) {
+            error "Failed to load the workflow presigned broker admin token"
+        }
+        def brokerRuntimeHash = sh(
+            script: """
+                set +x
+                sha256sum presigned_broker.py /var/jenkins_home/mc-workflow-presigned-broker-admin-token | sha256sum | cut -d" " -f1
+            """,
+            returnStdout: true
+        ).trim()
+        if (!(brokerRuntimeHash ==~ /[a-f0-9]{64}/)) {
+            error "Failed to calculate the workflow presigned broker runtime hash"
+        }
+        writeFile file: "object-storage-data-lab.env", text: """OBJECT_STORAGE_PROVIDER=${provider}
 OBJECT_STORAGE_ID=${storageId}
 DATA_PREFIX=${dataPrefix}
 RESULT_PREFIX=${resultPrefix}
@@ -3708,114 +3715,120 @@ JUPYTER_PORT=${jupyterPort}
 SSH_HOST=${sshHost}
 SSH_USER=${sshUser}
 """
-                writeFile file: "mc-workflow-presigned-broker.env", text: """BROKER_ADMIN_TOKEN=${brokerAdminToken}
+        writeFile file: "mc-workflow-presigned-broker.env", text: """BROKER_ADMIN_TOKEN=${brokerAdminToken}
 BROKER_SESSION_STORE=/var/lib/mc-workflow-presigned-broker/sessions.json
 """
-                writeFile file: "mc-workflow-presigned-broker-session.json", text: groovy.json.JsonOutput.toJson([
-                    session_name: brokerSessionId,
-                    token_hash: brokerTokenHash,
-                    tumblebug_url: "${tumblebug}/tumblebug",
-                    tumblebug_username: tumblebugUser,
-                    tumblebug_password: tumblebugPassword,
-                    namespace: osNamespace,
-                    storage_id: storageId,
-                    provider: provider,
-                    data_prefix: dataPrefix,
-                    result_prefix: resultPrefix,
-                    write_enabled: writeResultEnabled == "true",
-                    url_ttl: presignedExpires.toInteger()
-                ])
-                sh """chmod 600 object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json
-chmod 700 object-storage-data-lab-install.sh
-"""
+        writeFile file: "mc-workflow-presigned-broker-session.json", text: groovy.json.JsonOutput.toJson([
+            session_name: brokerSessionId,
+            token_hash: brokerTokenHash,
+            tumblebug_url: "${tumblebug}/tumblebug",
+            tumblebug_username: tumblebugUser,
+            tumblebug_password: tumblebugPassword,
+            namespace: osNamespace,
+            storage_id: storageId,
+            provider: provider,
+            data_prefix: dataPrefix,
+            result_prefix: resultPrefix,
+            write_enabled: writeResultEnabled == "true",
+            url_ttl: presignedExpires.toInteger()
+        ])
+        sh """
+            chmod 600 object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json
+            chmod 700 object-storage-data-lab-install.sh
+        """
 
-                def infraNetworks = sh(
-                    script: """docker inspect --format=''{{range \\$networkName, \\$networkConfig := .NetworkSettings.Networks}}{{println \\$networkName}}{{end}}'' mc-workflow-manager-jenkins""",
-                    returnStdout: true
-                ).trim().readLines().collect { it.trim() }.findAll { it }
-                def infraNetwork = infraNetworks.find { it.endsWith("mc-infra-manager-network") }
-                if (!infraNetwork || !(infraNetwork ==~ /[A-Za-z0-9_.-]+/)) {
-                    error "Could not resolve the internal mc-infra-manager Docker network"
-                }
+        def infraNetworks = sh(
+            script: """docker inspect --format=''{{range \\$networkName, \\$networkConfig := .NetworkSettings.Networks}}{{println \\$networkName}}{{end}}'' mc-workflow-manager-jenkins""",
+            returnStdout: true
+        ).trim().readLines().collect { it.trim() }.findAll { it }
+        def infraNetwork = infraNetworks.find { it.endsWith("mc-infra-manager-network") }
+        if (!infraNetwork || !(infraNetwork ==~ /[A-Za-z0-9_.-]+/)) {
+            error "Could not resolve the internal mc-infra-manager Docker network"
+        }
 
-                    sh """set -eu
-command -v flock >/dev/null
-exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
-flock -x 9
+        sh """
+            set -eu
+            command -v flock >/dev/null
+            exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+            flock -x 9
 
-docker volume create "${brokerVolumeName}" >/dev/null
-current_broker_hash=\\$(docker inspect --format=''{{ index .Config.Labels "mc-workflow-presigned-broker.runtime-sha256" }}'' "${brokerContainerName}" 2>/dev/null || true)
-if [ "\\${current_broker_hash}" != "${brokerRuntimeHash}" ]; then
-  docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
-  docker create \\\\
-    --name "${brokerContainerName}" \\\\
-    --restart unless-stopped \\\\
-    --network "${infraNetwork}" \\\\
-    --label "mc-workflow-presigned-broker.runtime-sha256=${brokerRuntimeHash}" \\\\
-    --env-file mc-workflow-presigned-broker.env \\\\
-    -v "${brokerVolumeName}:/var/lib/mc-workflow-presigned-broker" \\\\
-    python:3.12-slim \\\\
-    sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
-  docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
-  docker start "${brokerContainerName}" >/dev/null
-elif [ "\\$(docker inspect --format=''{{.State.Running}}'' "${brokerContainerName}")" != "true" ]; then
-  docker start "${brokerContainerName}" >/dev/null
-fi
+            docker volume create "${brokerVolumeName}" >/dev/null
+            current_broker_hash=\\$(docker inspect --format=''{{ index .Config.Labels "mc-workflow-presigned-broker.runtime-sha256" }}'' "${brokerContainerName}" 2>/dev/null || true)
+            if [ "\\${current_broker_hash}" != "${brokerRuntimeHash}" ]; then
+              docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+              docker create \\\\
+                --name "${brokerContainerName}" \\\\
+                --restart unless-stopped \\\\
+                --network "${infraNetwork}" \\\\
+                --label "mc-workflow-presigned-broker.runtime-sha256=${brokerRuntimeHash}" \\\\
+                --env-file mc-workflow-presigned-broker.env \\\\
+                -v "${brokerVolumeName}:/var/lib/mc-workflow-presigned-broker" \\\\
+                python:3.12-slim \\\\
+                sh -c "python -m pip install --no-cache-dir requests==2.32.3 >/dev/null && exec python /opt/presigned_broker.py"
+              docker cp presigned_broker.py "${brokerContainerName}:/opt/presigned_broker.py"
+              docker start "${brokerContainerName}" >/dev/null
+            elif [ "\\$(docker inspect --format=''{{.State.Running}}'' "${brokerContainerName}")" != "true" ]; then
+              docker start "${brokerContainerName}" >/dev/null
+            fi
 
-broker_healthy="false"
-for attempt in \\$(seq 1 30); do
-  if docker exec "${brokerContainerName}" python -c "import urllib.request; urllib.request.urlopen(\\\\\\"http://127.0.0.1:8765/health\\\\\\", timeout=3).read()" >/dev/null 2>&1; then
-    broker_healthy="true"
-    break
-  fi
-  sleep 2
-done
-if [ "\\${broker_healthy}" != "true" ]; then
-  docker logs --tail 100 "${brokerContainerName}"
-  echo "Object Storage presigned URL broker health check failed"
-  exit 1
-fi
+            broker_healthy="false"
+            for attempt in \\$(seq 1 30); do
+              if docker exec "${brokerContainerName}" python -c "import urllib.request; urllib.request.urlopen(\\\\\\"http://127.0.0.1:8765/health\\\\\\", timeout=3).read()" >/dev/null 2>&1; then
+                broker_healthy="true"
+                break
+              fi
+              sleep 2
+            done
+            if [ "\\${broker_healthy}" != "true" ]; then
+              docker logs --tail 100 "${brokerContainerName}"
+              echo "Object Storage presigned URL broker health check failed"
+              exit 1
+            fi
 
-docker cp mc-workflow-presigned-broker-session.json "${brokerContainerName}:/tmp/mc-workflow-presigned-broker-session.json"
-if ! docker exec "${brokerContainerName}" python -c "import os, urllib.request; data=open(\\\\\\"/tmp/mc-workflow-presigned-broker-session.json\\\\\\", \\\\\\"rb\\\\\\").read(); request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", data=data, method=\\\\\\"PUT\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"], \\\\\\"Content-Type\\\\\\": \\\\\\"application/json\\\\\\"}); urllib.request.urlopen(request, timeout=30).read()"; then
-  docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
-  exit 1
-fi
-docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
-docker rm -f "${legacyBrokerContainerName}" >/dev/null 2>&1 || true
-"""
-                    brokerSessionRegistered = true
-                    sh """scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb object_storage_access.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
-"""
-                    withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
-                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${previousTunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
-rm -f "${previousTunnelControlPath}"
-ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
-rm -f "${tunnelControlPath}"
-ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${brokerTunnelPort}:${brokerContainerName}:8765 "${sshUser}@${sshHost}"
-"""
-                    }
-                    sh """
-ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
-"""
-                    installComplete = true
-                } finally {
-                    if (!installComplete) {
-                        sh """ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
-rm -f "${tunnelControlPath}"
-"""
-                        if (brokerSessionRegistered) {
-                            sh """exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
-flock -x 9
-remaining_sessions=\\$(docker exec "${brokerContainerName}" python -c "import json, os, urllib.request; request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", method=\\\\\\"DELETE\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\\\\"remainingSessionCount\\\\\\"])" 2>/dev/null || true)
-if [ "\\${remaining_sessions}" = "0" ]; then
-  docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
-fi
-"""
-                        }
-                    }
-                    sh "rm -f object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json mc-workflow-presigned-broker-token object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
-                }
+            docker cp mc-workflow-presigned-broker-session.json "${brokerContainerName}:/tmp/mc-workflow-presigned-broker-session.json"
+            if ! docker exec "${brokerContainerName}" python -c "import os, urllib.request; data=open(\\\\\\"/tmp/mc-workflow-presigned-broker-session.json\\\\\\", \\\\\\"rb\\\\\\").read(); request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", data=data, method=\\\\\\"PUT\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"], \\\\\\"Content-Type\\\\\\": \\\\\\"application/json\\\\\\"}); urllib.request.urlopen(request, timeout=30).read()"; then
+              docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
+              exit 1
+            fi
+            docker exec "${brokerContainerName}" rm -f /tmp/mc-workflow-presigned-broker-session.json || true
+            docker rm -f "${legacyBrokerContainerName}" >/dev/null 2>&1 || true
+        """
+        brokerSessionRegistered = true
+        sh """
+            scp -o StrictHostKeyChecking=no ${keyOpt} object-storage-data-lab.env object-storage-data-lab.ipynb object_storage_access.py verify_object_storage.py object-storage-data-lab-install.sh "${sshUser}@${sshHost}:/tmp/"
+        """
+        withEnv(["JENKINS_NODE_COOKIE=object-storage-data-lab-tunnel"]) {
+            sh """
+                ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${previousTunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+                rm -f "${previousTunnelControlPath}"
+                ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+                rm -f "${tunnelControlPath}"
+                ssh -o StrictHostKeyChecking=no -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=3 ${keyOpt} -M -S "${tunnelControlPath}" -fNT -R 127.0.0.1:${brokerTunnelPort}:${brokerContainerName}:8765 "${sshUser}@${sshHost}"
+            """
+        }
+        sh """
+            ssh -o StrictHostKeyChecking=no ${keyOpt} "${sshUser}@${sshHost}" "chmod 600 /tmp/object-storage-data-lab.env && chmod 700 /tmp/object-storage-data-lab-install.sh && /tmp/object-storage-data-lab-install.sh"
+        """
+        installComplete = true
+    } finally {
+        if (!installComplete) {
+            sh """
+                ssh -o StrictHostKeyChecking=no ${keyOpt} -S "${tunnelControlPath}" -O exit "${sshUser}@${sshHost}" >/dev/null 2>&1 || true
+                rm -f "${tunnelControlPath}"
+            """
+            if (brokerSessionRegistered) {
+                sh """
+                    exec 9>/var/jenkins_home/mc-workflow-presigned-broker.lock
+                    flock -x 9
+                    remaining_sessions=\\$(docker exec "${brokerContainerName}" python -c "import json, os, urllib.request; request=urllib.request.Request(\\\\\\"http://127.0.0.1:8765/admin/sessions/${brokerSessionId}\\\\\\", method=\\\\\\"DELETE\\\\\\", headers={\\\\\\"Authorization\\\\\\": \\\\\\"Bearer \\\\\\" + os.environ[\\\\\\"BROKER_ADMIN_TOKEN\\\\\\"]}); response=urllib.request.urlopen(request, timeout=30); print(json.load(response)[\\\\\\"remainingSessionCount\\\\\\"])" 2>/dev/null || true)
+                    if [ "\\${remaining_sessions}" = "0" ]; then
+                      docker rm -f "${brokerContainerName}" >/dev/null 2>&1 || true
+                    fi
+                """
+            }
+        }
+        sh "rm -f object-storage-data-lab.env mc-workflow-presigned-broker.env mc-workflow-presigned-broker-session.json mc-workflow-presigned-broker-token object-storage-data-lab.ipynb object-storage-data-lab.ipynb.b64 object_storage_access.py presigned_broker.py verify_object_storage.py object-storage-data-lab-install.sh"
+    }
 }
 
 validateInputs()
@@ -3849,9 +3862,9 @@ WHERE UPPER(param_key) IN (
     'MC_IAM_REFRESH_TOKEN',
     'MC_IAM_WORKSPACE_ID'
 )
-  AND workflow_idx IN (
-      SELECT workflow_idx FROM workflow_stage_mapping WHERE workflow_stage_idx = 62
-  );
+    AND workflow_idx IN (
+        SELECT workflow_idx FROM workflow_stage_mapping WHERE workflow_stage_idx = 62
+    );
 DELETE FROM workflow_stage WHERE workflow_stage_idx = 55;
 
 INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflow_stage_order, workflow_stage_name, workflow_stage_desc, workflow_stage_content) VALUES (48, 20, 1, 'mariadb-install', 'Install MariaDB', '
