@@ -1629,6 +1629,10 @@ const applyObjectStorageLocationParams = () => {
 }
 
 const applyInfraSelectionParams = () => {
+  if (!showSelector.value) {
+    return
+  }
+
   const namespace = selectedNamespace.value || getNamespaceParamValue()
   if (namespace) {
     upsertWorkflowParam('NAMESPACE', namespace)
