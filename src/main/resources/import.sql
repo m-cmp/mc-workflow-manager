@@ -915,7 +915,8 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         touch ~/.ssh/known_hosts
                         chmod 600 ~/.ssh/known_hosts
                     """
-                    if (env.NEW_INFRA_SSH_HOST == sshHost) {
+                    def isNewInfraHost = env.NEW_INFRA_SSH_HOST == sshHost
+                    if (isNewInfraHost) {
                         sh "ssh-keygen -R \"${sshHost}\" -f ~/.ssh/known_hosts >/dev/null"
                         env.NEW_INFRA_SSH_HOST = ""
                     }
@@ -924,13 +925,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def lastError = ""
                     def attempt = 0
                     def candidateIndex = 0
-                    while (attempt < 10 && candidateIndex < candidates.size()) {
+                    def maxAttempts = 10
+                    def transientPublicKeyRetryLimit = 4
+                    def transientPublicKeyRetryCount = 0
+                    while (attempt < maxAttempts && candidateIndex < candidates.size()) {
                         def candidate = candidates[candidateIndex]
                         attempt++
                         if (!attemptedUsers.contains(candidate)) {
                             attemptedUsers << candidate
                         }
-                        echo "SSH check try ${attempt}/10. user=${candidate}, host=${sshHost}"
+                        echo "SSH check try ${attempt}/${maxAttempts}. user=${candidate}, host=${sshHost}"
                         def status = sh(script: """ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 ${keyOpt} "${candidate}@${sshHost}" "echo ssh-ok" > ssh-connect-check.log 2>&1""", returnStatus: true)
                         def output = readFile(file: "ssh-connect-check.log").trim()
                         if (output) {
@@ -941,7 +945,17 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             break
                         }
                         lastError = output ?: "ssh exited with status ${status}"
-                        if (output.contains("Connection refused") && attempt < 10) {
+                        def retryConnectionRefused = output.contains("Connection refused")
+                        def retryNewInfraPublicKey = isNewInfraHost &&
+                                candidateIndex == 0 &&
+                                output.contains("Permission denied") &&
+                                output.contains("publickey") &&
+                                transientPublicKeyRetryCount < transientPublicKeyRetryLimit
+                        if ((retryConnectionRefused || retryNewInfraPublicKey) && attempt < maxAttempts) {
+                            if (retryNewInfraPublicKey) {
+                                transientPublicKeyRetryCount++
+                                echo "SSH public key may still be provisioning for ${candidate}. retry ${transientPublicKeyRetryCount}/${transientPublicKeyRetryLimit}."
+                            }
                             sleep time: 10, unit: "SECONDS"
                         } else {
                             candidateIndex++
