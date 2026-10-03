@@ -335,6 +335,7 @@ import _ from 'lodash';
 import { computed } from 'vue';
 import { watch } from 'vue';
 import { useUserStore } from '@/stores/user'
+import { getDefaultK8sRootDiskSize, resolveK8sRootDiskSize } from '@/utils/k8s-root-disk'
 
 const toast = useToast()
 const route = useRoute();
@@ -637,7 +638,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+c3-highcpu-4',
     imageId: 'UBUNTU_CONTAINERD',
-    k8sVersion: '1.34.10-gke.1236000',
+    k8sVersion: '1.35.6-gke.1250000',
   },
   ibm: {
     region: 'jp-tok',
@@ -653,7 +654,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'KR-1',
     specId: 'ncp+kr+c4-g3',
     imageId: '',
-    k8sVersion: '1.34.3-nks.1',
+    k8sVersion: '1.35.3-nks.2',
   },
   nhn: {
     region: 'kr1',
@@ -661,7 +662,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'kr-pub-a',
     specId: 'nhn+kr1+m2.c4m8',
     imageId: '107cc02d-02d8-44fd-84d6-6c316045b817',
-    k8sVersion: 'v1.34.3',
+    k8sVersion: 'v1.35.5',
   },
   tencent: {
     region: 'ap-seoul',
@@ -1905,6 +1906,16 @@ const applyInfraSelectionParams = () => {
     return
   }
 
+  if (isKubernetesImageWorkflow.value) {
+    const provider = isMultiCspWorkflow() ? '' : infraProvider.value
+    const previousProvider = getWorkflowParamValue('CSP') || getWorkflowParamValue('PROVIDER')
+    upsertWorkflowParam('ROOT_DISK_SIZE', resolveK8sRootDiskSize(
+      provider,
+      getWorkflowParamValue('ROOT_DISK_SIZE'),
+      Boolean(provider) && previousProvider.trim().toLowerCase() !== provider.trim().toLowerCase(),
+    ))
+  }
+
   const namespace = selectedNamespace.value || getNamespaceParamValue()
   if (namespace) {
     upsertWorkflowParam('NAMESPACE', namespace)
@@ -2035,7 +2046,7 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       { paramKey: 'K8S_MIN_NODE_SIZE', paramValue: '1', eventListenerYn: 'N' },
       { paramKey: 'K8S_MAX_NODE_SIZE', paramValue: '3', eventListenerYn: 'N' },
       { paramKey: 'ROOT_DISK_TYPE', paramValue: getDefaultK8sRootDiskType(), eventListenerYn: 'N' },
-      { paramKey: 'ROOT_DISK_SIZE', paramValue: '30', eventListenerYn: 'N' },
+      { paramKey: 'ROOT_DISK_SIZE', paramValue: getDefaultK8sRootDiskSize(infraProvider.value), eventListenerYn: 'N' },
       { paramKey: 'K8S_NODEGROUP_CREATE_IF_MISSING', paramValue: 'true', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_MAX_ATTEMPTS', paramValue: '60', eventListenerYn: 'N' },
       { paramKey: 'K8S_STATUS_INTERVAL_SECONDS', paramValue: '60', eventListenerYn: 'N' },
@@ -2225,6 +2236,11 @@ const addDefaultParamsForStage = (stage?: string | WorkflowStageMappings) => {
       case 'ROOT_DISK_TYPE':
         if ((stageName || '').trim().toLowerCase() === 'k8s-cluster-create') {
           return getDefaultK8sRootDiskType()
+        }
+        return existingValue || paramValue
+      case 'ROOT_DISK_SIZE':
+        if ((stageName || '').trim().toLowerCase() === 'k8s-cluster-create') {
+          return getDefaultK8sRootDiskSize(infraProvider.value)
         }
         return existingValue || paramValue
       case 'INFRA_ID':

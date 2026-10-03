@@ -196,6 +196,7 @@ import {
   getMcInfraResources,
 } from '@/api/infraManager'
 import { useUserStore } from '@/stores/user'
+import { resolveK8sRootDiskSize } from '@/utils/k8s-root-disk'
 import type { WorkflowParams, WorkflowStageMappings } from '@/views/type/type'
 import SearchableSelect from '@/views/workflow/components/SearchableSelect.vue'
 
@@ -371,7 +372,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+c3-highcpu-4',
     imageId: 'UBUNTU_CONTAINERD',
-    k8sVersion: '1.34.10-gke.1236000',
+    k8sVersion: '1.35.6-gke.1250000',
   },
   ibm: {
     region: 'jp-tok',
@@ -387,7 +388,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'KR-1',
     specId: 'ncp+kr+c4-g3',
     imageId: '',
-    k8sVersion: '1.34.3-nks.1',
+    k8sVersion: '1.35.3-nks.2',
   },
   nhn: {
     region: 'kr1',
@@ -395,7 +396,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'kr-pub-a',
     specId: 'nhn+kr1+m2.c4m8',
     imageId: '107cc02d-02d8-44fd-84d6-6c316045b817',
-    k8sVersion: 'v1.34.3',
+    k8sVersion: 'v1.35.5',
   },
   tencent: {
     region: 'ap-seoul',
@@ -1631,6 +1632,16 @@ const applyObjectStorageLocationParams = () => {
 const applyInfraSelectionParams = () => {
   if (!showSelector.value) {
     return
+  }
+
+  if (isKubernetesImageWorkflow.value) {
+    const provider = isMultiCspWorkflow() ? '' : infraProvider.value
+    const previousProvider = getWorkflowParamValue('CSP') || getWorkflowParamValue('PROVIDER')
+    upsertWorkflowParam('ROOT_DISK_SIZE', resolveK8sRootDiskSize(
+      provider,
+      getWorkflowParamValue('ROOT_DISK_SIZE'),
+      Boolean(provider) && previousProvider.trim().toLowerCase() !== provider.trim().toLowerCase(),
+    ))
   }
 
   const namespace = selectedNamespace.value || getNamespaceParamValue()

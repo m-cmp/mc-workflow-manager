@@ -138,7 +138,7 @@ public class WorkflowStageDto {
                     param("K8S_MIN_NODE_SIZE", "1"),
                     param("K8S_MAX_NODE_SIZE", "3"),
                     param("ROOT_DISK_TYPE", "default"),
-                    param("ROOT_DISK_SIZE", "30"),
+                    param("ROOT_DISK_SIZE", "40"),
                     param("K8S_CREATE_OPTION", ""),
                     param("K8S_NODEGROUP_CREATE_IF_MISSING", "true"),
                     param("K8S_STATUS_MAX_ATTEMPTS", "60"),
@@ -428,7 +428,7 @@ public class WorkflowStageDto {
                 param("K8S_MIN_NODE_SIZE", "1"),
                 param("K8S_MAX_NODE_SIZE", "3"),
                 param("ROOT_DISK_TYPE", "default"),
-                param("ROOT_DISK_SIZE", "30"),
+                param("ROOT_DISK_SIZE", "40"),
                 param("K8S_CREATE_OPTION", ""),
                 param("K8S_STATUS_MAX_ATTEMPTS", "360"),
                 param("K8S_STATUS_INTERVAL_SECONDS", "10"),
@@ -441,13 +441,13 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
                 "azure+koreacentral+Standard_D4ls_v6", "", "1.35.7");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+c3-highcpu-4", "UBUNTU_CONTAINERD", "1.34.10-gke.1236000");
+                "gcp+asia-northeast3+c3-highcpu-4", "UBUNTU_CONTAINERD", "1.35.6-gke.1250000");
         addCspK8sParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
                 "ibm+jp-tok+cx2-4x8", "", "1.35.7");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
-                "ncp+kr+c4-g3", "", "1.34.3-nks.1");
+                "ncp+kr+c4-g3", "", "1.35.3-nks.2");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
-                "nhn+kr1+m2.c4m8", "107cc02d-02d8-44fd-84d6-6c316045b817", "v1.34.3");
+                "nhn+kr1+m2.c4m8", "107cc02d-02d8-44fd-84d6-6c316045b817", "v1.35.5");
         addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
                 "tencent+ap-seoul+S5.LARGE8", "ubuntu22.04x86_64", "1.34.1");
         return result;

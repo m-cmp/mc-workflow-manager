@@ -279,7 +279,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "connectionName": "gcp-asia-northeast3", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.34.10-gke.1236000" \
+                            "version": "1.35.6-gke.1250000" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -1207,6 +1207,14 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                     return diskType
                 }
+                def resolveK8sRootDiskSize = { csp ->
+                    def diskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
+                    if (csp?.equalsIgnoreCase("ncp") && diskSize < 100) {
+                        echo "NCP NKS root disk size ${diskSize}GB is below the KVM minimum. Use 100GB."
+                        return 100
+                    }
+                    return diskSize
+                }
                 if (!payload) {
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def region = params.REGION ?: ""
@@ -1234,7 +1242,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         minNodeSize: minNodeSize,
                         maxNodeSize: maxNodeSize,
                         rootDiskType: rootDiskType,
-                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                        rootDiskSize: resolveK8sRootDiskSize(provider)
                     ]
                     if (imageId) {
                         payloadMap.imageId = imageId
@@ -1412,7 +1420,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             minNodeSize: minNodeSize,
                             maxNodeSize: maxNodeSize,
                             rootDiskType: nodeGroupRootDiskType,
-                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                            rootDiskSize: resolveK8sRootDiskSize(params.CSP ?: params.PROVIDER ?: "")
                         ]
                         if (params.IMAGE_ID?.trim()) {
                             nodeGroupMap.imageId = params.IMAGE_ID.trim()
@@ -1526,6 +1534,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (provider?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                         rootDiskType = "cloud_essd"
                     }
+                    def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
+                    if (provider?.equalsIgnoreCase("ncp") && rootDiskSize < 100) {
+                        echo "NCP NKS root disk size ${rootDiskSize}GB is below the KVM minimum. Use 100GB."
+                        rootDiskSize = 100
+                    }
                     def usesProviderManagedK8sImage = provider?.equalsIgnoreCase("azure") || provider?.equalsIgnoreCase("ibm") || provider?.equalsIgnoreCase("ncp") || provider?.equalsIgnoreCase("tencent")
                     if (!params.SPEC_ID?.trim()) {
                         error "SPEC_ID is required"
@@ -1541,7 +1554,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                         rootDiskType: rootDiskType,
-                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                        rootDiskSize: rootDiskSize
                     ]
                     if (imageId) {
                         payloadMap.imageId = imageId
@@ -1746,6 +1759,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                         rootDiskType = "cloud_essd"
                     }
+                    def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
+                    if (csp?.equalsIgnoreCase("ncp") && rootDiskSize < 100) {
+                        echo "NCP NKS root disk size ${rootDiskSize}GB is below the KVM minimum. Use 100GB."
+                        rootDiskSize = 100
+                    }
                     def usesProviderManagedK8sImage = csp?.equalsIgnoreCase("azure") || csp?.equalsIgnoreCase("ibm") || csp?.equalsIgnoreCase("ncp") || csp?.equalsIgnoreCase("tencent")
                     if (!specId) {
                         error "SPEC_ID is required for ${csp}"
@@ -1768,7 +1786,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                         maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                         rootDiskType: rootDiskType,
-                        rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                        rootDiskSize: rootDiskSize
                     ]
                     if (imageId) {
                         payloadMap.imageId = imageId
@@ -4738,6 +4756,11 @@ pipeline {
                         if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                             rootDiskType = "cloud_essd"
                         }
+                        def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
+                        if (csp?.equalsIgnoreCase("ncp") && rootDiskSize < 100) {
+                            echo "NCP NKS root disk size ${rootDiskSize}GB is below the KVM minimum. Use 100GB."
+                            rootDiskSize = 100
+                        }
                         def usesProviderManagedK8sImage = csp?.equalsIgnoreCase("azure") || csp?.equalsIgnoreCase("ibm") || csp?.equalsIgnoreCase("ncp") || csp?.equalsIgnoreCase("tencent")
                         if (!specId) {
                             error "SPEC_ID is required for ${csp}"
@@ -4760,7 +4783,7 @@ pipeline {
                             minNodeSize: (params.K8S_MIN_NODE_SIZE ?: "1").toInteger(),
                             maxNodeSize: (params.K8S_MAX_NODE_SIZE ?: "3").toInteger(),
                             rootDiskType: rootDiskType,
-                            rootDiskSize: (params.ROOT_DISK_SIZE ?: "30").toInteger()
+                            rootDiskSize: rootDiskSize
                         ]
                         if (imageId) {
                             payloadMap.imageId = imageId
@@ -5007,7 +5030,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (103, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (103, 'K8S_MAX_NODE_SIZE', '3', 'N'),
 (103, 'ROOT_DISK_TYPE', 'default', 'N'),
-(103, 'ROOT_DISK_SIZE', '30', 'N'),
+(103, 'ROOT_DISK_SIZE', '40', 'N'),
 (103, 'K8S_CREATE_OPTION', '', 'N'),
 (103, 'K8S_NODEGROUP_CREATE_IF_MISSING', 'true', 'N'),
 (103, 'K8S_STATUS_MAX_ATTEMPTS', '60', 'N'),
@@ -5052,7 +5075,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'K8S_MIN_NODE_SIZE', '1', 'N'),
 (104, 'K8S_MAX_NODE_SIZE', '3', 'N'),
 (104, 'ROOT_DISK_TYPE', 'default', 'N'),
-(104, 'ROOT_DISK_SIZE', '30', 'N'),
+(104, 'ROOT_DISK_SIZE', '40', 'N'),
 (104, 'K8S_CREATE_OPTION', '', 'N'),
 (104, 'K8S_STATUS_MAX_ATTEMPTS', '360', 'N'),
 (104, 'K8S_STATUS_INTERVAL_SECONDS', '10', 'N'),
@@ -5080,7 +5103,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+c3-highcpu-4', 'N'),
 (104, 'GCP_IMAGE_ID', 'UBUNTU_CONTAINERD', 'N'),
-(104, 'GCP_K8S_VERSION', '1.34.10-gke.1236000', 'N'),
+(104, 'GCP_K8S_VERSION', '1.35.6-gke.1250000', 'N'),
 (104, 'IBM_REGION', 'jp-tok', 'N'),
 (104, 'IBM_CONNECTION_NAME', 'ibm-jp-tok', 'N'),
 (104, 'IBM_ZONE', 'jp-tok-1', 'N'),
@@ -5092,13 +5115,13 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'NCP_ZONE', 'KR-1', 'N'),
 (104, 'NCP_SPEC_ID', 'ncp+kr+c4-g3', 'N'),
 (104, 'NCP_IMAGE_ID', '', 'N'),
-(104, 'NCP_K8S_VERSION', '1.34.3-nks.1', 'N'),
+(104, 'NCP_K8S_VERSION', '1.35.3-nks.2', 'N'),
 (104, 'NHN_REGION', 'kr1', 'N'),
 (104, 'NHN_CONNECTION_NAME', 'nhn-kr1', 'N'),
 (104, 'NHN_ZONE', 'kr-pub-a', 'N'),
 (104, 'NHN_SPEC_ID', 'nhn+kr1+m2.c4m8', 'N'),
 (104, 'NHN_IMAGE_ID', '107cc02d-02d8-44fd-84d6-6c316045b817', 'N'),
-(104, 'NHN_K8S_VERSION', 'v1.34.3', 'N'),
+(104, 'NHN_K8S_VERSION', 'v1.35.5', 'N'),
 (104, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
 (104, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
