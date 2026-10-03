@@ -1,0 +1,1 @@
+import{d as e,a as o,i as s,k as a,R as t,h as r}from"./index-DhGk3pPk.js";import{_}from"./_plugin-vue_export-helper-DlAUqK2U.js";const c={class:"workflows-page"},n=e({__name:"Workflows",setup(p){return(f,d)=>(r(),o("div",c,[s(a(t))]))}}),m=_(n,[["__scopeId","data-v-55d88093"]]);export{m as default};
