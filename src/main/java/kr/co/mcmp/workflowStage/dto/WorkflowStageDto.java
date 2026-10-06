@@ -439,11 +439,11 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2", "ap-northeast-2a",
                 "aws+ap-northeast-2+c8i.xlarge", "AL2023_x86_64_STANDARD", "1.35");
         addCspK8sParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D4ls_v6", "", "1.35.7");
+                "azure+koreacentral+Standard_D4ls_v6", "", "1.35.8");
         addCspK8sParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
-                "gcp+asia-northeast3+c3-highcpu-4", "UBUNTU_CONTAINERD", "1.35.6-gke.1250000");
+                "gcp+asia-northeast3+c3-highcpu-4", "UBUNTU_CONTAINERD", "1.35.6-gke.1250001");
         addCspK8sParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
-                "ibm+jp-tok+cx2-4x8", "", "1.35.7");
+                "ibm+jp-tok+cx2-4x8", "", "1.35.9");
         addCspK8sParams(result, "NCP", "kr", "ncp-kr", "KR-1",
                 "ncp+kr+c4-g3", "", "1.35.3-nks.2");
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
