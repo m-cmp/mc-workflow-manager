@@ -279,7 +279,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "connectionName": "gcp-asia-northeast3", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.35.6-gke.1250000" \
+                            "version": "1.35.6-gke.1250001" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -5097,19 +5097,19 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'AZURE_ZONE', '1', 'N'),
 (104, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D4ls_v6', 'N'),
 (104, 'AZURE_IMAGE_ID', '', 'N'),
-(104, 'AZURE_K8S_VERSION', '1.35.7', 'N'),
+(104, 'AZURE_K8S_VERSION', '1.35.8', 'N'),
 (104, 'GCP_REGION', 'asia-northeast3', 'N'),
 (104, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+c3-highcpu-4', 'N'),
 (104, 'GCP_IMAGE_ID', 'UBUNTU_CONTAINERD', 'N'),
-(104, 'GCP_K8S_VERSION', '1.35.6-gke.1250000', 'N'),
+(104, 'GCP_K8S_VERSION', '1.35.6-gke.1250001', 'N'),
 (104, 'IBM_REGION', 'jp-tok', 'N'),
 (104, 'IBM_CONNECTION_NAME', 'ibm-jp-tok', 'N'),
 (104, 'IBM_ZONE', 'jp-tok-1', 'N'),
 (104, 'IBM_SPEC_ID', 'ibm+jp-tok+cx2-4x8', 'N'),
 (104, 'IBM_IMAGE_ID', '', 'N'),
-(104, 'IBM_K8S_VERSION', '1.35.7', 'N'),
+(104, 'IBM_K8S_VERSION', '1.35.9', 'N'),
 (104, 'NCP_REGION', 'kr', 'N'),
 (104, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
 (104, 'NCP_ZONE', 'KR-1', 'N'),

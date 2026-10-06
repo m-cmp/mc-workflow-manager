@@ -364,7 +364,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: '1',
     specId: 'azure+koreacentral+Standard_D4ls_v6',
     imageId: '',
-    k8sVersion: '1.35.7',
+    k8sVersion: '1.35.8',
   },
   gcp: {
     region: 'asia-northeast3',
@@ -372,7 +372,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+c3-highcpu-4',
     imageId: 'UBUNTU_CONTAINERD',
-    k8sVersion: '1.35.6-gke.1250000',
+    k8sVersion: '1.35.6-gke.1250001',
   },
   ibm: {
     region: 'jp-tok',
@@ -380,7 +380,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'jp-tok-1',
     specId: 'ibm+jp-tok+cx2-4x8',
     imageId: '',
-    k8sVersion: '1.35.7',
+    k8sVersion: '1.35.9',
   },
   ncp: {
     region: 'kr',
