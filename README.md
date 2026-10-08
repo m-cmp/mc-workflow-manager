@@ -257,7 +257,7 @@ K8s defaults are separate from VM defaults. An empty image ID (`""`) for Azure, 
 | K8s Spec | `alibaba+ap-northeast-2+ecs.c9i.xlarge` / `ecs.c9i.xlarge` | `aws+ap-northeast-2+c8i.xlarge` / `c8i.xlarge` | `azure+koreacentral+Standard_D4ls_v6` / `Standard_D4ls_v6` | `gcp+asia-northeast3+c3-highcpu-4` / `c3-highcpu-4` | `ibm+jp-tok+cx2-4x8` / `cx2-4x8` | Not yet | `ncp+kr+c4-g3` / `c4-g3` | `nhn+kr1+m2.c4m8` / `m2.c4m8` | Not Support | `tencent+ap-seoul+S5.LARGE8` / `S5.LARGE8` |
 | K8s Image | `Ubuntu` | `AL2023_x86_64_STANDARD` | `""` (provider-managed) | `UBUNTU_CONTAINERD` | `""` (provider-managed) | Not yet | `""` (provider-managed) | `107cc02d-02d8-44fd-84d6-6c316045b817` | Not Support | `ubuntu22.04x86_64` |
 | K8s Zone | `ap-northeast-2a` | `ap-northeast-2a` | `1` | `asia-northeast3-a` | `jp-tok-1` | Not yet | `KR-1` | `kr-pub-a` | Not Support | `ap-seoul-1` |
-| K8s Version | `1.35.7-aliyun.1` | `1.35` | `1.35.8` | `1.35.6-gke.1250001` | `1.35.9` | Not yet | `1.35.3-nks.2` | `v1.35.5` | Not Support | `1.34.1` |
+| K8s Version | `1.35.7-aliyun.1` | `1.35` | `1.35.8` | `1.35` | `1.35.9` | Not yet | `1.35.3-nks.2` | `v1.35.5` | Not Support | `1.34.1` |
 
 ## Requirements
 
