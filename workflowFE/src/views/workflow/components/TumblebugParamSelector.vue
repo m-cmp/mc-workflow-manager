@@ -372,7 +372,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     zone: 'asia-northeast3-a',
     specId: 'gcp+asia-northeast3+c3-highcpu-4',
     imageId: 'UBUNTU_CONTAINERD',
-    k8sVersion: '1.35.6-gke.1250001',
+    k8sVersion: '1.35',
   },
   ibm: {
     region: 'jp-tok',

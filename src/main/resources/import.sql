@@ -279,7 +279,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                             "connectionName": "gcp-asia-northeast3", \
                             "name": "${CLUSTER}", \
                             "nodeGroupName": "k8sng03", \
-                            "version": "1.35.6-gke.1250001" \
+                            "version": "1.35" \
                         }"""
                     } else if (CPS == "aws") {
                         call_tumblebug_create_cluster_payload = """{ \
@@ -5103,7 +5103,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (104, 'GCP_SPEC_ID', 'gcp+asia-northeast3+c3-highcpu-4', 'N'),
 (104, 'GCP_IMAGE_ID', 'UBUNTU_CONTAINERD', 'N'),
-(104, 'GCP_K8S_VERSION', '1.35.6-gke.1250001', 'N'),
+(104, 'GCP_K8S_VERSION', '1.35', 'N'),
 (104, 'IBM_REGION', 'jp-tok', 'N'),
 (104, 'IBM_CONNECTION_NAME', 'ibm-jp-tok', 'N'),
 (104, 'IBM_ZONE', 'jp-tok-1', 'N'),
