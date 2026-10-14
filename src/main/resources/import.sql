@@ -1196,7 +1196,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
             script {
                 def payload = params.K8S_CREATE_PAYLOAD?.trim()
                 def k8sVersion = params.K8S_VERSION?.trim() ?: "1.35"
-                def nodeGroupName = params.K8S_NODEGROUP_NAME ?: "ng1"
+                def nodeGroupName = (params.K8S_NODEGROUP_NAME ?: "ng1").replace("-", "")
                 def desiredNodeSize = (params.K8S_DESIRED_NODE_SIZE ?: "1").toInteger()
                 def minNodeSize = (params.K8S_MIN_NODE_SIZE ?: "1").toInteger()
                 def maxNodeSize = (params.K8S_MAX_NODE_SIZE ?: "3").toInteger()
@@ -1748,7 +1748,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 cspList.each { csp ->
                     def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
                     def clusterId = (params.CLUSTER_PREFIX ?: "multi-csp-k8s") + "-" + csp
-                    def nodeGroupName = (params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp
+                    def nodeGroupName = ((params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp).replace("-", "")
                     def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
                     def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                     def region = params["${key}_REGION"] ?: params.REGION ?: ""
@@ -4745,7 +4745,7 @@ pipeline {
                     cspList.each { csp ->
                         def key = csp.toUpperCase().replaceAll("[^A-Z0-9]", "_")
                         def clusterId = (params.CLUSTER_PREFIX ?: "multi-csp-k8s") + "-" + csp
-                        def nodeGroupName = (params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp
+                        def nodeGroupName = ((params.K8S_NODEGROUP_PREFIX ?: "ng") + "-" + csp).replace("-", "")
                         def specId = params["${key}_SPEC_ID"] ?: params.SPEC_ID
                         def imageId = params["${key}_IMAGE_ID"] ?: params.IMAGE_ID
                         def region = params["${key}_REGION"] ?: params.REGION ?: ""
