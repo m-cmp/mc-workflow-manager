@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface WorkflowHistoryRepository extends JpaRepository<WorkflowHistory, Long> {
+    void deleteByWorkflow_WorkflowIdx(Long workflowIdx);
     List<WorkflowHistory> findByWorkflow_WorkflowIdx(Long workflowIdx);
 }

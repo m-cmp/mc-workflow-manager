@@ -20,6 +20,7 @@ import kr.co.mcmp.workflow.dto.reqDto.WorkflowReqDto;
 import kr.co.mcmp.workflow.dto.resDto.*;
 import kr.co.mcmp.workflowStage.Entity.WorkflowStage;
 import kr.co.mcmp.workflow.repository.WorkflowHistoryRepository;
+import kr.co.mcmp.workflow.repository.WorkflowParamHistoryRepository;
 import kr.co.mcmp.workflow.repository.WorkflowParamRepository;
 import kr.co.mcmp.workflow.repository.WorkflowRepository;
 import kr.co.mcmp.workflow.repository.WorkflowStageMappingRepository;
@@ -72,6 +73,8 @@ public class WorkflowServiceImpl implements WorkflowService {
     private final WorkflowStageMappingRepository workflowStageMappingRepository;
 
     private final WorkflowHistoryRepository workflowHistoryRepository;
+
+    private final WorkflowParamHistoryRepository workflowParamHistoryRepository;
 
     private final EventListenerRepository eventListenerRepository;
 
@@ -293,7 +296,11 @@ public class WorkflowServiceImpl implements WorkflowService {
             // 2. Workflow Param
             workflowParamRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
 
-            // 3. Workflow
+            // 3. Workflow History
+            workflowHistoryRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
+            workflowParamHistoryRepository.deleteByWorkflow_WorkflowIdx(workflowIdx);
+
+            // 4. Workflow
             workflowRepository.deleteByWorkflowIdx(workflowIdx);
 
             result = true;
