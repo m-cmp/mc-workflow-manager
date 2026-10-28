@@ -336,7 +336,7 @@ const vmSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'ap-seoul',
     connectionName: 'tencent-ap-seoul',
     zone: 'ap-seoul-1',
-    specId: 'tencent+ap-seoul+S5.MEDIUM8',
+    specId: 'tencent+ap-seoul+S8.MEDIUM8',
     imageId: 'img-mmytdhbn',
   },
 }
@@ -402,7 +402,7 @@ const k8sSelectionDefaults: Record<string, VmSelectionDefault> = {
     region: 'ap-seoul',
     connectionName: 'tencent-ap-seoul',
     zone: 'ap-seoul-1',
-    specId: 'tencent+ap-seoul+S5.LARGE8',
+    specId: 'tencent+ap-seoul+S8.LARGE8',
     imageId: 'ubuntu22.04x86_64',
     k8sVersion: '1.34.1',
   },
