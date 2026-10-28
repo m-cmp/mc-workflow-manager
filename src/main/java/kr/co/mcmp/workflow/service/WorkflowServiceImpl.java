@@ -627,12 +627,22 @@ public class WorkflowServiceImpl implements WorkflowService {
             return Collections.emptyMap();
         }
 
+        String diskProvider = StringUtils.hasText(csp) ? csp.trim() : specId.split("\\+", 2)[0];
+        String rootDiskType = getParamValue(workflowReqDto, "ROOT_DISK_TYPE", "default");
+        if ("default".equalsIgnoreCase(rootDiskType)) {
+            if ("tencent".equalsIgnoreCase(diskProvider)) {
+                rootDiskType = "CLOUD_BSSD";
+            } else if ("alibaba".equalsIgnoreCase(diskProvider)) {
+                rootDiskType = "cloud_essd";
+            }
+        }
+
         Map<String, Object> nodeGroup = new LinkedHashMap<>();
         nodeGroup.put("name", buildInfraNodeGroupName(workflowReqDto, prefix, csp));
         nodeGroup.put("nodeGroupSize", parseInteger(getParamValue(workflowReqDto, "INFRA_NODEGROUP_SIZE", "1"), 1));
         nodeGroup.put("specId", specId);
         nodeGroup.put("imageId", imageId);
-        nodeGroup.put("rootDiskType", getParamValue(workflowReqDto, "ROOT_DISK_TYPE", "default"));
+        nodeGroup.put("rootDiskType", rootDiskType);
         nodeGroup.put("rootDiskSize", parseInteger(getParamValue(workflowReqDto, "ROOT_DISK_SIZE", "50"), 50));
         if (StringUtils.hasText(connectionName)) {
             nodeGroup.put("connectionName", connectionName);

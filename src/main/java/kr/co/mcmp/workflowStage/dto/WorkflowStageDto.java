@@ -404,7 +404,7 @@ public class WorkflowStageDto {
         addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
                 "nhn+kr1+r2.c2m8", "5c38715f-0375-4167-af4e-56f75ba8b252");
         addCspVmParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
-                "tencent+ap-seoul+S5.MEDIUM8", "img-mmytdhbn");
+                "tencent+ap-seoul+S8.MEDIUM8", "img-mmytdhbn");
         return result;
     }
 
@@ -449,7 +449,7 @@ public class WorkflowStageDto {
         addCspK8sParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
                 "nhn+kr1+m2.c4m8", "107cc02d-02d8-44fd-84d6-6c316045b817", "v1.35.5");
         addCspK8sParams(result, "TENCENT", "ap-seoul", "tencent-ap-seoul", "ap-seoul-1",
-                "tencent+ap-seoul+S5.LARGE8", "ubuntu22.04x86_64", "1.34.1");
+                "tencent+ap-seoul+S8.LARGE8", "ubuntu22.04x86_64", "1.34.1");
         return result;
     }
 

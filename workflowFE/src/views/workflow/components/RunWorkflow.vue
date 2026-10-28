@@ -324,12 +324,19 @@ const buildNodeGroupReviewPayload = (prefix: string, csp: string) => {
     return null
   }
 
+  const diskProvider = (csp.trim() || specId.split('+')[0]).toLowerCase()
+  let rootDiskType = getParamValue('ROOT_DISK_TYPE') || 'default'
+  if (rootDiskType.toLowerCase() === 'default') {
+    if (diskProvider === 'tencent') rootDiskType = 'CLOUD_BSSD'
+    else if (diskProvider === 'alibaba') rootDiskType = 'cloud_essd'
+  }
+
   const nodeGroup: Record<string, any> = {
     name: buildInfraNodeGroupName(prefix, csp),
     nodeGroupSize: Number(getParamValue('INFRA_NODEGROUP_SIZE') || '1'),
     specId,
     imageId,
-    rootDiskType: getParamValue('ROOT_DISK_TYPE') || 'default',
+    rootDiskType,
     rootDiskSize: Number(getParamValue('ROOT_DISK_SIZE') || '50'),
   }
 

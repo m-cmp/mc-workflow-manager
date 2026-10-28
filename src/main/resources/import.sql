@@ -618,12 +618,19 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def region = params.REGION ?: ""
                     def connectionName = params.CONNECTION_NAME ?: params.CONNECTION_CONFIG_NAME ?: (provider && region ? "${provider}-${region}" : "")
+                    def diskProvider = provider.trim() ?: specId?.tokenize("+")?.getAt(0) ?: ""
+                    def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                    if (diskProvider.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "CLOUD_BSSD"
+                    } else if (diskProvider.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "cloud_essd"
+                    }
                     def nodeGroup = [
                         name: params.INFRA_NODEGROUP_NAME ?: "g1",
                         nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
                         specId: specId,
                         imageId: imageId,
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
                     ]
                     if (connectionName) {
@@ -1006,12 +1013,18 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                         error "${key}_SPEC_ID and ${key}_IMAGE_ID are required for ${csp}"
                     }
 
+                    def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                    if (csp.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "CLOUD_BSSD"
+                    } else if (csp.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "cloud_essd"
+                    }
                     def nodeGroup = [
                         name: params["${key}_NODEGROUP_NAME"] ?: "${nodeGroupPrefix}-${key.toLowerCase().replaceAll("_", "-")}",
                         nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
                         specId: specId,
                         imageId: imageId,
-                        rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                        rootDiskType: rootDiskType,
                         rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
                     ]
                     if (connectionName) {
@@ -1202,7 +1215,11 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def maxNodeSize = (params.K8S_MAX_NODE_SIZE ?: "3").toInteger()
                 def resolveK8sRootDiskType = { csp ->
                     def diskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
-                    if (csp?.equalsIgnoreCase("alibaba") && diskType.equalsIgnoreCase("default")) {
+                    def diskProvider = csp?.trim() ?: params.SPEC_ID?.tokenize("+")?.getAt(0) ?: ""
+                    if (diskProvider.equalsIgnoreCase("tencent") && diskType.equalsIgnoreCase("default")) {
+                        return "CLOUD_BSSD"
+                    }
+                    if (diskProvider.equalsIgnoreCase("alibaba") && diskType.equalsIgnoreCase("default")) {
                         return "cloud_essd"
                     }
                     return diskType
@@ -1531,7 +1548,10 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def imageId = params.IMAGE_ID?.trim() ?: ""
                     def provider = params.CSP ?: params.PROVIDER ?: ""
                     def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
-                    if (provider?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                    def diskProvider = provider.trim() ?: params.SPEC_ID?.tokenize("+")?.getAt(0) ?: ""
+                    if (diskProvider.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "CLOUD_BSSD"
+                    } else if (diskProvider.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                         rootDiskType = "cloud_essd"
                     }
                     def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
@@ -1766,7 +1786,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                     def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.35"
                     def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
-                    if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                    if (csp?.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                        rootDiskType = "CLOUD_BSSD"
+                    } else if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                         rootDiskType = "cloud_essd"
                     }
                     def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
@@ -4668,12 +4690,18 @@ pipeline {
                             error "${key}_SPEC_ID and ${key}_IMAGE_ID are required for ${csp}"
                         }
 
+                        def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
+                        if (csp.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                            rootDiskType = "CLOUD_BSSD"
+                        } else if (csp.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                            rootDiskType = "cloud_essd"
+                        }
                         def nodeGroup = [
                             name: params["${key}_NODEGROUP_NAME"] ?: "${nodeGroupPrefix}-${key.toLowerCase().replaceAll("_", "-")}",
                             nodeGroupSize: (params.INFRA_NODEGROUP_SIZE ?: "1").toInteger(),
                             specId: specId,
                             imageId: imageId,
-                            rootDiskType: params.ROOT_DISK_TYPE ?: "default",
+                            rootDiskType: rootDiskType,
                             rootDiskSize: (params.ROOT_DISK_SIZE ?: "50").toInteger()
                         ]
                         if (connectionName) {
@@ -4812,7 +4840,9 @@ pipeline {
                         def zone = params["${key}_ZONE"] ?: params.ZONE ?: ""
                         def k8sVersion = params["${key}_K8S_VERSION"]?.trim() ?: params.K8S_VERSION?.trim() ?: "1.35"
                         def rootDiskType = params.ROOT_DISK_TYPE?.trim() ?: "default"
-                        if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
+                        if (csp?.equalsIgnoreCase("tencent") && rootDiskType.equalsIgnoreCase("default")) {
+                            rootDiskType = "CLOUD_BSSD"
+                        } else if (csp?.equalsIgnoreCase("alibaba") && rootDiskType.equalsIgnoreCase("default")) {
                             rootDiskType = "cloud_essd"
                         }
                         def rootDiskSize = (params.ROOT_DISK_SIZE ?: "40").toInteger()
@@ -5103,7 +5133,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (102, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
 (102, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
-(102, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S5.MEDIUM8', 'N'),
+(102, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S8.MEDIUM8', 'N'),
 (102, 'TENCENT_IMAGE_ID', 'img-mmytdhbn', 'N');
 
 INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener_yn) VALUES
@@ -5223,7 +5253,7 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (104, 'TENCENT_REGION', 'ap-seoul', 'N'),
 (104, 'TENCENT_CONNECTION_NAME', 'tencent-ap-seoul', 'N'),
 (104, 'TENCENT_ZONE', 'ap-seoul-1', 'N'),
-(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S5.LARGE8', 'N'),
+(104, 'TENCENT_SPEC_ID', 'tencent+ap-seoul+S8.LARGE8', 'N'),
 (104, 'TENCENT_IMAGE_ID', 'ubuntu22.04x86_64', 'N'),
 (104, 'TENCENT_K8S_VERSION', '1.34.1', 'N');
 
