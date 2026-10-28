@@ -1739,6 +1739,16 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
         steps {
             echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
             script {
+                def parseClusterResponse = { response ->
+                    // Keep only serializable values across Jenkins pipeline steps.
+                    def parsed = new groovy.json.JsonSlurper().parseText(response.replaceAll("- Http_Status_code:[0-9]{3}\$", "").trim())
+                    return [
+                        status: parsed.status,
+                        k8sNodeGroupList: (parsed.k8sNodeGroupList ?: []).collect { group ->
+                            [name: group.name, status: group.status, nodeCount: (group.k8sNodes ?: []).size()]
+                        }
+                    ]
+                }
                 def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
                 if (cspList.isEmpty()) {
                     error "CSP_LIST is required"
@@ -1813,28 +1823,67 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                     def statusResponse = ""
                     def currentStatus = ""
+                    def clusterInfo = [:]
                     for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                         statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
                         currentStatus = ""
                         if (statusResponse.contains("Http_Status_code:2")) {
-                            def normalizedStatusResponse = statusResponse.toLowerCase()
-                            for (def readyStatus : readyStatuses) {
-                                if (normalizedStatusResponse.contains("\"status\":\"${readyStatus}\"") ||
-                                        normalizedStatusResponse.contains("\"status\": \"${readyStatus}\"")) {
-                                    currentStatus = readyStatus
-                                    break
-                                }
-                            }
+                            clusterInfo = parseClusterResponse(statusResponse)
+                            currentStatus = clusterInfo.status?.toString()?.toLowerCase() ?: ""
                         }
-                        if (currentStatus) {
+                        if (readyStatuses.contains(currentStatus)) {
                             break
                         }
                         def displayStatus = currentStatus ?: "unknown"
                         echo "k8s cluster ${clusterId} is not ready. currentStatus=${displayStatus}, attempt ${attempt}/${statusAttempts}: ${statusResponse}"
                         sleep time: statusIntervalSeconds, unit: "SECONDS"
                     }
-                    if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
+                    if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.contains(currentStatus)) {
                         error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
+                    }
+                    if (["alibaba", "aws", "tencent"].contains(csp.toLowerCase())) {
+                        def nodeGroup = (clusterInfo.k8sNodeGroupList ?: []).find { it.name == nodeGroupName }
+                        if (!nodeGroup) {
+                            def nodeGroupMap = [
+                                name: nodeGroupName,
+                                specId: specId,
+                                desiredNodeSize: payloadMap.desiredNodeSize,
+                                minNodeSize: payloadMap.minNodeSize,
+                                maxNodeSize: payloadMap.maxNodeSize,
+                                rootDiskType: rootDiskType,
+                                rootDiskSize: rootDiskSize
+                            ]
+                            if (imageId) {
+                                nodeGroupMap.imageId = imageId
+                            }
+                            writeFile file: "k8s-nodegroup-add-${csp}.json", text: groovy.json.JsonOutput.toJson(nodeGroupMap)
+                            echo "Create node group ${nodeGroupName} for ${clusterId}."
+                            def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add-${csp}.json ${auth}""", returnStdout: true).trim()
+                            echo nodeGroupResponse
+                            if (!nodeGroupResponse.contains("Http_Status_code:2")) {
+                                error "multi-csp-k8s-cluster-deploy node group create failed for ${csp}: ${nodeGroupResponse}"
+                            }
+                        }
+                        def nodeGroupReady = false
+                        for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                            statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
+                            if (statusResponse.contains("Http_Status_code:2")) {
+                                clusterInfo = parseClusterResponse(statusResponse)
+                                nodeGroup = (clusterInfo.k8sNodeGroupList ?: []).find { it.name == nodeGroupName }
+                                def nodeCount = nodeGroup?.nodeCount ?: 0
+                                nodeGroupReady = readyStatuses.contains(clusterInfo.status?.toString()?.toLowerCase()) &&
+                                    nodeGroup?.status?.equalsIgnoreCase("Active") && nodeCount >= payloadMap.desiredNodeSize
+                                if (nodeGroupReady) {
+                                    echo "Node group ${nodeGroupName} is active with ${nodeCount} nodes."
+                                    break
+                                }
+                            }
+                            echo "Node group ${nodeGroupName} or its nodes are not ready. attempt ${attempt}/${statusAttempts}"
+                            sleep time: statusIntervalSeconds, unit: "SECONDS"
+                        }
+                        if (!nodeGroupReady) {
+                            error "multi-csp-k8s-cluster-deploy node group readiness check failed for ${csp}: ${statusResponse}"
+                        }
                     }
                 }
             }
@@ -4736,6 +4785,16 @@ pipeline {
             steps {
                 echo ">>>>> STAGE: multi-csp-k8s-cluster-deploy"
                 script {
+                    def parseClusterResponse = { response ->
+                        // Keep only serializable values across Jenkins pipeline steps.
+                        def parsed = new groovy.json.JsonSlurper().parseText(response.replaceAll("- Http_Status_code:[0-9]{3}\$", "").trim())
+                        return [
+                            status: parsed.status,
+                            k8sNodeGroupList: (parsed.k8sNodeGroupList ?: []).collect { group ->
+                                [name: group.name, status: group.status, nodeCount: (group.k8sNodes ?: []).size()]
+                            }
+                        ]
+                    }
                     def cspList = (params.CSP_LIST ?: "").split(",").collect { it.trim() }.findAll { it }
                     if (cspList.isEmpty()) {
                         error "CSP_LIST is required"
@@ -4810,28 +4869,67 @@ pipeline {
                         def statusIntervalSeconds = (params.K8S_STATUS_INTERVAL_SECONDS ?: "10").toInteger()
                         def statusResponse = ""
                         def currentStatus = ""
+                        def clusterInfo = [:]
                         for (int attempt = 1; attempt <= statusAttempts; attempt++) {
                             statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
                             currentStatus = ""
                             if (statusResponse.contains("Http_Status_code:2")) {
-                                def normalizedStatusResponse = statusResponse.toLowerCase()
-                                for (def readyStatus : readyStatuses) {
-                                    if (normalizedStatusResponse.contains("\"status\":\"${readyStatus}\"") ||
-                                            normalizedStatusResponse.contains("\"status\": \"${readyStatus}\"")) {
-                                        currentStatus = readyStatus
-                                        break
-                                    }
-                                }
+                                clusterInfo = parseClusterResponse(statusResponse)
+                                currentStatus = clusterInfo.status?.toString()?.toLowerCase() ?: ""
                             }
-                            if (currentStatus) {
+                            if (readyStatuses.contains(currentStatus)) {
                                 break
                             }
                             def displayStatus = currentStatus ?: "unknown"
                             echo "k8s cluster ${clusterId} is not ready. currentStatus=${displayStatus}, attempt ${attempt}/${statusAttempts}: ${statusResponse}"
                             sleep time: statusIntervalSeconds, unit: "SECONDS"
                         }
-                        if (!statusResponse.contains("Http_Status_code:2") || !currentStatus) {
+                        if (!statusResponse.contains("Http_Status_code:2") || !readyStatuses.contains(currentStatus)) {
                             error "multi-csp-k8s-cluster-deploy status check failed for ${csp}: ${statusResponse}"
+                        }
+                        if (["alibaba", "aws", "tencent"].contains(csp.toLowerCase())) {
+                            def nodeGroup = (clusterInfo.k8sNodeGroupList ?: []).find { it.name == nodeGroupName }
+                            if (!nodeGroup) {
+                                def nodeGroupMap = [
+                                    name: nodeGroupName,
+                                    specId: specId,
+                                    desiredNodeSize: payloadMap.desiredNodeSize,
+                                    minNodeSize: payloadMap.minNodeSize,
+                                    maxNodeSize: payloadMap.maxNodeSize,
+                                    rootDiskType: rootDiskType,
+                                    rootDiskSize: rootDiskSize
+                                ]
+                                if (imageId) {
+                                    nodeGroupMap.imageId = imageId
+                                }
+                                writeFile file: "k8s-nodegroup-add-${csp}.json", text: groovy.json.JsonOutput.toJson(nodeGroupMap)
+                                echo "Create node group ${nodeGroupName} for ${clusterId}."
+                                def nodeGroupResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X POST "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}/k8sNodeGroupDynamic" -H "Content-Type: application/json" -d @k8s-nodegroup-add-${csp}.json ${auth}""", returnStdout: true).trim()
+                                echo nodeGroupResponse
+                                if (!nodeGroupResponse.contains("Http_Status_code:2")) {
+                                    error "multi-csp-k8s-cluster-deploy node group create failed for ${csp}: ${nodeGroupResponse}"
+                                }
+                            }
+                            def nodeGroupReady = false
+                            for (int attempt = 1; attempt <= statusAttempts; attempt++) {
+                                statusResponse = sh(script: """curl -sS -w "- Http_Status_code:%{http_code}" -X GET "${params.TUMBLEBUG}/tumblebug/ns/${params.NAMESPACE}/k8sCluster/${clusterId}?option=status" ${auth}""", returnStdout: true).trim()
+                                if (statusResponse.contains("Http_Status_code:2")) {
+                                    clusterInfo = parseClusterResponse(statusResponse)
+                                    nodeGroup = (clusterInfo.k8sNodeGroupList ?: []).find { it.name == nodeGroupName }
+                                    def nodeCount = nodeGroup?.nodeCount ?: 0
+                                    nodeGroupReady = readyStatuses.contains(clusterInfo.status?.toString()?.toLowerCase()) &&
+                                        nodeGroup?.status?.equalsIgnoreCase("Active") && nodeCount >= payloadMap.desiredNodeSize
+                                    if (nodeGroupReady) {
+                                        echo "Node group ${nodeGroupName} is active with ${nodeCount} nodes."
+                                        break
+                                    }
+                                }
+                                echo "Node group ${nodeGroupName} or its nodes are not ready. attempt ${attempt}/${statusAttempts}"
+                                sleep time: statusIntervalSeconds, unit: "SECONDS"
+                            }
+                            if (!nodeGroupReady) {
+                                error "multi-csp-k8s-cluster-deploy node group readiness check failed for ${csp}: ${statusResponse}"
+                            }
                         }
                     }
                 }

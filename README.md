@@ -209,6 +209,10 @@ provider catalog endpoints are unavailable or return empty data.
 - AWS requires a K8s node image such as `AL2023_x86_64_STANDARD`.
 - Some providers use ordinary VM images for managed K8s node groups, while AWS
   exposes dedicated K8s node image values.
+- Multi-CSP K8s deployment adds the requested node group after cluster creation
+  for Alibaba, AWS, and Tencent when that group is absent. It waits for the group
+  to become Active and for Tumblebug to report the requested worker count;
+  Kubernetes node Ready conditions are not checked by this stage.
 - The K8s MariaDB workflow uses the Groundhog2k MariaDB Helm chart by default:
   `groundhog2k/mariadb` version `4.5.0`.
 - The workflow writes kubeconfig to the Jenkins workspace and, when possible,
