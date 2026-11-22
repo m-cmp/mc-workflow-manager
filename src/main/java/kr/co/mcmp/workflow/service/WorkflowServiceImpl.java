@@ -40,6 +40,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +50,7 @@ import java.util.stream.Stream;
 public class WorkflowServiceImpl implements WorkflowService {
 
     private static final int MAX_JENKINS_BUILD_LOOKUP_COUNT = 200;
+    private static final Pattern VM_PROVISIONING_PATH = Pattern.compile("/infradynamic(?=$|[\\s\"'?$])");
     private static final List<String> WORKFLOW_PURPOSE_ORDER = List.of(
             "For Deployment",
             "For Cleanup"
@@ -564,18 +566,26 @@ public class WorkflowServiceImpl implements WorkflowService {
             return false;
         }
 
+        boolean hasK8sProvisioningStage = false;
+        boolean hasVmProvisioningPath = false;
         if (workflowReqDto.getWorkflowStageMappings() != null) {
             for (WorkflowStageMappingDto stage : workflowReqDto.getWorkflowStageMappings()) {
                 String stageName = normalizeText(stage.getWorkflowStageName());
                 String stageContent = normalizeText(stage.getStageContent());
                 if ("infra-create".equals(stageName) || "multi-csp-vm-deploy".equals(stageName)
-                        || stageContent.contains("infra-create") || stageContent.contains("infraDynamic")) {
+                        || stageContent.contains("infra-create")) {
                     return true;
                 }
+                hasK8sProvisioningStage = hasK8sProvisioningStage
+                        || "k8s-cluster-create".equals(stageName)
+                        || "k8s-nodegroup-add".equals(stageName)
+                        || "multi-csp-k8s-cluster-deploy".equals(stageName);
+                hasVmProvisioningPath = hasVmProvisioningPath || VM_PROVISIONING_PATH.matcher(stageContent).find();
             }
         }
 
-        return StringUtils.hasText(getParamValue(workflowReqDto, "INFRA_ID", null))
+        return (!hasK8sProvisioningStage || hasVmProvisioningPath)
+                && StringUtils.hasText(getParamValue(workflowReqDto, "INFRA_ID", null))
                 && StringUtils.hasText(getParamValue(workflowReqDto, "SPEC_ID", null))
                 && StringUtils.hasText(getParamValue(workflowReqDto, "IMAGE_ID", null));
     }
