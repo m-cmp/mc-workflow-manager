@@ -387,18 +387,18 @@ public class WorkflowStageDto {
                 param("POLICY_ON_PARTIAL_FAILURE", "continue"));
 
         addCspVmParams(result, "ALIBABA", "ap-northeast-2", "alibaba-ap-northeast-2", "ap-northeast-2a",
-                "alibaba+ap-northeast-2+ecs.g9i.large", "ubuntu_24_04_x64_20G_alibase_20260810.vhd");
+                "alibaba+ap-northeast-2+ecs.g9i.large", "ubuntu_24_04_x64_20G_alibase_20260916.vhd");
         addCspVmParams(result, "AWS", "ap-northeast-2", "aws-ap-northeast-2", "ap-northeast-2a",
-                "aws+ap-northeast-2+m8i.large", "ami-01ed18897a4aadead");
+                "aws+ap-northeast-2+m8i.large", "ami-08897d0fb0884d4de");
         addCspVmParams(result, "AZURE", "koreacentral", "azure-koreacentral", "1",
-                "azure+koreacentral+Standard_D2s_v6", "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100");
+                "azure+koreacentral+Standard_D2s_v6", "Canonical:ubuntu-24_04-lts:minimal:24.04.202610210");
         addCspVmParams(result, "GCP", "asia-northeast3", "gcp-asia-northeast3", "asia-northeast3-a",
                 "gcp+asia-northeast3+n2-standard-2",
-                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817");
+                "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20261028");
         addCspVmParams(result, "IBM", "jp-tok", "ibm-jp-tok", "jp-tok-1",
-                "ibm+jp-tok+bx2-2x8", "r022-9130f04e-631a-4e91-ae4c-b85d54621c24");
+                "ibm+jp-tok+bx2-2x8", "r022-c2825231-d13f-421b-863e-109010407fe1");
         addCspVmParams(result, "KT", "kr1", "kt-kr1", "DX-M1",
-                "kt+kr1+2x8.itl", "e55c5985-b420-4a19-8c92-aa3461cda86e");
+                "kt+kr1+2x8.itl", "56e47487-c6bb-4c7d-89f4-3bf4c294924c");
         addCspVmParams(result, "NCP", "kr", "ncp-kr", "KR-1",
                 "ncp+kr+s2-g3", "104630229");
         addCspVmParams(result, "NHN", "kr1", "nhn-kr1", "kr-pub-a",
