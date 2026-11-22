@@ -135,19 +135,19 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                 def imageId, specId, rootDiskType, rootDiskSize, sgName
                 if (CSP == "aws") {
                     sgName = "g1"
-                    imageId = "ami-01ed18897a4aadead"
+                    imageId = "ami-08897d0fb0884d4de"
                     specId = "aws+ap-northeast-2+m8i.large"
                     rootDiskType = "gp3"
                     rootDiskSize = 20
                 } else if (CSP == "azure") {
                     sgName = "g2"
-                    imageId = "Canonical:ubuntu-24_04-lts:minimal:24.04.202608100"
+                    imageId = "Canonical:ubuntu-24_04-lts:minimal:24.04.202610210"
                     specId = "azure+koreacentral+Standard_D2s_v6"
                     rootDiskType = "default"
                     rootDiskSize = "default"
                 } else if (CSP == "gcp") {
                     sgName = "g3"
-                    imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817"
+                    imageId = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20261028"
                     specId = "gcp+asia-northeast3+n2-standard-2"
                     rootDiskType = "default"
                     rootDiskSize = "default"
@@ -165,7 +165,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     rootDiskSize = "default"
                 } else if (CSP == "alibaba") {
                     sgName = "g6"
-                    imageId = "ubuntu_24_04_x64_20G_alibase_20260810.vhd"
+                    imageId = "ubuntu_24_04_x64_20G_alibase_20260916.vhd"
                     specId = "alibaba+ap-northeast-2+ecs.g9i.large"
                     rootDiskType = "default"
                     rootDiskSize = "default"
@@ -177,7 +177,7 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     rootDiskSize = "30"
                 } else if (CSP == "ibm") {
                     sgName = "g8"
-                    imageId = "r022-9130f04e-631a-4e91-ae4c-b85d54621c24"
+                    imageId = "r022-c2825231-d13f-421b-863e-109010407fe1"
                     specId = "ibm+jp-tok+bx2-2x8"
                     rootDiskType = "default"
                     rootDiskSize = "default"
@@ -5060,8 +5060,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (101, 'REGION', 'ap-northeast-2', 'N'),
 (101, 'CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
 (101, 'ZONE', 'ap-northeast-2a', 'N'),
-(101, 'IMAGE', 'ami-01ed18897a4aadead', 'N'),
-(101, 'IMAGE_ID', 'ami-01ed18897a4aadead', 'N'),
+(101, 'IMAGE', 'ami-08897d0fb0884d4de', 'N'),
+(101, 'IMAGE_ID', 'ami-08897d0fb0884d4de', 'N'),
 (101, 'SPEC', 'aws+ap-northeast-2+m8i.large', 'N'),
 (101, 'SPEC_ID', 'aws+ap-northeast-2+m8i.large', 'N'),
 (101, 'SSH_HOST', '', 'N'),
@@ -5094,32 +5094,32 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (102, 'ALIBABA_CONNECTION_NAME', 'alibaba-ap-northeast-2', 'N'),
 (102, 'ALIBABA_ZONE', 'ap-northeast-2a', 'N'),
 (102, 'ALIBABA_SPEC_ID', 'alibaba+ap-northeast-2+ecs.g9i.large', 'N'),
-(102, 'ALIBABA_IMAGE_ID', 'ubuntu_24_04_x64_20G_alibase_20260810.vhd', 'N'),
+(102, 'ALIBABA_IMAGE_ID', 'ubuntu_24_04_x64_20G_alibase_20260916.vhd', 'N'),
 (102, 'AWS_REGION', 'ap-northeast-2', 'N'),
 (102, 'AWS_CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
 (102, 'AWS_ZONE', 'ap-northeast-2a', 'N'),
 (102, 'AWS_SPEC_ID', 'aws+ap-northeast-2+m8i.large', 'N'),
-(102, 'AWS_IMAGE_ID', 'ami-01ed18897a4aadead', 'N'),
+(102, 'AWS_IMAGE_ID', 'ami-08897d0fb0884d4de', 'N'),
 (102, 'AZURE_REGION', 'koreacentral', 'N'),
 (102, 'AZURE_CONNECTION_NAME', 'azure-koreacentral', 'N'),
 (102, 'AZURE_ZONE', '1', 'N'),
 (102, 'AZURE_SPEC_ID', 'azure+koreacentral+Standard_D2s_v6', 'N'),
-(102, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-24_04-lts:minimal:24.04.202608100', 'N'),
+(102, 'AZURE_IMAGE_ID', 'Canonical:ubuntu-24_04-lts:minimal:24.04.202610210', 'N'),
 (102, 'GCP_REGION', 'asia-northeast3', 'N'),
 (102, 'GCP_CONNECTION_NAME', 'gcp-asia-northeast3', 'N'),
 (102, 'GCP_ZONE', 'asia-northeast3-a', 'N'),
 (102, 'GCP_SPEC_ID', 'gcp+asia-northeast3+n2-standard-2', 'N'),
-(102, 'GCP_IMAGE_ID', 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20260817', 'N'),
+(102, 'GCP_IMAGE_ID', 'https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-minimal-2404-noble-amd64-v20261028', 'N'),
 (102, 'IBM_REGION', 'jp-tok', 'N'),
 (102, 'IBM_CONNECTION_NAME', 'ibm-jp-tok', 'N'),
 (102, 'IBM_ZONE', 'jp-tok-1', 'N'),
 (102, 'IBM_SPEC_ID', 'ibm+jp-tok+bx2-2x8', 'N'),
-(102, 'IBM_IMAGE_ID', 'r022-9130f04e-631a-4e91-ae4c-b85d54621c24', 'N'),
+(102, 'IBM_IMAGE_ID', 'r022-c2825231-d13f-421b-863e-109010407fe1', 'N'),
 (102, 'KT_REGION', 'kr1', 'N'),
 (102, 'KT_CONNECTION_NAME', 'kt-kr1', 'N'),
 (102, 'KT_ZONE', 'DX-M1', 'N'),
 (102, 'KT_SPEC_ID', 'kt+kr1+2x8.itl', 'N'),
-(102, 'KT_IMAGE_ID', 'e55c5985-b420-4a19-8c92-aa3461cda86e', 'N'),
+(102, 'KT_IMAGE_ID', '56e47487-c6bb-4c7d-89f4-3bf4c294924c', 'N'),
 (102, 'NCP_REGION', 'kr', 'N'),
 (102, 'NCP_CONNECTION_NAME', 'ncp-kr', 'N'),
 (102, 'NCP_ZONE', 'KR-1', 'N'),
@@ -5321,8 +5321,8 @@ INSERT INTO workflow_param (workflow_idx, param_key, param_value, event_listener
 (109, 'REGION', 'ap-northeast-2', 'N'),
 (109, 'CONNECTION_NAME', 'aws-ap-northeast-2', 'N'),
 (109, 'ZONE', 'ap-northeast-2a', 'N'),
-(109, 'IMAGE', 'ami-01ed18897a4aadead', 'N'),
-(109, 'IMAGE_ID', 'ami-01ed18897a4aadead', 'N'),
+(109, 'IMAGE', 'ami-08897d0fb0884d4de', 'N'),
+(109, 'IMAGE_ID', 'ami-08897d0fb0884d4de', 'N'),
 (109, 'SPEC', 'aws+ap-northeast-2+m8i.large', 'N'),
 (109, 'SPEC_ID', 'aws+ap-northeast-2+m8i.large', 'N'),
 (109, 'SSH_HOST', '', 'N'),
