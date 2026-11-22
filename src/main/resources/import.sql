@@ -639,6 +639,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     if (params.ZONE) {
                         nodeGroup.zone = params.ZONE
                     }
+                    if (diskProvider.equalsIgnoreCase("kt")) {
+                        nodeGroup.initScript = [mode: "none"]
+                    }
                     payload = groovy.json.JsonOutput.toJson([
                         name: params.INFRA_ID,
                         description: params.INFRA_DESC ?: "Workflow created infra",
@@ -1032,6 +1035,9 @@ INSERT INTO workflow_stage (workflow_stage_idx, workflow_stage_type_idx, workflo
                     }
                     if (zone) {
                         nodeGroup.zone = zone
+                    }
+                    if (csp.equalsIgnoreCase("kt")) {
+                        nodeGroup.initScript = [mode: "none"]
                     }
 
                     nodeGroups << nodeGroup
@@ -4709,6 +4715,9 @@ pipeline {
                         }
                         if (zone) {
                             nodeGroup.zone = zone
+                        }
+                        if (csp.equalsIgnoreCase("kt")) {
+                            nodeGroup.initScript = [mode: "none"]
                         }
 
                         nodeGroups << nodeGroup
